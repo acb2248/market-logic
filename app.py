@@ -89,8 +89,13 @@ ANALYSIS_FILE = "market_view.txt"
 # 사이드바: 관리자 통제실
 with st.sidebar:
     st.header("🛠 관리자 모드")
-    api_key = st.text_input("OpenAI API Key", type="password")
-    
+    # 1. 금고(Secrets)에 키가 있는지 먼저 확인
+    if "openai_api_key" in st.secrets:
+        api_key = st.secrets["openai_api_key"]
+        st.success("🔐 API 키가 자동 로드되었습니다!")
+    else:
+        # 2. 금고에 없으면 직접 입력받기 (기존 방식)
+        api_key = st.text_input("OpenAI API Key", type="password")    
     if st.button("🚀 AI 분석 실행 (비용 발생)"):
         if not api_key:
             st.error("API 키를 입력해주세요!")
