@@ -1,162 +1,184 @@
 import streamlit as st
+import pandas_datareader.data as web
+import datetime
+import openai
 import yfinance as yf
-import os
-from openai import OpenAI
 
-# 1. 페이지 기본 설정
-st.set_page_config(page_title="Market Logic", layout="wide")
+# -----------------------------------------------------------------------------
+# 1. 기본 설정
+# -----------------------------------------------------------------------------
+st.set_page_config(page_title="Market Logic: The Secrets", page_icon="📊", layout="wide")
 
-st.title("📊 Market Logic: 지표와 연결고리")
-st.markdown("### '결과'가 아니라 '원인'을 봅니다.")
-
-# 2. 데이터 가져오기 (미국 10년물 국채 금리 + 원/달러 환율)
-# 캐싱을 통해 데이터 로딩 속도를 높입니다.
-@st.cache_data
-def get_bond_data():
-    ticker = "^TNX"  # 미국 10년물 국채 금리 티커
-    data = yf.download(ticker, period="1y")
-    return data
-
-@st.cache_data
-def get_exchange_rate_data():
-    ticker = "KRW=X"  # 원/달러 환율 티커
-    data = yf.download(ticker, period="1y")
-    return data
-
-# 변수 초기화
-bond_data = None
-exchange_data = None
-current_rate = None
-rate_change = None
-current_exchange = None
-exchange_change = None
-
-# 금리 데이터 가져오기
-try:
-    bond_data = get_bond_data()
-    
-    # 금리 최신 데이터 추출
-    current_rate = bond_data['Close'].iloc[-1].item()
-    prev_rate = bond_data['Close'].iloc[-2].item()
-    rate_change = current_rate - prev_rate
-    
-    # 3. 메인 화면 구성 - 금리 섹션
-    st.subheader("🇺🇸 미국 10년물 국채 금리 추이")
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        st.line_chart(bond_data['Close'])
-    
-    with col2:
-        st.metric(label="현재 금리", value=f"{current_rate:.3f}%", delta=f"{rate_change:.3f}%")
-        st.info("💡 금리는 모든 자산 가격의 중력입니다.")
-
-except Exception as e:
-    st.error(f"금리 데이터를 가져오는 중 오류가 발생했습니다: {e}")
-
+st.title("📊 Market Logic: 경제지표의 비밀")
+st.markdown("### 🔍 '시장 예상(Consensus)'과 '근원(Core)'을 꿰뚫어보다")
 st.divider()
 
-# 환율 데이터 가져오기
-try:
-    exchange_data = get_exchange_rate_data()
-    
-    # 환율 최신 데이터 추출
-    current_exchange = exchange_data['Close'].iloc[-1].item()
-    prev_exchange = exchange_data['Close'].iloc[-2].item()
-    exchange_change = current_exchange - prev_exchange
-    
-    st.subheader("💱 원/달러 환율 추이 (티커: KRW=X)")
-    col3, col4 = st.columns([3, 1])
-    
-    with col3:
-        st.line_chart(exchange_data['Close'])
-    
-    with col4:
-        st.metric(label="현재 환율", value=f"{current_exchange:.2f}원", delta=f"{exchange_change:.2f}원")
-        st.info("💡 환율은 자금 흐름의 방향을 보여줍니다.")
-        
-except Exception as e:
-    st.error(f"환율 데이터를 가져오는 중 오류가 발생했습니다: {e}")
-
-st.divider()
-
-# 4. AI 분석 섹션 (사이드바 관리자 모드 + 비용 절감 캐싱)
-st.subheader("🤖 AI Market Analyst의 해설")
-
-# 분석 파일 경로
-ANALYSIS_FILE = "market_view.txt"
-
-# 사이드바: 관리자 통제실
+# -----------------------------------------------------------------------------
+# 2. 사이드바 & API 키
+# -----------------------------------------------------------------------------
 with st.sidebar:
     st.header("🛠 관리자 모드")
-    # 1. 금고(Secrets)에 키가 있는지 먼저 확인
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
-        st.success("🔐 API 키가 자동 로드되었습니다!")
+        st.success("🔐 API 키 로드 완료")
     else:
-        # 2. 금고에 없으면 직접 입력받기 (기존 방식)
-        api_key = st.text_input("OpenAI API Key", type="password")    
-    if st.button("🚀 AI 분석 실행 (비용 발생)"):
-        if not api_key:
-            st.error("API 키를 입력해주세요!")
-        elif current_rate is None:
-            st.error("금리 데이터를 먼저 불러와주세요!")
-        else:
-            try:
-                # OpenAI 클라이언트 연결
-                client = OpenAI(api_key=api_key)
-                
-                # 환율 정보 포함 여부 확인
-                exchange_info = ""
-                if current_exchange is not None and exchange_change is not None:
-                    exchange_info = f"\n- 원/달러 환율: {current_exchange:.2f}원 (전일 대비 {exchange_change:+.2f}원)"
-                
-                # 프롬프트: 버너드 보몰의 논리 주입 + 마크다운 구조화
-                prompt = f"""
-                현재 시장 지표:
-                - 미국 10년물 국채 금리: {current_rate:.3f}% (전일 대비 {rate_change:+.3f}%){exchange_info}
-                
-                이 데이터를 바탕으로 투자자들에게 시장 상황을 설명해줘.
-                반드시 '버너드 보몰'의 경제지표 해석 논리(연결고리)를 따라야 해.
-                
-                [출력 형식 - 반드시 이 형식으로 작성해줘]
-                * **📊 시장 진단:** (현재 상황 한 줄 요약)
-                * **🔗 연결 고리:** (금리와 환율이 서로 미치는 영향 설명)
-                * **💡 투자 전략:** (그래서 주식을 살지 팔지 구체적인 조언)
-                
-                [논리 구조]
-                1. 금리 변동의 의미 (기업 자금 조달 비용, 주택 담보 대출 등)
-                2. 주식 시장 영향 (특히 기술주/성장주 밸류에이션 압박 여부)
-                3. 외환 시장 영향 (달러 강세/약세와 외국인 자금 흐름)
-                4. 금리와 환율의 상호작용 (자금 흐름, 외국인 투자 등)
-                
-                [톤앤매너]
-                - 말투: 쉽고 친절한 경제 과외 선생님 (비전공자도 이해하기 쉽게)
-                - 각 항목은 2-3줄 정도로 핵심만 요약
-                - 마크다운 글머리 기호 형식을 정확히 지켜줘
-                """
-                
-                with st.spinner("AI가 시장을 분석 중입니다..."):
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini", # 가성비 모델 사용
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    analysis_text = response.choices[0].message.content
-                    
-                    # 결과를 파일로 저장 (캐싱)
-                    with open(ANALYSIS_FILE, "w", encoding="utf-8") as f:
-                        f.write(analysis_text)
-                    
-                st.success("분석 완료! 내용이 갱신되었습니다.")
-                st.rerun() # 화면 새로고침
-                
-            except Exception as e:
-                st.error(f"분석 실패: {e}")
+        api_key = st.text_input("OpenAI API Key", type="password")
+    
+    st.info("📚 **버너드 보몰의 조언**\n\n"
+            "1️⃣ **시장 반응:** 절대 수치보다 '예상 밖의 쇼크'에 반응한다.\n"
+            "2️⃣ **Core CPI:** 연준은 변동성이 큰 에너지/식품을 뺀 '근원 물가'를 본다.")
 
-# 메인 화면: 저장된 분석 내용 보여주기 (비용 0원)
-if os.path.exists(ANALYSIS_FILE):
-    with open(ANALYSIS_FILE, "r", encoding="utf-8") as f:
-        saved_analysis = f.read()
-    st.markdown(saved_analysis)
+# -----------------------------------------------------------------------------
+# 3. 데이터 가져오기 함수 (안전장치 추가됨 ⭐)
+# -----------------------------------------------------------------------------
+@st.cache_data
+def get_fred_data(symbol):
+    try:
+        end = datetime.datetime.now()
+        start = end - datetime.timedelta(days=700)
+        df = web.DataReader(symbol, 'fred', start, end)
+        
+        # 데이터가 비어있는지 확인
+        if df is None or df.empty or len(df) < 2:
+            return None, None, None, None
+            
+        latest = df.iloc[-1, 0]
+        prev = df.iloc[-2, 0]
+        change = latest - prev
+        date = df.index[-1].strftime('%Y-%m')
+        
+        return latest, change, date, df
+    except:
+        return None, None, None, None
+
+@st.cache_data
+def get_yahoo_data(symbol):
+    try:
+        data = yf.Ticker(symbol).history(period="1y")
+        
+        # [수정된 부분] 데이터가 없거나 너무 적으면 안전하게 종료
+        if data.empty or len(data) < 2:
+            return None, None, None
+            
+        current = data['Close'].iloc[-1]
+        prev = data['Close'].iloc[-2]
+        change = current - prev
+        return data, current, change
+    except:
+        return None, None, None
+
+# -----------------------------------------------------------------------------
+# 4. 데이터 로딩 실행
+# -----------------------------------------------------------------------------
+# 1. 시장 데이터 (매일 변함)
+rate_data, rate_val, rate_chg = get_yahoo_data("^TNX")   # 국채 10년물
+exch_data, exch_val, exch_chg = get_yahoo_data("KRW=X")  # 원달러 환율
+
+# 2. 경제 기초 체력 (월간 발표)
+cpi_val, cpi_chg, cpi_date, cpi_data = get_fred_data("CPIAUCSL")     # 전체 CPI
+core_val, core_chg, core_date, core_data = get_fred_data("CPILFESL") # 근원 CPI
+unemp_val, unemp_chg, unemp_date, unemp_data = get_fred_data("UNRATE") # 실업률
+
+# -----------------------------------------------------------------------------
+# 5. 대시보드 레이아웃 (3단 구성)
+# -----------------------------------------------------------------------------
+
+# [1단] 시장의 속도 (금리 & 환율)
+col1, col2 = st.columns(2)
+with col1:
+    st.subheader("1️⃣ 미국 10년물 국채 금리")
+    if rate_val is not None:
+        st.metric("수익률", f"{rate_val:.3f}%", f"{rate_chg:.3f}%")
+        st.line_chart(rate_data['Close'], color="#FF4B4B")
+    else:
+        st.warning("⚠️ 금리 데이터를 가져오지 못했습니다. (일시적 오류)")
+
+with col2:
+    st.subheader("2️⃣ 원/달러 환율")
+    if exch_val is not None:
+        st.metric("환율", f"{exch_val:.2f}원", f"{exch_chg:.2f}원")
+        st.line_chart(exch_data['Close'], color="#4B4BFF")
+    else:
+        st.warning("⚠️ 환율 데이터를 가져오지 못했습니다.")
+
+st.divider()
+
+# [2단] 물가 심층 분석 (헤드라인 vs Core)
+st.markdown("### 🛒 인플레이션 심층 분석 (Headline vs Core)")
+col3, col4 = st.columns(2)
+
+with col3:
+    st.subheader("3️⃣ 전체 소비자 물가 (Headline)")
+    if cpi_val is not None:
+        st.caption("체감 물가 (에너지/식품 포함)")
+        st.metric(f"CPI 지수 ({cpi_date})", f"{cpi_val:.1f}", f"{cpi_chg:+.1f}")
+        st.area_chart(cpi_data, color="#FFA500", height=150)
+    else:
+        st.error("CPI 데이터 로딩 실패")
+
+with col4:
+    st.subheader("4️⃣ 근원 소비자 물가 (Core) ⭐")
+    if core_val is not None:
+        st.caption("연준의 기준 (에너지/식품 제외)")
+        st.metric(f"Core CPI ({core_date})", f"{core_val:.1f}", f"{core_chg:+.1f}")
+        st.area_chart(core_data, color="#800080", height=150)
+    else:
+        st.error("Core CPI 데이터 로딩 실패")
+
+st.divider()
+
+# [3단] 경기와 고용
+st.subheader("5️⃣ 실업률 (Unemployment)")
+if unemp_val is not None:
+    col5, col6 = st.columns([1, 3])
+    with col5:
+        st.metric(f"실업률 ({unemp_date})", f"{unemp_val:.1f}%", f"{unemp_chg:+.1f}%")
+    with col6:
+        st.bar_chart(unemp_data, color="#008000", height=150)
 else:
-    st.warning("아직 생성된 분석 리포트가 없습니다. 사이드바에서 분석을 실행해주세요.")
+    st.error("실업률 데이터 로딩 실패")
+
+# -----------------------------------------------------------------------------
+# 6. AI 고도화 분석
+# -----------------------------------------------------------------------------
+st.divider()
+st.subheader("🤖 버너드 보몰의 심층 리포트")
+
+if st.button("🚀 Core CPI & 컨센서스 기반 분석 실행"):
+    if not api_key:
+        st.warning("API 키를 확인해주세요.")
+    else:
+        try:
+            # 데이터가 없는 경우를 대비해 기본값 처리
+            safe_rate = rate_val if rate_val else 0.0
+            safe_exch = exch_val if exch_val else 0.0
+            safe_cpi = cpi_val if cpi_val else 0.0
+            safe_core = core_val if core_val else 0.0
+            safe_unemp = unemp_val if unemp_val else 0.0
+            
+            client = openai.OpenAI(api_key=api_key)
+            prompt = f"""
+            당신은 '경제지표의 비밀' 저자 버너드 보몰입니다.
+            제공된 데이터를 바탕으로 월가 스타일의 분석 보고서를 작성하세요.
+
+            [현재 데이터]
+            1. 국채금리: {safe_rate:.2f}%
+            2. 환율: {safe_exch:.1f}원
+            3. 전체 CPI: {safe_cpi}
+            4. 근원(Core) CPI: {safe_core}
+            5. 실업률: {safe_unemp}%
+
+            [필수 분석 항목]
+            1. **Core CPI 분석:** 전체 물가와 근원 물가의 차이를 보고, 인플레이션의 성격(일시적 vs 구조적)을 진단하세요.
+            2. **컨센서스 관점:** 최근 시장이 우려하는 시나리오와 현재 수치가 부합하는지 추론해 주세요.
+            3. **투자 전략:** 이 상황에서 연준이 금리를 올릴 명분이 강합니까, 내릴 명분이 강합니까? 이에 따른 주식 비중 조절 전략을 제시하세요.
+            """
+            
+            with st.spinner("AI가 근원 물가와 시장 기대치를 분석 중입니다..."):
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                st.markdown(response.choices[0].message.content)
+        except Exception as e:
+            st.error(f"오류 발생: {e}")
