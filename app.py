@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas_datareader.data as web
+import FinanceDataReader as fdr  # 새로운 도구!
 import datetime
 import openai
 import yfinance as yf
@@ -29,16 +29,19 @@ with st.sidebar:
             "2️⃣ **Core CPI:** 연준은 변동성이 큰 에너지/식품을 뺀 '근원 물가'를 본다.")
 
 # -----------------------------------------------------------------------------
-# 3. 데이터 가져오기 함수 (안전장치 추가됨 ⭐)
+# 3. 데이터 가져오기 함수 (FDR로 교체됨 ⭐)
 # -----------------------------------------------------------------------------
 @st.cache_data
 def get_fred_data(symbol):
     try:
+        # 최근 2년치 데이터 가져오기
         end = datetime.datetime.now()
-        start = end - datetime.timedelta(days=700)
-        df = web.DataReader(symbol, 'fred', start, end)
+        start = end - datetime.timedelta(days=730)
         
-        # 데이터가 비어있는지 확인
+        # FinanceDataReader를 사용하여 FRED 데이터 호출
+        df = fdr.DataReader(symbol, data_source='fred', start=start)
+        
+        # 데이터 유효성 검사
         if df is None or df.empty or len(df) < 2:
             return None, None, None, None
             
@@ -48,7 +51,7 @@ def get_fred_data(symbol):
         date = df.index[-1].strftime('%Y-%m')
         
         return latest, change, date, df
-    except:
+    except Exception as e:
         return None, None, None, None
 
 @st.cache_data
@@ -56,7 +59,6 @@ def get_yahoo_data(symbol):
     try:
         data = yf.Ticker(symbol).history(period="1y")
         
-        # [수정된 부분] 데이터가 없거나 너무 적으면 안전하게 종료
         if data.empty or len(data) < 2:
             return None, None, None
             
@@ -70,20 +72,20 @@ def get_yahoo_data(symbol):
 # -----------------------------------------------------------------------------
 # 4. 데이터 로딩 실행
 # -----------------------------------------------------------------------------
-# 1. 시장 데이터 (매일 변함)
+# 1. 시장 데이터 (야후 파이낸스)
 rate_data, rate_val, rate_chg = get_yahoo_data("^TNX")   # 국채 10년물
 exch_data, exch_val, exch_chg = get_yahoo_data("KRW=X")  # 원달러 환율
 
-# 2. 경제 기초 체력 (월간 발표)
+# 2. 경제 기초 체력 (FRED via FinanceDataReader)
 cpi_val, cpi_chg, cpi_date, cpi_data = get_fred_data("CPIAUCSL")     # 전체 CPI
 core_val, core_chg, core_date, core_data = get_fred_data("CPILFESL") # 근원 CPI
 unemp_val, unemp_chg, unemp_date, unemp_data = get_fred_data("UNRATE") # 실업률
 
 # -----------------------------------------------------------------------------
-# 5. 대시보드 레이아웃 (3단 구성)
+# 5. 대시보드 레이아웃
 # -----------------------------------------------------------------------------
 
-# [1단] 시장의 속도 (금리 & 환율)
+# [1단] 시장의 속도
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("1️⃣ 미국 10년물 국채 금리")
@@ -91,7 +93,7 @@ with col1:
         st.metric("수익률", f"{rate_val:.3f}%", f"{rate_chg:.3f}%")
         st.line_chart(rate_data['Close'], color="#FF4B4B")
     else:
-        st.warning("⚠️ 금리 데이터를 가져오지 못했습니다. (일시적 오류)")
+        st.warning("⚠️ 금리 데이터 로딩 실패")
 
 with col2:
     st.subheader("2️⃣ 원/달러 환율")
@@ -99,11 +101,11 @@ with col2:
         st.metric("환율", f"{exch_val:.2f}원", f"{exch_chg:.2f}원")
         st.line_chart(exch_data['Close'], color="#4B4BFF")
     else:
-        st.warning("⚠️ 환율 데이터를 가져오지 못했습니다.")
+        st.warning("⚠️ 환율 데이터 로딩 실패")
 
 st.divider()
 
-# [2단] 물가 심층 분석 (헤드라인 vs Core)
+# [2단] 물가 심층 분석
 st.markdown("### 🛒 인플레이션 심층 분석 (Headline vs Core)")
 col3, col4 = st.columns(2)
 
@@ -114,7 +116,7 @@ with col3:
         st.metric(f"CPI 지수 ({cpi_date})", f"{cpi_val:.1f}", f"{cpi_chg:+.1f}")
         st.area_chart(cpi_data, color="#FFA500", height=150)
     else:
-        st.error("CPI 데이터 로딩 실패")
+        st.error("데이터를 불러올 수 없습니다.")
 
 with col4:
     st.subheader("4️⃣ 근원 소비자 물가 (Core) ⭐")
@@ -123,7 +125,7 @@ with col4:
         st.metric(f"Core CPI ({core_date})", f"{core_val:.1f}", f"{core_chg:+.1f}")
         st.area_chart(core_data, color="#800080", height=150)
     else:
-        st.error("Core CPI 데이터 로딩 실패")
+        st.error("데이터를 불러올 수 없습니다.")
 
 st.divider()
 
@@ -136,10 +138,10 @@ if unemp_val is not None:
     with col6:
         st.bar_chart(unemp_data, color="#008000", height=150)
 else:
-    st.error("실업률 데이터 로딩 실패")
+    st.error("실업률 데이터를 불러올 수 없습니다.")
 
 # -----------------------------------------------------------------------------
-# 6. AI 고도화 분석
+# 6. AI 분석
 # -----------------------------------------------------------------------------
 st.divider()
 st.subheader("🤖 버너드 보몰의 심층 리포트")
@@ -149,7 +151,7 @@ if st.button("🚀 Core CPI & 컨센서스 기반 분석 실행"):
         st.warning("API 키를 확인해주세요.")
     else:
         try:
-            # 데이터가 없는 경우를 대비해 기본값 처리
+            # 안전한 값 처리
             safe_rate = rate_val if rate_val else 0.0
             safe_exch = exch_val if exch_val else 0.0
             safe_cpi = cpi_val if cpi_val else 0.0
@@ -168,13 +170,13 @@ if st.button("🚀 Core CPI & 컨센서스 기반 분석 실행"):
             4. 근원(Core) CPI: {safe_core}
             5. 실업률: {safe_unemp}%
 
-            [필수 분석 항목]
+            [분석 요청]
             1. **Core CPI 분석:** 전체 물가와 근원 물가의 차이를 보고, 인플레이션의 성격(일시적 vs 구조적)을 진단하세요.
-            2. **컨센서스 관점:** 최근 시장이 우려하는 시나리오와 현재 수치가 부합하는지 추론해 주세요.
-            3. **투자 전략:** 이 상황에서 연준이 금리를 올릴 명분이 강합니까, 내릴 명분이 강합니까? 이에 따른 주식 비중 조절 전략을 제시하세요.
+            2. **컨센서스 관점:** 시장의 예상과 현재 수치가 부합하는지 추론해 주세요.
+            3. **투자 전략:** 연준의 금리 향방과 주식 비중 조절 전략을 제시하세요.
             """
             
-            with st.spinner("AI가 근원 물가와 시장 기대치를 분석 중입니다..."):
+            with st.spinner("AI가 분석 중입니다..."):
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=[{"role": "user", "content": prompt}]
