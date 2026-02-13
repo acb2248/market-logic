@@ -1,8 +1,7 @@
 import streamlit as st
-import FinanceDataReader as fdr  # 새로운 도구!
+import FinanceDataReader as fdr
 import datetime
 import openai
-import yfinance as yf
 
 # -----------------------------------------------------------------------------
 # 1. 기본 설정
@@ -11,6 +10,7 @@ st.set_page_config(page_title="Market Logic: The Secrets", page_icon="📊", lay
 
 st.title("📊 Market Logic: 경제지표의 비밀")
 st.markdown("### 🔍 '시장 예상(Consensus)'과 '근원(Core)'을 꿰뚫어보다")
+st.caption("데이터 출처: 미국 연준 경제데이터(FRED) - 가장 신뢰할 수 있는 공식 데이터")
 st.divider()
 
 # -----------------------------------------------------------------------------
@@ -29,57 +29,46 @@ with st.sidebar:
             "2️⃣ **Core CPI:** 연준은 변동성이 큰 에너지/식품을 뺀 '근원 물가'를 본다.")
 
 # -----------------------------------------------------------------------------
-# 3. 데이터 가져오기 함수 (FDR로 교체됨 ⭐)
+# 3. 데이터 가져오기 함수 (FRED로 대통합)
 # -----------------------------------------------------------------------------
 @st.cache_data
-def get_fred_data(symbol):
+def get_data_from_fred(symbol, name):
     try:
-        # 최근 2년치 데이터 가져오기
+        # 최근 2년치 데이터
         end = datetime.datetime.now()
         start = end - datetime.timedelta(days=730)
         
-        # FinanceDataReader를 사용하여 FRED 데이터 호출
+        # FRED 데이터 호출
         df = fdr.DataReader(symbol, data_source='fred', start=start)
         
-        # 데이터 유효성 검사
-        if df is None or df.empty or len(df) < 2:
-            return None, None, None, None
+        # 데이터가 비어있는지 체크
+        if df is None or df.empty:
+            return None, None, None, None, "데이터 없음"
             
         latest = df.iloc[-1, 0]
         prev = df.iloc[-2, 0]
         change = latest - prev
-        date = df.index[-1].strftime('%Y-%m')
+        date = df.index[-1].strftime('%Y-%m-%d')
         
-        return latest, change, date, df
+        return latest, change, date, df, None
+        
     except Exception as e:
-        return None, None, None, None
-
-@st.cache_data
-def get_yahoo_data(symbol):
-    try:
-        data = yf.Ticker(symbol).history(period="1y")
-        
-        if data.empty or len(data) < 2:
-            return None, None, None
-            
-        current = data['Close'].iloc[-1]
-        prev = data['Close'].iloc[-2]
-        change = current - prev
-        return data, current, change
-    except:
-        return None, None, None
+        # 에러가 나면 무슨 에러인지 반환 (디버깅용)
+        return None, None, None, None, str(e)
 
 # -----------------------------------------------------------------------------
-# 4. 데이터 로딩 실행
+# 4. 데이터 로딩 (모두 FRED 코드로 변경)
 # -----------------------------------------------------------------------------
-# 1. 시장 데이터 (야후 파이낸스)
-rate_data, rate_val, rate_chg = get_yahoo_data("^TNX")   # 국채 10년물
-exch_data, exch_val, exch_chg = get_yahoo_data("KRW=X")  # 원달러 환율
+# 1. 금리 (DGS10: 미 10년물 국채 수익률)
+rate_val, rate_chg, rate_date, rate_data, rate_err = get_data_from_fred("DGS10", "금리")
 
-# 2. 경제 기초 체력 (FRED via FinanceDataReader)
-cpi_val, cpi_chg, cpi_date, cpi_data = get_fred_data("CPIAUCSL")     # 전체 CPI
-core_val, core_chg, core_date, core_data = get_fred_data("CPILFESL") # 근원 CPI
-unemp_val, unemp_chg, unemp_date, unemp_data = get_fred_data("UNRATE") # 실업률
+# 2. 환율 (DEXKOUS: 원/달러 환율 - Daily)
+exch_val, exch_chg, exch_date, exch_data, exch_err = get_data_from_fred("DEXKOUS", "환율")
+
+# 3. 물가 & 고용
+cpi_val, cpi_chg, cpi_date, cpi_data, cpi_err = get_data_from_fred("CPIAUCSL", "전체CPI")
+core_val, core_chg, core_date, core_data, core_err = get_data_from_fred("CPILFESL", "근원CPI")
+unemp_val, unemp_chg, unemp_date, unemp_data, unemp_err = get_data_from_fred("UNRATE", "실업률")
 
 # -----------------------------------------------------------------------------
 # 5. 대시보드 레이아웃
@@ -90,18 +79,18 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("1️⃣ 미국 10년물 국채 금리")
     if rate_val is not None:
-        st.metric("수익률", f"{rate_val:.3f}%", f"{rate_chg:.3f}%")
-        st.line_chart(rate_data['Close'], color="#FF4B4B")
+        st.metric(f"수익률 ({rate_date})", f"{rate_val:.2f}%", f"{rate_chg:+.2f}%")
+        st.line_chart(rate_data, color="#FF4B4B")
     else:
-        st.warning("⚠️ 금리 데이터 로딩 실패")
+        st.error(f"⚠️ 데이터 로딩 실패: {rate_err}")
 
 with col2:
     st.subheader("2️⃣ 원/달러 환율")
     if exch_val is not None:
-        st.metric("환율", f"{exch_val:.2f}원", f"{exch_chg:.2f}원")
-        st.line_chart(exch_data['Close'], color="#4B4BFF")
+        st.metric(f"환율 ({exch_date})", f"{exch_val:.2f}원", f"{exch_chg:+.2f}원")
+        st.line_chart(exch_data, color="#4B4BFF")
     else:
-        st.warning("⚠️ 환율 데이터 로딩 실패")
+        st.error(f"⚠️ 데이터 로딩 실패: {exch_err}")
 
 st.divider()
 
@@ -112,20 +101,18 @@ col3, col4 = st.columns(2)
 with col3:
     st.subheader("3️⃣ 전체 소비자 물가 (Headline)")
     if cpi_val is not None:
-        st.caption("체감 물가 (에너지/식품 포함)")
         st.metric(f"CPI 지수 ({cpi_date})", f"{cpi_val:.1f}", f"{cpi_chg:+.1f}")
         st.area_chart(cpi_data, color="#FFA500", height=150)
     else:
-        st.error("데이터를 불러올 수 없습니다.")
+        st.error(f"로딩 실패: {cpi_err}")
 
 with col4:
     st.subheader("4️⃣ 근원 소비자 물가 (Core) ⭐")
     if core_val is not None:
-        st.caption("연준의 기준 (에너지/식품 제외)")
         st.metric(f"Core CPI ({core_date})", f"{core_val:.1f}", f"{core_chg:+.1f}")
         st.area_chart(core_data, color="#800080", height=150)
     else:
-        st.error("데이터를 불러올 수 없습니다.")
+        st.error(f"로딩 실패: {core_err}")
 
 st.divider()
 
@@ -138,7 +125,7 @@ if unemp_val is not None:
     with col6:
         st.bar_chart(unemp_data, color="#008000", height=150)
 else:
-    st.error("실업률 데이터를 불러올 수 없습니다.")
+    st.error(f"로딩 실패: {unemp_err}")
 
 # -----------------------------------------------------------------------------
 # 6. AI 분석
@@ -161,9 +148,8 @@ if st.button("🚀 Core CPI & 컨센서스 기반 분석 실행"):
             client = openai.OpenAI(api_key=api_key)
             prompt = f"""
             당신은 '경제지표의 비밀' 저자 버너드 보몰입니다.
-            제공된 데이터를 바탕으로 월가 스타일의 분석 보고서를 작성하세요.
-
-            [현재 데이터]
+            
+            [현재 데이터 - FRED 기준]
             1. 국채금리: {safe_rate:.2f}%
             2. 환율: {safe_exch:.1f}원
             3. 전체 CPI: {safe_cpi}
