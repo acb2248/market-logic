@@ -3,7 +3,7 @@ import pandas as pd
 import openai
 import yfinance as yf
 import requests
-import altair as alt # ✨ 새로운 차트 엔진
+import altair as alt
 from io import StringIO
 import time
 
@@ -17,13 +17,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS (카드 디자인 + 폰트)
+# 커스텀 CSS
 st.markdown("""
     <style>
-    /* 전체 배경 및 폰트 */
     .stApp { background-color: #f8f9fa; }
-    
-    /* 메트릭 카드 디자인 */
     div[data-testid="metric-container"] {
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
@@ -36,20 +33,11 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    
-    /* 탭 디자인 */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; }
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: #ffffff;
-        border-radius: 5px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        font-weight: 600;
+        height: 50px; background-color: #ffffff; border-radius: 5px; font-weight: 600;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #e3f2fd;
-        color: #1976d2;
-    }
+    .stTabs [aria-selected="true"] { background-color: #e3f2fd; color: #1976d2; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -58,25 +46,33 @@ st.markdown("### '원인(Logic)'을 분석하여 '결과(Market)'를 예측합�
 st.caption("Updated: Real-time & Official Data Source")
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바 (설정)
+# 2. 사이드바
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.header("🛠 설정")
+    
+    # 리셋 버튼 (누르면 앱이 새로고침되면서 차트 줌이 풀림)
+    if st.button("🔄 차트/데이터 초기화", type="primary"):
+        st.rerun()
+        
+    st.divider()
+    
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
         st.success("🔐 AI 엔진 준비 완료")
     else:
         api_key = st.text_input("OpenAI API Key", type="password")
     
-    st.info("💡 **차트 사용법**\n\n"
-            "• **확대/축소:** 마우스 휠\n"
+    st.info("💡 **차트 조작법**\n\n"
+            "• **확대:** 마우스 휠 굴리기\n"
             "• **이동:** 클릭 후 드래그\n"
-            "• **초기화:** 차트 더블 클릭")
+            "• **초기화:** 차트 바탕 **더블 클릭**")
 
 # -----------------------------------------------------------------------------
-# 3. 데이터 엔진 (Altair용 데이터 가공)
+# 3. 데이터 엔진 (하이브리드 & 안전장치 강화)
 # -----------------------------------------------------------------------------
 
+# (1) FRED 데이터 (공통 함수)
 @st.cache_data(ttl=3600)
 def get_fred_data(series_id, calculation_type='raw'):
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
@@ -90,16 +86,13 @@ def get_fred_data(series_id, calculation_type='raw'):
                 continue
 
             df = pd.read_csv(StringIO(response.text))
-            
-            # 날짜 처리
             date_col = next((c for c in df.columns if 'date' in c.lower()), None)
             if not date_col: return None, None, None, None
             
-            df = df.rename(columns={date_col: 'Date'}) # Altair를 위해 컬럼명 통일
+            df = df.rename(columns={date_col: 'Date'})
             df['Date'] = pd.to_datetime(df['Date'])
             df = df.set_index('Date').sort_index()
 
-            # 계산 로직 (YoY, Diff 등)
             if calculation_type == 'yoy':
                 df['Value'] = df.iloc[:, 0].pct_change(periods=12) * 100
             elif calculation_type == 'diff':
@@ -107,9 +100,7 @@ def get_fred_data(series_id, calculation_type='raw'):
             else:
                 df['Value'] = df.iloc[:, 0]
 
-            df = df.dropna().tail(24) # 최근 2년
-            
-            # Altair용으로 인덱스 리셋 (Date를 컬럼으로)
+            df = df.dropna().tail(24)
             chart_df = df.reset_index()
             
             latest = df['Value'].iloc[-1]
@@ -118,26 +109,24 @@ def get_fred_data(series_id, calculation_type='raw'):
             date = df.index[-1].strftime('%Y-%m')
             
             return latest, change, date, chart_df
-
         except:
             time.sleep(1)
             continue
     return None, None, None, None
 
+# (2) 야후 데이터
 @st.cache_data(ttl=3600)
 def get_yahoo_data(ticker):
     try:
         data = yf.Ticker(ticker).history(period="1y")
-        if not data.empty:
+        if not data.empty and len(data) > 1:
             current = data['Close'].iloc[-1]
             prev = data['Close'].iloc[-2]
             change = current - prev
             date = data.index[-1].strftime('%Y-%m-%d')
             
-            # Altair용 데이터 프레임 (Date 컬럼 생성)
             chart_df = data[['Close']].reset_index()
-            chart_df = chart_df.rename(columns={'Date': 'Date', 'Close': 'Value'})
-            # 야후 날짜가 timezone이 있는 경우가 있어 제거
+            chart_df.columns = ['Date', 'Value']
             chart_df['Date'] = chart_df['Date'].dt.tz_localize(None)
             
             return current, change, date, chart_df
@@ -145,115 +134,127 @@ def get_yahoo_data(ticker):
         pass
     return None, None, None, None
 
+# (3) ⭐ 하이브리드 금리 가져오기 (야후 실패시 FRED 자동 전환)
+def get_interest_rate_hybrid():
+    # 1차 시도: 야후 (^TNX)
+    res = get_yahoo_data("^TNX")
+    if res is not None:
+        return res
+    
+    # 2차 시도: FRED (DGS10) - 야후가 실패하면 여기로 옴
+    res = get_fred_data("DGS10", "raw")
+    if res is not None:
+        return res
+        
+    return None, None, None, None
+
 # -----------------------------------------------------------------------------
-# 4. 차트 그리기 함수 (Altair - 전문가용)
+# 4. 차트 그리기 (더블클릭 초기화 지원)
 # -----------------------------------------------------------------------------
 def create_chart(data, color, chart_type='line'):
     if data is None: return st.error("데이터 없음")
     
-    # 기본 차트 설정
     base = alt.Chart(data).encode(
-        x=alt.X('Date:T', axis=alt.Axis(format='%y-%m', title=None)), # 날짜 포맷
-        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Value', format=',.2f')] # 마우스 오버
+        x=alt.X('Date:T', axis=alt.Axis(format='%y-%m', title=None)),
+        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Value', format=',.2f')]
     )
 
     if chart_type == 'line':
         chart = base.mark_line(
-            interpolate='linear', # A안: 직선형 (뾰족함)
+            interpolate='linear', 
             strokeWidth=2,
             color=color
         ).encode(
-            # ⭐ 핵심: Y축 자동 스케일 (zero=False)
             y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None))
         )
-    else: # bar
+    else:
         chart = base.mark_bar(color=color).encode(
             y=alt.Y('Value:Q', axis=alt.Axis(title=None))
         )
 
-    # 줌/팬 기능 추가 (interactive)
     return st.altair_chart(chart.interactive(), use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# 5. 데이터 로딩
+# 5. 데이터 로딩 실행
 # -----------------------------------------------------------------------------
-# 1. Market Data
-rate_val, rate_chg, rate_date, rate_data = get_yahoo_data("^TNX")
-exch_val, exch_chg, exch_date, exch_data = get_yahoo_data("KRW=X")
+with st.spinner('데이터를 불러오는 중...'):
+    # 1. 금리 (하이브리드)
+    rate_val, rate_chg, rate_date, rate_data = get_interest_rate_hybrid()
+    
+    # 2. 환율
+    exch_val, exch_chg, exch_date, exch_data = get_yahoo_data("KRW=X")
 
-# 2. Economic Data
-cpi_val, cpi_chg, cpi_date, cpi_data = get_fred_data("CPIAUCSL", "yoy")
-core_val, core_chg, core_date, core_data = get_fred_data("CPILFESL", "yoy")
-job_val, job_chg, job_date, job_data = get_fred_data("PAYEMS", "diff")
-unemp_val, unemp_chg, unemp_date, unemp_data = get_fred_data("UNRATE", "raw")
+    # 3. 경제 지표 (FRED)
+    cpi_val, cpi_chg, cpi_date, cpi_data = get_fred_data("CPIAUCSL", "yoy")
+    core_val, core_chg, core_date, core_data = get_fred_data("CPILFESL", "yoy")
+    job_val, job_chg, job_date, job_data = get_fred_data("PAYEMS", "diff")
+    unemp_val, unemp_chg, unemp_date, unemp_data = get_fred_data("UNRATE", "raw")
 
 # -----------------------------------------------------------------------------
-# 6. UI 레이아웃 (Tabs)
+# 6. UI 레이아웃
 # -----------------------------------------------------------------------------
+st.info("💡 **Tip:** 차트를 확대/축소한 뒤 **'더블 클릭'**하면 원래대로 돌아옵니다!")
+
 tab1, tab2 = st.tabs(["📊 시장 대시보드", "🧠 AI 전략 리포트"])
 
 with tab1:
-    # 섹션 1: 시장 (Market)
     st.subheader("🌏 Market Trends (금리 & 환율)")
     col1, col2 = st.columns(2)
     
     with col1:
         if rate_val:
             st.metric("美 10년물 국채 금리", f"{rate_val:.3f}%", f"{rate_chg:.3f}%")
-            create_chart(rate_data, "#d32f2f") # 빨강
-        else: st.warning("Loading...")
+            create_chart(rate_data, "#d32f2f")
+        else: st.error("금리 데이터 로딩 실패 (Yahoo & FRED)")
             
     with col2:
         if exch_val:
             st.metric("원/달러 환율", f"{exch_val:.2f}원", f"{exch_chg:.2f}원")
-            create_chart(exch_data, "#1976d2") # 파랑
-        else: st.warning("Loading...")
+            create_chart(exch_data, "#1976d2")
+        else: st.error("환율 데이터 로딩 실패")
 
     st.divider()
 
-    # 섹션 2: 물가 (Inflation)
     st.subheader("🛒 Inflation (물가 상승률 YoY)")
     col3, col4 = st.columns(2)
     
     with col3:
         if cpi_val:
             st.metric(f"헤드라인 CPI ({cpi_date})", f"{cpi_val:.2f}%", f"{cpi_chg:.2f}%p")
-            create_chart(cpi_data, "#f57c00") # 주황
+            create_chart(cpi_data, "#f57c00")
         else: st.warning("Loading...")
 
     with col4:
         if core_val:
             st.metric(f"근원(Core) CPI ({core_date}) ⭐", f"{core_val:.2f}%", f"{core_chg:.2f}%p")
-            create_chart(core_data, "#7b1fa2") # 보라
+            create_chart(core_data, "#7b1fa2")
         else: st.warning("Loading...")
 
     st.divider()
 
-    # 섹션 3: 고용 (Jobs)
     st.subheader("🏗️ Job Market (고용 지표)")
     col5, col6 = st.columns(2)
     
     with col5:
         if job_val:
             st.metric(f"비농업 신규 고용 ({job_date})", f"{int(job_val)}k", f"{int(job_chg)}k")
-            create_chart(job_data, "#388e3c", "bar") # 초록 (막대 그래프가 적합)
+            create_chart(job_data, "#388e3c", "bar")
         else: st.warning("Loading...")
 
     with col6:
         if unemp_val:
             st.metric(f"실업률 ({unemp_date})", f"{unemp_val:.1f}%", f"{unemp_chg:.1f}%p")
-            create_chart(unemp_data, "#616161") # 회색
+            create_chart(unemp_data, "#616161")
         else: st.warning("Loading...")
 
 with tab2:
     st.header("🤖 버너드 보몰의 Insight")
-    st.info("💡 위 6가지 지표를 분석하여 '지금 당장' 취해야 할 포지션을 제안합니다.")
-    
     if st.button("🚀 AI 심층 분석 실행 (Click)", type="primary"):
         if not api_key:
             st.error("API 키가 필요합니다.")
         else:
             try:
+                # 데이터 안전 처리
                 s_rate = rate_val if rate_val else 0.0
                 s_exch = exch_val if exch_val else 0.0
                 s_cpi = cpi_val if cpi_val else 0.0
@@ -276,7 +277,6 @@ with tab2:
                 1. **Market Tone:** 현재 시장이 '긴축 공포' 구간인지 '경기 침체' 구간인지 진단.
                 2. **Fed Action:** 물가와 고용을 볼 때 연준의 다음 스텝(인상/동결/인하) 확률.
                 3. **Trade Call:** 주식(Buy/Sell/Hold), 채권(Buy/Sell), 달러(Buy/Sell) 명확히 제시.
-                4. **Risk:** 지금 가장 조심해야 할 변수 하나.
                 """
                 
                 with st.spinner("AI가 분석 중입니다..."):
