@@ -1,3 +1,5 @@
 streamlit
 yfinance
 openai
+pandas
+requests

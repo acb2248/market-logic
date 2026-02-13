@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import openai
 import yfinance as yf
+import requests
+from io import StringIO
 
 # -----------------------------------------------------------------------------
 # 1. 기본 설정
@@ -10,7 +12,7 @@ st.set_page_config(page_title="Market Logic: The Secrets", page_icon="📊", lay
 
 st.title("📊 Market Logic: 경제지표의 비밀")
 st.markdown("### 🔍 '시장 예상(Consensus)'과 '근원(Core)'을 꿰뚫어보다")
-st.caption("데이터 출처: Yahoo Finance(실시간) + FRED(공식 경제지표 직접 연동)")
+st.caption("데이터 출처: Yahoo Finance(환율) + FRED(금리, 물가, 고용 - 공식 데이터)")
 st.divider()
 
 # -----------------------------------------------------------------------------
@@ -29,10 +31,43 @@ with st.sidebar:
             "2️⃣ **Core CPI:** 연준은 변동성이 큰 에너지/식품을 뺀 '근원 물가'를 본다.")
 
 # -----------------------------------------------------------------------------
-# 3. 데이터 가져오기 (무적의 직거래 방식)
+# 3. 데이터 가져오기 (위장술 적용 ⭐)
 # -----------------------------------------------------------------------------
 
-# (1) 실시간 시장 데이터 (Yahoo Finance)
+# (1) FRED 데이터 가져오기 (사람인 척 위장)
+@st.cache_data
+def get_fred_data(series_id, name):
+    try:
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+        
+        # 🔑 핵심: 브라우저인 척 속이는 헤더(User-Agent) 추가
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, headers=headers)
+        
+        # 응답이 정상인지 확인
+        if response.status_code != 200:
+            return None, None, None, None, f"HTTP 에러: {response.status_code}"
+            
+        # 텍스트를 데이터프레임으로 변환
+        df = pd.read_csv(StringIO(response.text), index_col='DATE', parse_dates=True)
+        
+        # 최근 2년치만 자르기
+        df = df.sort_index().tail(24)
+        
+        latest = df.iloc[-1, 0]
+        prev = df.iloc[-2, 0]
+        change = latest - prev
+        date = df.index[-1].strftime('%Y-%m-%d')
+        
+        return latest, change, date, df, None
+        
+    except Exception as e:
+        return None, None, None, None, str(e)
+
+# (2) 야후 데이터 (환율용 - 잘 되니까 유지)
 @st.cache_data
 def get_yahoo_data(ticker):
     try:
@@ -47,40 +82,20 @@ def get_yahoo_data(ticker):
     except:
         return None, None, None, None
 
-# (2) 경제 지표 (FRED CSV 직접 다운로드 - 에러 없음!)
-@st.cache_data
-def get_fred_direct(series_id):
-    try:
-        # FRED 웹사이트에서 CSV 파일 직접 읽기 (가장 확실한 방법)
-        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
-        df = pd.read_csv(url, index_col='DATE', parse_dates=True)
-        
-        # 최근 2년치만 자르기
-        df = df.sort_index().tail(24)
-        
-        latest = df.iloc[-1, 0]
-        prev = df.iloc[-2, 0]
-        change = latest - prev
-        date = df.index[-1].strftime('%Y-%m')
-        
-        return latest, change, date, df
-    except Exception as e:
-        return None, None, None, str(e)
-
 # -----------------------------------------------------------------------------
 # 4. 데이터 로딩 실행
 # -----------------------------------------------------------------------------
 
-# 1. 야후 데이터 (티커 사용)
-# 미국 10년물 국채(^TNX), 원달러(KRW=X)
-rate_val, rate_chg, rate_date, rate_data = get_yahoo_data("^TNX")
+# 1. 금리 (이제 야후 버리고 FRED 'DGS10' 사용 - 훨씬 정확함)
+rate_val, rate_chg, rate_date, rate_data, rate_err = get_fred_data("DGS10", "금리")
+
+# 2. 환율 (야후가 잘 작동하므로 유지)
 exch_val, exch_chg, exch_date, exch_data = get_yahoo_data("KRW=X")
 
-# 2. FRED 데이터 (ID 사용)
-# CPIAUCSL(전체), CPILFESL(근원), UNRATE(실업률)
-cpi_val, cpi_chg, cpi_date, cpi_data = get_fred_direct("CPIAUCSL")
-core_val, core_chg, core_date, core_data = get_fred_direct("CPILFESL")
-unemp_val, unemp_chg, unemp_date, unemp_data = get_fred_direct("UNRATE")
+# 3. 경제 지표 (FRED + 위장술)
+cpi_val, cpi_chg, cpi_date, cpi_data, cpi_err = get_fred_data("CPIAUCSL", "전체CPI")
+core_val, core_chg, core_date, core_data, core_err = get_fred_data("CPILFESL", "근원CPI")
+unemp_val, unemp_chg, unemp_date, unemp_data, unemp_err = get_fred_data("UNRATE", "실업률")
 
 # -----------------------------------------------------------------------------
 # 5. 대시보드 레이아웃
@@ -92,9 +107,9 @@ with col1:
     st.subheader("1️⃣ 미국 10년물 국채 금리")
     if rate_val is not None:
         st.metric(f"수익률 ({rate_date})", f"{rate_val:.2f}%", f"{rate_chg:+.2f}%")
-        st.line_chart(rate_data['Close'], color="#FF4B4B")
+        st.line_chart(rate_data, color="#FF4B4B")
     else:
-        st.warning("⚠️ 금리 데이터 로딩 실패")
+        st.error(f"데이터 로딩 실패: {rate_err}")
 
 with col2:
     st.subheader("2️⃣ 원/달러 환율")
@@ -116,15 +131,15 @@ with col3:
         st.metric(f"CPI 지수 ({cpi_date})", f"{cpi_val:.1f}", f"{cpi_chg:+.1f}")
         st.area_chart(cpi_data, color="#FFA500", height=150)
     else:
-        st.error("데이터 로딩 실패")
+        st.error(f"로딩 실패: {cpi_err}")
 
 with col4:
     st.subheader("4️⃣ 근원 소비자 물가 (Core) ⭐")
     if core_val is not None:
         st.metric(f"Core CPI ({core_date})", f"{core_val:.1f}", f"{core_chg:+.1f}")
-        st.area_chart(core_data, color="#800080", height=150) # 보라색 강조
+        st.area_chart(core_data, color="#800080", height=150) # 보라색
     else:
-        st.error("데이터 로딩 실패")
+        st.error(f"로딩 실패: {core_err}")
 
 st.divider()
 
@@ -137,7 +152,7 @@ if unemp_val is not None:
     with col6:
         st.bar_chart(unemp_data, color="#008000", height=150)
 else:
-    st.error("데이터 로딩 실패")
+    st.error(f"로딩 실패: {unemp_err}")
 
 # -----------------------------------------------------------------------------
 # 6. AI 분석
