@@ -8,7 +8,7 @@ from io import StringIO
 import time
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정
+# 1. 페이지 설정 및 디자인 (화이트 & 네온 스타일)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Market Logic Pro", page_icon="🚥", layout="wide", initial_sidebar_state="collapsed")
 
@@ -22,29 +22,40 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 15px; border: 1px solid #eee;
     }
     
-    /* 신호등 박스 */
+    /* 신호등 박스 (다크 모드 탈피 -> 화이트 모던) */
     .signal-box {
-        background-color: #2b2b2b; color: white;
-        border-radius: 15px; padding: 15px; text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2); height: 100%;
+        background-color: white; 
+        border-radius: 15px; padding: 20px; text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08); height: 100%;
+        border: 1px solid #eee;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
     
+    /* 신호등 전구 */
     .light {
         width: 35px; height: 35px; border-radius: 50%;
-        background: #555; opacity: 0.3; margin: 5px; display: inline-block;
+        background: #e0e0e0; opacity: 0.3; margin: 5px; display: inline-block;
         transition: all 0.3s ease;
+        box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
     }
     
+    /* 활성화 효과 (네온 글로우) */
     .red.active { background: #ff4b4b; opacity: 1; box-shadow: 0 0 15px #ff4b4b; transform: scale(1.1); }
     .yellow.active { background: #ffca28; opacity: 1; box-shadow: 0 0 15px #ffca28; transform: scale(1.1); }
     .green.active { background: #00e676; opacity: 1; box-shadow: 0 0 15px #00e676; transform: scale(1.1); }
     
+    /* 코멘트 박스 */
     .comment-box {
-        background: #444; color: #ddd; padding: 10px; border-radius: 8px;
-        margin-top: 10px; font-size: 13px; text-align: left; line-height: 1.4; width: 100%;
+        background: #f1f3f5; color: #333; padding: 12px; border-radius: 8px;
+        margin-top: 15px; font-size: 13px; text-align: left; line-height: 1.5; width: 100%;
+        border-left: 4px solid #333;
     }
-    .sector-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #fff; }
+    .sector-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #333; }
+    
+    /* 리셋 버튼 스타일 미세 조정 */
+    div.stButton > button {
+        border-radius: 8px; border: 1px solid #ddd; background-color: white; font-size: 12px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -108,25 +119,36 @@ def get_interest_rate_hybrid():
     if res: return res
     return get_fred_data("DGS10", "raw")
 
-# ⭐ 차트 함수 복구 (안전한 방식)
+# ⭐ 차트 함수 수정 (에러 없는 안전한 방식)
 def create_chart(data, color):
     if data is None: return st.error("No Data")
     
+    # 1. 기본 차트 설정
     base = alt.Chart(data).encode(
         x=alt.X('Date:T', axis=None), 
         tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
     )
     
-    # 그라데이션 대신 '투명도(opacity)'를 사용한 영역 채우기 (에러 없음!)
+    # 2. 영역 채우기 (투명도 사용 - 에러 안 남!)
     area = base.mark_area(
-        line={'color': color}, 
         color=color, 
-        opacity=0.1  # 은은하게 채우기
+        opacity=0.1  # 투명하게 채우기
+    ).encode(
+        y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=None)
+    )
+
+    # 3. 선 그리기 (진하게)
+    line = base.mark_line(
+        color=color,
+        strokeWidth=2
     ).encode(
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=None)
     )
     
-    return st.altair_chart(area.interactive(), use_container_width=True)
+    # 4. 결합
+    combined = (area + line).interactive()
+    
+    return st.altair_chart(combined, use_container_width=True)
 
 # -----------------------------------------------------------------------------
 # 4. 데이터 로딩
@@ -163,13 +185,13 @@ if st.button("🚀 전체 섹터 AI 진단 실행 (Click)", type="primary", use_
                 [Output Format]
                 Strictly use this format with '|||' separator:
                 MARKET_SIGNAL: (RED or YELLOW or GREEN)
-                MARKET_COMMENT: (1 sentence summary)
+                MARKET_COMMENT: (Short summary)
                 |||
                 INFLATION_SIGNAL: (RED or YELLOW or GREEN)
-                INFLATION_COMMENT: (1 sentence summary)
+                INFLATION_COMMENT: (Short summary)
                 |||
                 ECONOMY_SIGNAL: (RED or YELLOW or GREEN)
-                ECONOMY_COMMENT: (1 sentence summary)
+                ECONOMY_COMMENT: (Short summary)
                 """
                 response = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
                 text = response.choices[0].message.content
@@ -208,11 +230,15 @@ def draw_signal_box(title, signal, comment):
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 7. 메인 레이아웃 (3단 구성)
+# 7. 메인 레이아웃 (리셋 버튼 추가됨 ⭐)
 # -----------------------------------------------------------------------------
 
 # Row 1: 시장
-st.subheader("1. Money Flow (시장)")
+col_h1, col_b1 = st.columns([9, 1])
+with col_h1: st.subheader("1. Money Flow (시장)")
+with col_b1: 
+    if st.button("🔄 리셋", key="btn1"): st.rerun() # 리셋 버튼
+
 col1, col2, col3 = st.columns([3, 3, 2])
 with col1:
     st.metric("美 10년물 금리", f"{rate_val:.2f}%", f"{rate_chg:.2f}%")
@@ -226,7 +252,11 @@ with col3:
 st.divider()
 
 # Row 2: 물가
-st.subheader("2. Inflation (물가)")
+col_h2, col_b2 = st.columns([9, 1])
+with col_h2: st.subheader("2. Inflation (물가)")
+with col_b2: 
+    if st.button("🔄 리셋", key="btn2"): st.rerun()
+
 col4, col5, col6 = st.columns([3, 3, 2])
 with col4:
     st.metric("헤드라인 CPI (YoY)", f"{cpi_val:.2f}%", f"{cpi_chg:.2f}%p")
@@ -240,7 +270,11 @@ with col6:
 st.divider()
 
 # Row 3: 경기
-st.subheader("3. Economy (경기)")
+col_h3, col_b3 = st.columns([9, 1])
+with col_h3: st.subheader("3. Economy (경기)")
+with col_b3: 
+    if st.button("🔄 리셋", key="btn3"): st.rerun()
+
 col7, col8, col9 = st.columns([3, 3, 2])
 with col7:
     st.metric("비농업 고용 (Change)", f"{int(job_val)}k", f"{int(job_chg)}k")
