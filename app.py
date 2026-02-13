@@ -8,59 +8,57 @@ from io import StringIO
 import time
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인 (화이트 & 네온 스타일)
+# 1. 페이지 설정 및 스타일
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Market Logic Pro", page_icon="🚥", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #f8f9fa; }
+    .stApp { background-color: #ffffff; }
     
-    /* 차트 박스 */
-    div[data-testid="metric-container"] {
-        background-color: white; border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 15px; border: 1px solid #eee;
-    }
+    /* 섹션 구분선 */
+    hr { margin-top: 30px; margin-bottom: 30px; border: 0; border-top: 1px solid #eee; }
     
-    /* 신호등 박스 (다크 모드 탈피 -> 화이트 모던) */
+    /* 메트릭(숫자) 스타일 */
+    div[data-testid="stMetricValue"] { font-size: 24px; font-weight: bold; color: #333; }
+    
+    /* 신호등 박스 */
     .signal-box {
-        background-color: white; 
-        border-radius: 15px; padding: 20px; text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08); height: 100%;
-        border: 1px solid #eee;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        background-color: #f8f9fa; 
+        border: 1px solid #e9ecef;
+        border-radius: 12px; 
+        padding: 20px; 
+        height: 100%;
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     }
     
     /* 신호등 전구 */
     .light {
-        width: 35px; height: 35px; border-radius: 50%;
-        background: #e0e0e0; opacity: 0.3; margin: 5px; display: inline-block;
+        width: 40px; height: 40px; border-radius: 50%;
+        background: #ddd; opacity: 0.3; margin: 0 5px; display: inline-block;
         transition: all 0.3s ease;
-        box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
     }
     
-    /* 활성화 효과 (네온 글로우) */
+    /* 활성화 효과 */
     .red.active { background: #ff4b4b; opacity: 1; box-shadow: 0 0 15px #ff4b4b; transform: scale(1.1); }
     .yellow.active { background: #ffca28; opacity: 1; box-shadow: 0 0 15px #ffca28; transform: scale(1.1); }
     .green.active { background: #00e676; opacity: 1; box-shadow: 0 0 15px #00e676; transform: scale(1.1); }
     
-    /* 코멘트 박스 */
-    .comment-box {
-        background: #f1f3f5; color: #333; padding: 12px; border-radius: 8px;
-        margin-top: 15px; font-size: 13px; text-align: left; line-height: 1.5; width: 100%;
-        border-left: 4px solid #333;
+    /* AI 코멘트 텍스트 */
+    .ai-comment {
+        font-size: 14px; line-height: 1.6; color: #495057;
+        background-color: white; padding: 15px; border-radius: 8px;
+        border-left: 4px solid #333; margin-top: 20px; width: 100%; text-align: left;
     }
-    .sector-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #333; }
     
-    /* 리셋 버튼 스타일 미세 조정 */
-    div.stButton > button {
-        border-radius: 8px; border: 1px solid #ddd; background-color: white; font-size: 12px;
-    }
+    /* 섹션 제목 */
+    .section-header { font-size: 22px; font-weight: 700; color: #212529; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+    
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🚥 Market Logic: 섹터별 정밀 분석")
-st.caption("3가지 핵심 분야(시장/물가/경기)를 개별 진단합니다.")
+st.caption("차트의 흐름(Flow)과 AI의 판단(Signal)을 연결합니다.")
 
 # -----------------------------------------------------------------------------
 # 2. 사이드바 및 API
@@ -95,7 +93,7 @@ def get_fred_data(series_id, calculation_type='raw'):
                 if calculation_type == 'yoy': df['Value'] = df.iloc[:, 0].pct_change(12) * 100
                 elif calculation_type == 'diff': df['Value'] = df.iloc[:, 0].diff()
                 else: df['Value'] = df.iloc[:, 0]
-                df = df.dropna().tail(24)
+                df = df.dropna().tail(30) # 최근 30개월/일 데이터 (가로로 길게 보기 위해)
                 return df['Value'].iloc[-1], df['Value'].iloc[-1]-df['Value'].iloc[-2], df.index[-1].strftime('%Y-%m'), df.reset_index()
         except: time.sleep(1); continue
     return None, None, None, None
@@ -119,41 +117,29 @@ def get_interest_rate_hybrid():
     if res: return res
     return get_fred_data("DGS10", "raw")
 
-# ⭐ 차트 함수 수정 (에러 없는 안전한 방식)
-def create_chart(data, color):
+# ⭐ 차트 함수 (가로형, 축 표시, 라인만 깔끔하게)
+def create_chart(data, color, height=200):
     if data is None: return st.error("No Data")
     
-    # 1. 기본 차트 설정
-    base = alt.Chart(data).encode(
-        x=alt.X('Date:T', axis=None), 
-        tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
-    )
-    
-    # 2. 영역 채우기 (투명도 사용 - 에러 안 남!)
-    area = base.mark_area(
+    chart = alt.Chart(data).mark_line(
         color=color, 
-        opacity=0.1  # 투명하게 채우기
-    ).encode(
-        y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=None)
-    )
-
-    # 3. 선 그리기 (진하게)
-    line = base.mark_line(
-        color=color,
         strokeWidth=2
     ).encode(
-        y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=None)
-    )
+        # X축: 날짜 (포맷 지정)
+        x=alt.X('Date:T', axis=alt.Axis(format='%y-%m', title=None, grid=False)),
+        # Y축: 값 (자동 스케일, 숫자 표시)
+        y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
+        tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
+    ).properties(
+        height=height # 차트 높이 고정 (가로는 container width를 따름)
+    ).interactive()
     
-    # 4. 결합
-    combined = (area + line).interactive()
-    
-    return st.altair_chart(combined, use_container_width=True)
+    return st.altair_chart(chart, use_container_width=True)
 
 # -----------------------------------------------------------------------------
 # 4. 데이터 로딩
 # -----------------------------------------------------------------------------
-with st.spinner('데이터 분석 중...'):
+with st.spinner('데이터 준비 중...'):
     rate_val, rate_chg, _, rate_data = get_interest_rate_hybrid()
     exch_val, exch_chg, _, exch_data = get_yahoo_data("KRW=X")
     cpi_val, cpi_chg, _, cpi_data = get_fred_data("CPIAUCSL", "yoy")
@@ -162,125 +148,129 @@ with st.spinner('데이터 분석 중...'):
     unemp_val, unemp_chg, _, unemp_data = get_fred_data("UNRATE", "raw")
 
 # -----------------------------------------------------------------------------
-# 5. AI 분석 로직
+# 5. AI 분석 로직 (개별 분석 함수)
 # -----------------------------------------------------------------------------
-if 'signals' not in st.session_state:
-    st.session_state['signals'] = {'market': 'OFF', 'inflation': 'OFF', 'economy': 'OFF'}
-    st.session_state['comments'] = {'market': '분석 대기', 'inflation': '분석 대기', 'economy': '분석 대기'}
+if 'ai_results' not in st.session_state:
+    st.session_state['ai_results'] = {
+        'market': {'signal': None, 'comment': None},
+        'inflation': {'signal': None, 'comment': None},
+        'economy': {'signal': None, 'comment': None}
+    }
 
-if st.button("🚀 전체 섹터 AI 진단 실행 (Click)", type="primary", use_container_width=True):
-    if not api_key: st.error("API 키 필요")
-    else:
-        with st.spinner("3개 섹터 동시 분석 중..."):
-            try:
-                client = openai.OpenAI(api_key=api_key)
-                prompt = f"""
-                당신은 버너드 보몰입니다. 3개 섹터를 분석하세요.
-                
-                [Data]
-                1. MARKET: Rate {rate_val:.2f}, Exch {exch_val:.0f}
-                2. INFLATION: CPI {cpi_val:.2f}, Core {core_val:.2f}
-                3. ECONOMY: Job {job_val}, Unemp {unemp_val:.1f}
-
-                [Output Format]
-                Strictly use this format with '|||' separator:
-                MARKET_SIGNAL: (RED or YELLOW or GREEN)
-                MARKET_COMMENT: (Short summary)
-                |||
-                INFLATION_SIGNAL: (RED or YELLOW or GREEN)
-                INFLATION_COMMENT: (Short summary)
-                |||
-                ECONOMY_SIGNAL: (RED or YELLOW or GREEN)
-                ECONOMY_COMMENT: (Short summary)
-                """
-                response = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
-                text = response.choices[0].message.content
-                
-                parts = text.split('|||')
-                for part in parts:
-                    if "MARKET_SIGNAL" in part:
-                        st.session_state['signals']['market'] = "RED" if "RED" in part else "GREEN" if "GREEN" in part else "YELLOW"
-                        st.session_state['comments']['market'] = part.split("COMMENT:")[1].strip()
-                    elif "INFLATION_SIGNAL" in part:
-                        st.session_state['signals']['inflation'] = "RED" if "RED" in part else "GREEN" if "GREEN" in part else "YELLOW"
-                        st.session_state['comments']['inflation'] = part.split("COMMENT:")[1].strip()
-                    elif "ECONOMY_SIGNAL" in part:
-                        st.session_state['signals']['economy'] = "RED" if "RED" in part else "GREEN" if "GREEN" in part else "YELLOW"
-                        st.session_state['comments']['economy'] = part.split("COMMENT:")[1].strip()
-            except Exception as e: st.error(f"Error: {e}")
-
-# -----------------------------------------------------------------------------
-# 6. 신호등 UI 함수
-# -----------------------------------------------------------------------------
-def draw_signal_box(title, signal, comment):
-    r = "active" if signal == "RED" else ""
-    y = "active" if signal == "YELLOW" else ""
-    g = "active" if signal == "GREEN" else ""
+def analyze_sector(sector_name, data_summary):
+    if not api_key: return st.error("API 키를 입력해주세요.")
     
-    st.markdown(f"""
-    <div class="signal-box">
-        <div class="sector-title">{title}</div>
-        <div>
+    client = openai.OpenAI(api_key=api_key)
+    prompt = f"""
+    당신은 펀드매니저 버너드 보몰입니다. 다음 데이터를 분석하세요.
+    
+    [Sector: {sector_name}]
+    {data_summary}
+    
+    [Requirements]
+    1. Output MUST be in KOREAN (한국어).
+    2. Format:
+       SIGNAL: (RED or YELLOW or GREEN)
+       COMMENT: (3 bullet points analyzing the situation)
+    """
+    
+    with st.spinner(f"{sector_name} 섹터 분석 중..."):
+        try:
+            resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
+            text = resp.choices[0].message.content
+            
+            signal = "YELLOW"
+            if "RED" in text: signal = "RED"
+            elif "GREEN" in text: signal = "GREEN"
+            
+            comment = text.split("COMMENT:")[1].strip() if "COMMENT:" in text else text
+            return signal, comment
+        except Exception as e:
+            return "YELLOW", f"Error: {e}"
+
+# -----------------------------------------------------------------------------
+# 6. UI 레이아웃 (가로형 차트 + 우측 AI 패널)
+# -----------------------------------------------------------------------------
+
+def draw_section(title, key_prefix, chart1_info, chart2_info, ai_key):
+    # 상단 헤더
+    c_title, c_reset = st.columns([9, 1])
+    with c_title: st.markdown(f"<div class='section-header'>{title}</div>", unsafe_allow_html=True)
+    with c_reset: 
+        if st.button("🔄", key=f"reset_{key_prefix}", help="차트 리셋"): st.rerun()
+
+    # 메인 레이아웃 (좌 7.5 : 우 2.5)
+    col_chart, col_ai = st.columns([3, 1])
+    
+    # [왼쪽] 차트 영역 (위아래로 배치하여 가로로 길게)
+    with col_chart:
+        # 차트 1
+        st.metric(chart1_info['label'], chart1_info['val_str'], chart1_info['chg_str'])
+        create_chart(chart1_info['data'], chart1_info['color'])
+        
+        st.markdown("<br>", unsafe_allow_html=True) # 간격
+        
+        # 차트 2
+        st.metric(chart2_info['label'], chart2_info['val_str'], chart2_info['chg_str'])
+        create_chart(chart2_info['data'], chart2_info['color'])
+
+    # [오른쪽] AI 신호등 영역
+    with col_ai:
+        st.markdown(f"<div class='signal-box'>", unsafe_allow_html=True)
+        st.markdown(f"**🤖 {key_prefix} AI 분석**")
+        
+        # 분석 버튼 (개별)
+        if st.button("⚡ 분석 실행", key=f"btn_{key_prefix}", use_container_width=True):
+            # 데이터 요약 생성
+            data_sum = f"Metrics: {chart1_info['label']}={chart1_info['val_str']}, {chart2_info['label']}={chart2_info['val_str']}"
+            sig, com = analyze_sector(key_prefix, data_sum)
+            st.session_state['ai_results'][ai_key] = {'signal': sig, 'comment': com}
+        
+        # 결과 표시
+        res = st.session_state['ai_results'][ai_key]
+        signal = res['signal']
+        
+        r = "active" if signal == "RED" else ""
+        y = "active" if signal == "YELLOW" else ""
+        g = "active" if signal == "GREEN" else ""
+        
+        st.markdown(f"""
+        <div style="margin-top: 20px;">
             <div class="light red {r}"></div>
             <div class="light yellow {y}"></div>
             <div class="light green {g}"></div>
         </div>
-        <div class="comment-box">{comment}</div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+        if res['comment']:
+            st.markdown(f"<div class='ai-comment'>{res['comment']}</div>", unsafe_allow_html=True)
+        else:
+            st.info("버튼을 눌러 분석하세요.")
+            
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
-# 7. 메인 레이아웃 (리셋 버튼 추가됨 ⭐)
-# -----------------------------------------------------------------------------
+    st.markdown("<hr>", unsafe_allow_html=True)
 
-# Row 1: 시장
-col_h1, col_b1 = st.columns([9, 1])
-with col_h1: st.subheader("1. Money Flow (시장)")
-with col_b1: 
-    if st.button("🔄 리셋", key="btn1"): st.rerun() # 리셋 버튼
+# --- 1. 시장 (Market) ---
+draw_section(
+    "1. Money Flow (시장 금리 & 환율)", "Market",
+    {'label': "美 10년물 금리", 'val_str': f"{rate_val:.2f}%" if rate_val else "-", 'chg_str': f"{rate_chg:.2f}%" if rate_val else "-", 'data': rate_data, 'color': '#d32f2f'},
+    {'label': "원/달러 환율", 'val_str': f"{exch_val:.2f}원" if exch_val else "-", 'chg_str': f"{exch_chg:.2f}원" if exch_val else "-", 'data': exch_data, 'color': '#1976d2'},
+    'market'
+)
 
-col1, col2, col3 = st.columns([3, 3, 2])
-with col1:
-    st.metric("美 10년물 금리", f"{rate_val:.2f}%", f"{rate_chg:.2f}%")
-    create_chart(rate_data, "#d32f2f")
-with col2:
-    st.metric("원/달러 환율", f"{exch_val:.2f}원", f"{exch_chg:.2f}원")
-    create_chart(exch_data, "#1976d2")
-with col3:
-    draw_signal_box("Market Signal", st.session_state['signals']['market'], st.session_state['comments']['market'])
+# --- 2. 물가 (Inflation) ---
+draw_section(
+    "2. Inflation (물가 상승률)", "Inflation",
+    {'label': "헤드라인 CPI (YoY)", 'val_str': f"{cpi_val:.2f}%" if cpi_val else "-", 'chg_str': f"{cpi_chg:.2f}%p" if cpi_val else "-", 'data': cpi_data, 'color': '#ed6c02'},
+    {'label': "근원(Core) CPI (YoY)", 'val_str': f"{core_val:.2f}%" if core_val else "-", 'chg_str': f"{core_chg:.2f}%p" if core_val else "-", 'data': core_data, 'color': '#9c27b0'},
+    'inflation'
+)
 
-st.divider()
-
-# Row 2: 물가
-col_h2, col_b2 = st.columns([9, 1])
-with col_h2: st.subheader("2. Inflation (물가)")
-with col_b2: 
-    if st.button("🔄 리셋", key="btn2"): st.rerun()
-
-col4, col5, col6 = st.columns([3, 3, 2])
-with col4:
-    st.metric("헤드라인 CPI (YoY)", f"{cpi_val:.2f}%", f"{cpi_chg:.2f}%p")
-    create_chart(cpi_data, "#f57c00")
-with col5:
-    st.metric("근원(Core) CPI (YoY)", f"{core_val:.2f}%", f"{core_chg:.2f}%p")
-    create_chart(core_data, "#7b1fa2")
-with col6:
-    draw_signal_box("Inflation Signal", st.session_state['signals']['inflation'], st.session_state['comments']['inflation'])
-
-st.divider()
-
-# Row 3: 경기
-col_h3, col_b3 = st.columns([9, 1])
-with col_h3: st.subheader("3. Economy (경기)")
-with col_b3: 
-    if st.button("🔄 리셋", key="btn3"): st.rerun()
-
-col7, col8, col9 = st.columns([3, 3, 2])
-with col7:
-    st.metric("비농업 고용 (Change)", f"{int(job_val)}k", f"{int(job_chg)}k")
-    create_chart(job_data, "#388e3c")
-with col8:
-    st.metric("실업률", f"{unemp_val:.1f}%", f"{unemp_chg:.1f}%p")
-    create_chart(unemp_data, "#616161")
-with col9:
-    draw_signal_box("Economy Signal", st.session_state['signals']['economy'], st.session_state['comments']['economy'])
+# --- 3. 경기 (Economy) ---
+draw_section(
+    "3. Economy (고용 & 경기)", "Economy",
+    {'label': "비농업 신규 고용", 'val_str': f"{int(job_val)}k" if job_val else "-", 'chg_str': f"{int(job_chg)}k" if job_val else "-", 'data': job_data, 'color': '#2e7d32'},
+    {'label': "실업률", 'val_str': f"{unemp_val:.1f}%" if unemp_val else "-", 'chg_str': f"{unemp_chg:.1f}%p" if unemp_val else "-", 'data': unemp_data, 'color': '#616161'},
+    'economy'
+)
