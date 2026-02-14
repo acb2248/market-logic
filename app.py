@@ -9,9 +9,9 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS (사이드바와 메인 버튼 분리 ⭐)
+# 1. 페이지 설정 및 CSS (버튼 색상 강제 적용 버전 ⭐)
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="Market Logic", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Market Logic Pro", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -42,75 +42,79 @@ st.markdown("""
     
     .section-header { font-size: 20px; font-weight: 700; color: #212529; margin-bottom: 10px; }
     
-    /* 🚨 중요: 사이드바 라디오 버튼은 세로로 유지 */
+    /* ====================================================================
+       ⭐ 버튼 디자인 핵심 수정 (강제 적용)
+       ==================================================================== */
+    
+    /* 1. 사이드바 메뉴는 세로로 유지하고 디자인 영향 안 받게 보호 */
     section[data-testid="stSidebar"] div[role="radiogroup"] {
         flex-direction: column !important;
-        gap: 0px !important;
+        background-color: transparent !important;
     }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label {
+    section[data-testid="stSidebar"] label {
         background-color: transparent !important;
         border: none !important;
+        box-shadow: none !important;
         color: #333 !important;
-        padding: 10px !important;
     }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
-        background-color: #e3f2fd !important; /* 사이드바 선택시 연한 파랑 */
+    /* 사이드바 선택된 항목 (연한 파랑 배경) */
+    section[data-testid="stSidebar"] label:has(input:checked) {
+        background-color: #e3f2fd !important;
         color: #0d47a1 !important;
+        font-weight: bold !important;
     }
 
-    /* 🚨 중요: 메인 화면의 기간 선택 버튼만 가로로 배치 */
+    /* 2. 메인 화면의 기간 선택 버튼 (가로 배치 + 캡슐 모양) */
     div[data-testid="stBlock"] div[role="radiogroup"] { 
-        flex-direction: row; 
-        gap: 5px; 
-        justify-content: flex-end; 
+        flex-direction: row !important; 
+        gap: 5px !important; 
+        justify-content: flex-end !important;
+        background-color: transparent !important;
     }
     
-    /* 라디오 버튼 원형 숨기기 (공통) */
+    /* 라디오 버튼의 동그라미 숨기기 */
+    div[role="radiogroup"] input[type="radio"] { display: none; }
     div[role="radiogroup"] > label > div:first-child { display: none; }
     
-    /* 메인 화면 버튼 스타일 (캡슐형) */
+    /* 기본 버튼 스타일 (선택 안 된 상태: 회색) */
     div[data-testid="stBlock"] div[role="radiogroup"] label { 
-        background-color: #f1f3f5; 
-        padding: 4px 12px; 
-        border-radius: 20px; 
-        font-size: 12px; 
-        border: 1px solid transparent; 
-        cursor: pointer; 
-        transition: 0.2s; 
-        color: #888;
-        min-width: 50px; /* 버튼 최소 너비 확보 */
-        text-align: center;
-        display: flex; justify-content: center; align-items: center;
+        background-color: #f1f3f5 !important; 
+        padding: 6px 14px !important; 
+        border-radius: 20px !important; 
+        font-size: 12px !important; 
+        border: 1px solid #e9ecef !important; 
+        cursor: pointer !important; 
+        transition: 0.2s !important; 
+        color: #888 !important;
+        margin-right: 0px !important;
+        display: flex !important; align-items: center !important; justify-content: center !important;
     }
     
     div[data-testid="stBlock"] div[role="radiogroup"] label:hover { 
-        background-color: #e9ecef; 
-        color: #333; 
+        background-color: #e9ecef !important; 
+        color: #333 !important; 
     }
     
-    /* 메인 화면 버튼 선택시 (진한 네이비) */
-    div[data-testid="stBlock"] div[role="radiogroup"] label[data-checked="true"] { 
-        background-color: #003366 !important; 
+    /* ⭐ 선택된 버튼 스타일 (선택 된 상태: 진한 네이비) - :has(input:checked) 사용 */
+    div[data-testid="stBlock"] div[role="radiogroup"] label:has(input:checked) { 
+        background-color: #003366 !important; /* 진한 네이비 */
         color: white !important; 
-        font-weight: bold;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        font-weight: bold !important;
+        border: 1px solid #003366 !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바 (좌측 정렬 + 여백 해결)
+# 2. 사이드바
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    # 사이드바 메뉴 (CSS 덕분에 이제 세로로 잘 나옵니다)
     menu = st.radio("메뉴 선택", ["주가 지수", "투자 관련 지표"], index=0, label_visibility="collapsed")
-    
     st.divider()
-    
     st.header("🛠 설정")
-    # 데이터 새로고침 버튼 삭제 요청 반영 -> 삭제함
-    
+    if st.button("🔄 데이터 새로고침"): st.rerun()
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
         st.success("🔐 AI 연결됨")
@@ -164,20 +168,16 @@ def get_interest_rate_hybrid():
     if data is not None: return val, chg, date, data
     return get_fred_data("DGS10", "raw")
 
-# ⭐ 핵심 로직: 버튼 한글 이름과 데이터 필터링 연결
 def filter_data_by_period(df, period):
     if df is None or df.empty: return df
     end_date = df['Date'].max()
-    
-    # 한글 버튼 입력값 처리
     if period == "1개월": start = end_date - timedelta(days=30)
     elif period == "3개월": start = end_date - timedelta(days=90)
     elif period == "6개월": start = end_date - timedelta(days=180)
     elif period == "1년": start = end_date - timedelta(days=365)
     elif period == "3년": start = end_date - timedelta(days=365*3)
     elif period == "5년": start = end_date - timedelta(days=365*5)
-    else: start = df['Date'].min() # '전체'
-    
+    else: start = df['Date'].min() # 전체
     return df[df['Date'] >= start]
 
 def create_chart(data, color, height=180):
@@ -190,13 +190,10 @@ def create_chart(data, color, height=180):
     return st.altair_chart(chart, use_container_width=True)
 
 def draw_chart_unit(label, val, chg, data, color, periods, default_idx, key, use_columns=True):
-    # 상단: 메트릭 + 기간버튼
     if use_columns:
         c1, c2 = st.columns([1, 1.5])
         with c1: st.metric(label, val, chg)
-        with c2: 
-            # 버튼 클릭시 즉시 리로드되어 데이터 반영됨
-            period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+        with c2: period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
     else:
         st.metric(label, val, chg)
         period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
@@ -256,7 +253,6 @@ def draw_ai_section(key_prefix, chart1, chart2):
 # 4. 페이지 로직 : 주가 지수 탭
 # -----------------------------------------------------------------------------
 if menu == "주가 지수":
-    # 차트 아이콘 제거 (Global Market Indices)
     st.title("Global Market Indices")
     st.caption("AI 분석 없이 차트 흐름에 집중하는 대시보드입니다.")
     
@@ -272,7 +268,6 @@ if menu == "주가 지수":
     st.markdown("<div class='section-header'>🇺🇸 US Market (3 Major Indices)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     
-    # periods 한글화 적용 ("1개월" 등)
     with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "dow", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "sp500", False)
     with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", False)
@@ -313,7 +308,6 @@ elif menu == "투자 관련 지표":
             draw_ai_section(key_prefix, chart1, chart2)
         st.markdown("<hr>", unsafe_allow_html=True)
 
-    # periods 한글화 적용
     draw_macro_section("1. Money Flow (시장 금리 & 환율)", "Market",
         {'label': "美 10년물 금리", 'val': f"{rate_val}%", 'chg': f"{rate_chg}%", 'data': rate_data, 'color': '#fb8c00', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3},
         {'label': "원/달러 환율", 'val': f"{exch_val}원", 'chg': f"{exch_chg}원", 'data': exch_data, 'color': '#2e7d32', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3}
