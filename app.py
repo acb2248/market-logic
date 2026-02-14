@@ -9,9 +9,9 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 스타일 (버튼 네이비, 차트 색상 테마 적용)
+# 1. 페이지 설정 및 CSS (사이드바와 메인 버튼 분리 ⭐)
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="Market Logic Pro", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Market Logic", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -42,18 +42,55 @@ st.markdown("""
     
     .section-header { font-size: 20px; font-weight: 700; color: #212529; margin-bottom: 10px; }
     
-    /* ⭐ 버튼 스타일 (선택시 진한 네이비 #003366) */
-    div[role="radiogroup"] > label > div:first-child { display: none; }
-    div[role="radiogroup"] { flex-direction: row; gap: 5px; justify-content: flex-end; }
-    div[role="radiogroup"] label { 
-        background-color: #f1f3f5; padding: 4px 10px; border-radius: 8px; 
-        font-size: 11px; border: 1px solid transparent; cursor: pointer; transition: 0.2s; color: #888;
+    /* 🚨 중요: 사이드바 라디오 버튼은 세로로 유지 */
+    section[data-testid="stSidebar"] div[role="radiogroup"] {
+        flex-direction: column !important;
+        gap: 0px !important;
     }
-    div[role="radiogroup"] label:hover { background-color: #e9ecef; color: #333; }
+    section[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background-color: transparent !important;
+        border: none !important;
+        color: #333 !important;
+        padding: 10px !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
+        background-color: #e3f2fd !important; /* 사이드바 선택시 연한 파랑 */
+        color: #0d47a1 !important;
+    }
+
+    /* 🚨 중요: 메인 화면의 기간 선택 버튼만 가로로 배치 */
+    div[data-testid="stBlock"] div[role="radiogroup"] { 
+        flex-direction: row; 
+        gap: 5px; 
+        justify-content: flex-end; 
+    }
     
-    /* 선택된 버튼 강조 */
-    div[role="radiogroup"] label[data-checked="true"] { 
-        background-color: #003366 !important; /* 진한 네이비 */
+    /* 라디오 버튼 원형 숨기기 (공통) */
+    div[role="radiogroup"] > label > div:first-child { display: none; }
+    
+    /* 메인 화면 버튼 스타일 (캡슐형) */
+    div[data-testid="stBlock"] div[role="radiogroup"] label { 
+        background-color: #f1f3f5; 
+        padding: 4px 12px; 
+        border-radius: 20px; 
+        font-size: 12px; 
+        border: 1px solid transparent; 
+        cursor: pointer; 
+        transition: 0.2s; 
+        color: #888;
+        min-width: 50px; /* 버튼 최소 너비 확보 */
+        text-align: center;
+        display: flex; justify-content: center; align-items: center;
+    }
+    
+    div[data-testid="stBlock"] div[role="radiogroup"] label:hover { 
+        background-color: #e9ecef; 
+        color: #333; 
+    }
+    
+    /* 메인 화면 버튼 선택시 (진한 네이비) */
+    div[data-testid="stBlock"] div[role="radiogroup"] label[data-checked="true"] { 
+        background-color: #003366 !important; 
         color: white !important; 
         font-weight: bold;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
@@ -62,14 +99,18 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바
+# 2. 사이드바 (좌측 정렬 + 여백 해결)
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    menu = st.radio("메뉴 선택", ["주가 지수", "투자 관련 지표"], index=0)
+    # 사이드바 메뉴 (CSS 덕분에 이제 세로로 잘 나옵니다)
+    menu = st.radio("메뉴 선택", ["주가 지수", "투자 관련 지표"], index=0, label_visibility="collapsed")
+    
     st.divider()
+    
     st.header("🛠 설정")
-    if st.button("🔄 데이터 새로고침"): st.rerun()
+    # 데이터 새로고침 버튼 삭제 요청 반영 -> 삭제함
+    
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
         st.success("🔐 AI 연결됨")
@@ -123,16 +164,20 @@ def get_interest_rate_hybrid():
     if data is not None: return val, chg, date, data
     return get_fred_data("DGS10", "raw")
 
+# ⭐ 핵심 로직: 버튼 한글 이름과 데이터 필터링 연결
 def filter_data_by_period(df, period):
     if df is None or df.empty: return df
     end_date = df['Date'].max()
+    
+    # 한글 버튼 입력값 처리
     if period == "1개월": start = end_date - timedelta(days=30)
     elif period == "3개월": start = end_date - timedelta(days=90)
     elif period == "6개월": start = end_date - timedelta(days=180)
     elif period == "1년": start = end_date - timedelta(days=365)
     elif period == "3년": start = end_date - timedelta(days=365*3)
     elif period == "5년": start = end_date - timedelta(days=365*5)
-    else: start = df['Date'].min()
+    else: start = df['Date'].min() # '전체'
+    
     return df[df['Date'] >= start]
 
 def create_chart(data, color, height=180):
@@ -145,10 +190,13 @@ def create_chart(data, color, height=180):
     return st.altair_chart(chart, use_container_width=True)
 
 def draw_chart_unit(label, val, chg, data, color, periods, default_idx, key, use_columns=True):
+    # 상단: 메트릭 + 기간버튼
     if use_columns:
         c1, c2 = st.columns([1, 1.5])
         with c1: st.metric(label, val, chg)
-        with c2: period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+        with c2: 
+            # 버튼 클릭시 즉시 리로드되어 데이터 반영됨
+            period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
     else:
         st.metric(label, val, chg)
         period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
@@ -205,10 +253,11 @@ def draw_ai_section(key_prefix, chart1, chart2):
     st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 4. 페이지 로직 : 주가 지수 탭 (US=초록, KR=빨강)
+# 4. 페이지 로직 : 주가 지수 탭
 # -----------------------------------------------------------------------------
 if menu == "주가 지수":
-    st.title("📈 Global Market Indices")
+    # 차트 아이콘 제거 (Global Market Indices)
+    st.title("Global Market Indices")
     st.caption("AI 분석 없이 차트 흐름에 집중하는 대시보드입니다.")
     
     with st.spinner("주가 데이터 수집 중..."):
@@ -218,28 +267,31 @@ if menu == "주가 지수":
         kospi_v, kospi_c, _, kospi_d = get_yahoo_data("^KS11")
         kosdaq_v, kosdaq_c, _, kosdaq_d = get_yahoo_data("^KQ11")
 
-    # [1] 미국 3대 지수 (Green)
+    # [1] 미국 3대 지수
     US_COLOR = "#00c853" 
     st.markdown("<div class='section-header'>🇺🇸 US Market (3 Major Indices)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_d, US_COLOR, ["1M", "3M", "1Y", "All"], 2, "dow", False)
-    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_d, US_COLOR, ["1M", "3M", "1Y", "All"], 2, "sp500", False)
-    with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_d, US_COLOR, ["1M", "3M", "1Y", "All"], 2, "nasdaq", False)
+    
+    # periods 한글화 적용 ("1개월" 등)
+    with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "dow", False)
+    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "sp500", False)
+    with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", False)
     
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # [2] 한국 2대 지수 (Red)
+    # [2] 한국 2대 지수
     KR_COLOR = "#ff1744"
     st.markdown("<div class='section-header'>🇰🇷 KR Market (KOSPI & KOSDAQ)</div>", unsafe_allow_html=True)
     c4, c5 = st.columns(2)
-    with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_d, KR_COLOR, ["1M", "3M", "6M", "1Y", "All"], 3, "kospi", True)
-    with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_d, KR_COLOR, ["1M", "3M", "6M", "1Y", "All"], 3, "kosdaq", True)
+    
+    with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_d, KR_COLOR, ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kospi", True)
+    with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_d, KR_COLOR, ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kosdaq", True)
 
 # -----------------------------------------------------------------------------
-# 5. 페이지 로직 : 투자 관련 지표 탭 (요청하신 색상 적용)
+# 5. 페이지 로직 : 투자 관련 지표 탭
 # -----------------------------------------------------------------------------
 elif menu == "투자 관련 지표":
-    st.title("🚥 Macro Indicators")
+    st.title("Macro Indicators")
     st.caption("3가지 핵심 분야(시장/물가/경기)를 정밀 진단합니다.")
 
     with st.spinner('거시경제 데이터 분석 중...'):
@@ -261,20 +313,18 @@ elif menu == "투자 관련 지표":
             draw_ai_section(key_prefix, chart1, chart2)
         st.markdown("<hr>", unsafe_allow_html=True)
 
-    # 1. Market: 금리(오렌지), 환율(달러그린)
+    # periods 한글화 적용
     draw_macro_section("1. Money Flow (시장 금리 & 환율)", "Market",
-        {'label': "美 10년물 금리", 'val': f"{rate_val}%", 'chg': f"{rate_chg}%", 'data': rate_data, 'color': '#fb8c00', 'periods': ["1M", "3M", "6M", "1Y", "All"], 'idx': 3},
-        {'label': "원/달러 환율", 'val': f"{exch_val}원", 'chg': f"{exch_chg}원", 'data': exch_data, 'color': '#2e7d32', 'periods': ["1M", "3M", "6M", "1Y", "All"], 'idx': 3}
+        {'label': "美 10년물 금리", 'val': f"{rate_val}%", 'chg': f"{rate_chg}%", 'data': rate_data, 'color': '#fb8c00', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3},
+        {'label': "원/달러 환율", 'val': f"{exch_val}원", 'chg': f"{exch_chg}원", 'data': exch_data, 'color': '#2e7d32', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3}
     )
     
-    # 2. Inflation: 물가(오렌지), 근원(빨강)
     draw_macro_section("2. Inflation (물가 상승률)", "Inflation",
-        {'label': "헤드라인 CPI", 'val': f"{cpi_val}%", 'chg': f"{cpi_chg}%p", 'data': cpi_data, 'color': '#fb8c00', 'periods': ["1Y", "3Y", "5Y", "All"], 'idx': 1},
-        {'label': "근원(Core) CPI", 'val': f"{core_val}%", 'chg': f"{core_chg}%p", 'data': core_data, 'color': '#d32f2f', 'periods': ["1Y", "3Y", "5Y", "All"], 'idx': 1}
+        {'label': "헤드라인 CPI", 'val': f"{cpi_val}%", 'chg': f"{cpi_chg}%p", 'data': cpi_data, 'color': '#fb8c00', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1},
+        {'label': "근원(Core) CPI", 'val': f"{core_val}%", 'chg': f"{core_chg}%p", 'data': core_data, 'color': '#d32f2f', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1}
     )
     
-    # 3. Economy: 고용(블루), 실업률(초록)
     draw_macro_section("3. Economy (고용 & 경기)", "Economy",
-        {'label': "비농업 고용", 'val': f"{job_val}k", 'chg': f"{job_chg}k", 'data': job_data, 'color': '#1565c0', 'periods': ["1Y", "3Y", "5Y", "All"], 'idx': 1},
-        {'label': "실업률", 'val': f"{unemp_val}%", 'chg': f"{unemp_chg}%p", 'data': unemp_data, 'color': '#2e7d32', 'periods': ["1Y", "3Y", "5Y", "All"], 'idx': 1}
+        {'label': "비농업 고용", 'val': f"{job_val}k", 'chg': f"{job_chg}k", 'data': job_data, 'color': '#1565c0', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1},
+        {'label': "실업률", 'val': f"{unemp_val}%", 'chg': f"{unemp_chg}%p", 'data': unemp_data, 'color': '#2e7d32', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1}
     )
