@@ -9,16 +9,24 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS
+# 1. 페이지 설정 및 CSS (반응형 & 디자인 최종)
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="Market Logic", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Market Logic", 
+    page_icon="📈", 
+    layout="wide", 
+    initial_sidebar_state="auto" # 좁은 화면에서 자동 숨김
+)
 
 st.markdown("""
     <style>
     .stApp { background-color: #ffffff; }
     
     /* 섹션 구분선 */
-    hr { margin-top: 20px; margin-bottom: 20px; border: 0; border-top: 1px solid #eee; }
+    hr { margin-top: 30px; margin-bottom: 30px; border: 0; border-top: 1px solid #eee; }
+    
+    /* 숫자(Metric) 스타일 */
+    div[data-testid="stMetricValue"] { font-size: 24px; font-weight: bold; color: #333; }
     
     /* 신호등 박스 */
     .signal-box {
@@ -40,18 +48,19 @@ st.markdown("""
     .section-header { font-size: 20px; font-weight: 700; color: #212529; margin-bottom: 10px; }
     
     /* ====================================================================
-       ⭐ 반응형 레이아웃 (Option A: Stacking)
-       화면이 좁아지면 컬럼들이 자동으로 세로로 쌓이게 하는 매직 코드
+       ⭐ 반응형 레이아웃 핵심 (Auto-Stacking)
+       화면이 좁아지면 컬럼들이 강제로 세로로 쌓이게 만듭니다.
        ==================================================================== */
     [data-testid="column"] {
-        min-width: 300px !important; /* 컬럼의 최소 너비 지정 */
-        flex: 1 1 300px !important;  /* 공간 부족시 줄바꿈 허용 */
+        min-width: 300px !important; /* 컬럼 최소 너비 보장 */
+        flex: 1 1 300px !important;  /* 공간 부족 시 줄바꿈 */
     }
 
     /* ====================================================================
-       ⭐ 사이드바 디자인 개선
+       ⭐ 사이드바 디자인 (세로 유지)
        ==================================================================== */
     section[data-testid="stSidebar"] div[role="radiogroup"] {
+        flex-direction: column !important;
         gap: 15px !important;
         padding-top: 20px;
     }
@@ -60,6 +69,7 @@ st.markdown("""
         border-radius: 8px !important;
         transition: background-color 0.3s;
     }
+    /* 사이드바 선택된 항목 스타일 */
     section[data-testid="stSidebar"] label:has(input:checked) {
         background-color: #e3f2fd !important;
         color: #0d47a1 !important;
@@ -67,15 +77,17 @@ st.markdown("""
     }
 
     /* ====================================================================
-       ⭐ 메인 화면 기간 버튼 디자인 (강제 적용)
+       ⭐ 메인 화면 기간 버튼 디자인 (가로 배치 + 진한 네이비)
        ==================================================================== */
     div[data-testid="stBlock"] div[role="radiogroup"] {
         background-color: transparent !important;
         flex-direction: row !important;
         gap: 8px !important;
-        flex-wrap: wrap !important; /* 버튼도 좁으면 줄바꿈 */
+        flex-wrap: wrap !important;
+        justify-content: flex-end !important;
     }
     
+    /* 기본 버튼 스타일 */
     div[data-testid="stBlock"] div[role="radiogroup"] label {
         background-color: #f1f3f5 !important;
         padding: 6px 16px !important;
@@ -86,10 +98,10 @@ st.markdown("""
         cursor: pointer !important;
         box-shadow: none !important;
         display: flex !important; justify-content: center !important; align-items: center !important;
-        white-space: nowrap !important; /* 텍스트 줄바꿈 방지 */
+        white-space: nowrap !important;
     }
     
-    /* 선택된 버튼 스타일 (진한 네이비) */
+    /* 선택된 버튼 스타일 (진한 네이비 강제 적용) */
     div[data-testid="stBlock"] div[role="radiogroup"] label:has(input:checked) {
         background-color: #003366 !important;
         color: #ffffff !important;
@@ -115,9 +127,10 @@ st.markdown("""
 with st.sidebar:
     st.title("Market Logic")
     menu = st.radio("메뉴", ["주가 지수", "투자 관련 지표"], index=0, label_visibility="collapsed")
-    st.divider()
-    st.header("🛠 설정")
     
+    st.divider()
+    
+    st.header("🛠 설정")
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
         st.success("🔐 AI 연결됨")
@@ -168,7 +181,7 @@ def get_fred_data(series_id, calculation_type='raw'):
                 curr = df['Value'].iloc[-1]
                 prev = df['Value'].iloc[-2]
                 change = curr - prev
-                pct_change = 0 
+                pct_change = 0
                 
                 return curr, change, pct_change, df.reset_index()
         except: time.sleep(1); continue
@@ -293,8 +306,7 @@ def draw_ai_section(key_prefix, chart1, chart2):
 # 4. 페이지 로직 : 주가 지수 탭
 # -----------------------------------------------------------------------------
 if menu == "주가 지수":
-    st.title("Global Market Indices")
-    # 설명 캡션 제거됨
+    st.title("글로벌 시장 지수")
     
     with st.spinner("주가 데이터 수집 중..."):
         dow_v, dow_c, dow_p, dow_d = get_yahoo_data("^DJI")
@@ -326,8 +338,7 @@ if menu == "주가 지수":
 # 5. 페이지 로직 : 투자 관련 지표 탭
 # -----------------------------------------------------------------------------
 elif menu == "투자 관련 지표":
-    st.title("Macro Indicators")
-    # 설명 캡션 제거됨
+    st.title("경제 지표")
 
     with st.spinner('거시경제 데이터 분석 중...'):
         rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
@@ -339,26 +350,30 @@ elif menu == "투자 관련 지표":
 
     def draw_macro_section(title, key_prefix, chart1, chart2):
         st.markdown(f"<div class='section-header'>{title}</div>", unsafe_allow_html=True)
+        # CSS 반응형 적용 (300px 이하면 세로 스태킹)
         col_chart, col_ai = st.columns([3, 1])
+        
         with col_chart:
             draw_chart_unit(chart1['label'], chart1['val'], chart1['chg'], chart1['pct'], chart1['data'], chart1['color'], chart1['periods'], chart1['idx'], f"{key_prefix}_1", "#FF3333", "#0066FF", chart1['unit'], True)
             st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
             draw_chart_unit(chart2['label'], chart2['val'], chart2['chg'], chart2['pct'], chart2['data'], chart2['color'], chart2['periods'], chart2['idx'], f"{key_prefix}_2", "#FF3333", "#0066FF", chart2['unit'], True)
+        
+        # 화면이 좁아지면 이 AI 박스는 자동으로 차트 아래로 내려갑니다.
         with col_ai:
             draw_ai_section(key_prefix, chart1, chart2)
         st.markdown("<hr>", unsafe_allow_html=True)
 
-    draw_macro_section("1. Money Flow (시장 금리 & 환율)", "Market",
+    draw_macro_section("1. 금융 시장 (금리 & 환율)", "Market",
         {'label': "美 10년물 금리", 'val': rate_val, 'chg': rate_chg, 'pct': rate_pct, 'data': rate_data, 'color': '#fb8c00', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3, 'unit': "%"},
         {'label': "원/달러 환율", 'val': exch_val, 'chg': exch_chg, 'pct': exch_pct, 'data': exch_data, 'color': '#2e7d32', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3, 'unit': "원"}
     )
     
-    draw_macro_section("2. Inflation (물가 상승률)", "Inflation",
+    draw_macro_section("2. 물가 지표 (물가 상승률)", "Inflation",
         {'label': "헤드라인 CPI", 'val': cpi_val, 'chg': cpi_chg, 'pct': cpi_pct, 'data': cpi_data, 'color': '#fb8c00', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"},
         {'label': "근원(Core) CPI", 'val': core_val, 'chg': core_chg, 'pct': core_pct, 'data': core_data, 'color': '#d32f2f', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
     )
     
-    draw_macro_section("3. Economy (고용 & 경기)", "Economy",
+    draw_macro_section("3. 고용 지표 (고용 & 경기)", "Economy",
         {'label': "비농업 고용", 'val': job_val, 'chg': job_chg, 'pct': job_pct, 'data': job_data, 'color': '#1565c0', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "k"},
         {'label': "실업률", 'val': unemp_val, 'chg': unemp_chg, 'pct': unemp_pct, 'data': unemp_data, 'color': '#2e7d32', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
     )
