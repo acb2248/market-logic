@@ -9,13 +9,13 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS (반응형 & 디자인 최종)
+# 1. 페이지 설정 및 CSS (반응형 미디어 쿼리 적용 ⭐)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Market Logic", 
     page_icon="📈", 
     layout="wide", 
-    initial_sidebar_state="auto" # 좁은 화면에서 자동 숨김
+    initial_sidebar_state="auto" # 좁은 화면에서 사이드바 자동 숨김
 )
 
 st.markdown("""
@@ -48,16 +48,20 @@ st.markdown("""
     .section-header { font-size: 20px; font-weight: 700; color: #212529; margin-bottom: 10px; }
     
     /* ====================================================================
-       ⭐ 반응형 레이아웃 핵심 (Auto-Stacking)
-       화면이 좁아지면 컬럼들이 강제로 세로로 쌓이게 만듭니다.
+       ⭐ 반응형 레이아웃 핵심 (Media Query)
+       화면 너비가 1200px 이하(노트북 분할 화면 등)가 되면 컬럼을 강제로 세로로 쌓음
        ==================================================================== */
-    [data-testid="column"] {
-        min-width: 300px !important; /* 컬럼 최소 너비 보장 */
-        flex: 1 1 300px !important;  /* 공간 부족 시 줄바꿈 */
+    @media (max-width: 1200px) {
+        div[data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 20px !important;
+        }
     }
 
     /* ====================================================================
-       ⭐ 사이드바 디자인 (세로 유지)
+       ⭐ 사이드바 디자인
        ==================================================================== */
     section[data-testid="stSidebar"] div[role="radiogroup"] {
         flex-direction: column !important;
@@ -69,7 +73,6 @@ st.markdown("""
         border-radius: 8px !important;
         transition: background-color 0.3s;
     }
-    /* 사이드바 선택된 항목 스타일 */
     section[data-testid="stSidebar"] label:has(input:checked) {
         background-color: #e3f2fd !important;
         color: #0d47a1 !important;
@@ -77,7 +80,7 @@ st.markdown("""
     }
 
     /* ====================================================================
-       ⭐ 메인 화면 기간 버튼 디자인 (가로 배치 + 진한 네이비)
+       ⭐ 메인 화면 기간 버튼 디자인
        ==================================================================== */
     div[data-testid="stBlock"] div[role="radiogroup"] {
         background-color: transparent !important;
@@ -87,7 +90,6 @@ st.markdown("""
         justify-content: flex-end !important;
     }
     
-    /* 기본 버튼 스타일 */
     div[data-testid="stBlock"] div[role="radiogroup"] label {
         background-color: #f1f3f5 !important;
         padding: 6px 16px !important;
@@ -101,7 +103,6 @@ st.markdown("""
         white-space: nowrap !important;
     }
     
-    /* 선택된 버튼 스타일 (진한 네이비 강제 적용) */
     div[data-testid="stBlock"] div[role="radiogroup"] label:has(input:checked) {
         background-color: #003366 !important;
         color: #ffffff !important;
@@ -126,6 +127,7 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
+    # 한글화된 메뉴
     menu = st.radio("메뉴", ["주가 지수", "투자 관련 지표"], index=0, label_visibility="collapsed")
     
     st.divider()
@@ -320,6 +322,7 @@ if menu == "주가 지수":
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     
+    # 좁은 화면에서는 이 컬럼들이 세로로 쌓입니다 (CSS 적용됨)
     with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_p, dow_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "dow", "#00C853", "#D32F2F", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "sp500", "#00C853", "#D32F2F", "", False)
     with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_p, nas_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", "#00C853", "#D32F2F", "", False)
@@ -350,7 +353,6 @@ elif menu == "투자 관련 지표":
 
     def draw_macro_section(title, key_prefix, chart1, chart2):
         st.markdown(f"<div class='section-header'>{title}</div>", unsafe_allow_html=True)
-        # CSS 반응형 적용 (300px 이하면 세로 스태킹)
         col_chart, col_ai = st.columns([3, 1])
         
         with col_chart:
@@ -358,7 +360,7 @@ elif menu == "투자 관련 지표":
             st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
             draw_chart_unit(chart2['label'], chart2['val'], chart2['chg'], chart2['pct'], chart2['data'], chart2['color'], chart2['periods'], chart2['idx'], f"{key_prefix}_2", "#FF3333", "#0066FF", chart2['unit'], True)
         
-        # 화면이 좁아지면 이 AI 박스는 자동으로 차트 아래로 내려갑니다.
+        # 화면이 좁아지면 이 AI 박스는 자동으로 차트 아래로 내려갑니다 (CSS에 의해).
         with col_ai:
             draw_ai_section(key_prefix, chart1, chart2)
         st.markdown("<hr>", unsafe_allow_html=True)
