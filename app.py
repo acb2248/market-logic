@@ -9,116 +9,123 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS (반응형 미디어 쿼리 적용 ⭐)
+# 1. 페이지 설정 및 CSS (MyUser 스타일: 프리텐다드 + 카드 UI)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Market Logic", 
     page_icon="📈", 
     layout="wide", 
-    initial_sidebar_state="auto" # 좁은 화면에서 사이드바 자동 숨김
+    initial_sidebar_state="auto"
 )
 
 st.markdown("""
     <style>
-    .stApp { background-color: #ffffff; }
+    /* 1. 폰트 적용 (Pretendard) */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    /* 섹션 구분선 */
-    hr { margin-top: 30px; margin-bottom: 30px; border: 0; border-top: 1px solid #eee; }
-    
-    /* 숫자(Metric) 스타일 */
-    div[data-testid="stMetricValue"] { font-size: 24px; font-weight: bold; color: #333; }
-    
-    /* 신호등 박스 */
-    .signal-box {
-        background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; 
-        padding: 20px; height: 100%; display: flex; flex-direction: column; align-items: center;
-    }
-    .light {
-        width: 35px; height: 35px; border-radius: 50%; background: #ddd; opacity: 0.3; margin: 0 5px; 
-        display: inline-block; transition: all 0.3s ease;
-    }
-    .red.active { background: #ff4b4b; opacity: 1; box-shadow: 0 0 15px #ff4b4b; transform: scale(1.1); }
-    .yellow.active { background: #ffca28; opacity: 1; box-shadow: 0 0 15px #ffca28; transform: scale(1.1); }
-    .green.active { background: #00e676; opacity: 1; box-shadow: 0 0 15px #00e676; transform: scale(1.1); }
-    
-    /* AI 답변 스타일 */
-    .ai-headline { font-size: 16px; font-weight: 800; color: #1a1a1a; margin-top: 15px; margin-bottom: 5px; width: 100%; text-align: left; }
-    .ai-details { font-size: 13px; line-height: 1.5; color: #666; background-color: white; padding: 10px; border-radius: 8px; border-left: 3px solid #ccc; width: 100%; text-align: left; }
-    
-    .section-header { font-size: 20px; font-weight: 700; color: #212529; margin-bottom: 10px; }
-    
-    /* ====================================================================
-       ⭐ 반응형 레이아웃 핵심 (Media Query)
-       화면 너비가 1200px 이하(노트북 분할 화면 등)가 되면 컬럼을 강제로 세로로 쌓음
-       ==================================================================== */
-    @media (max-width: 1200px) {
-        div[data-testid="column"] {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            min-width: 100% !important;
-            margin-bottom: 20px !important;
-        }
+    html, body, [class*="css"], [class*="st-"], .stApp {
+        font-family: 'Pretendard', sans-serif !important;
     }
 
-    /* ====================================================================
-       ⭐ 사이드바 디자인
-       ==================================================================== */
-    section[data-testid="stSidebar"] div[role="radiogroup"] {
-        flex-direction: column !important;
-        gap: 15px !important;
-        padding-top: 20px;
-    }
-    section[data-testid="stSidebar"] label {
-        padding: 10px 15px !important;
-        border-radius: 8px !important;
-        transition: background-color 0.3s;
-    }
-    section[data-testid="stSidebar"] label:has(input:checked) {
-        background-color: #e3f2fd !important;
-        color: #0d47a1 !important;
-        font-weight: bold !important;
+    /* 2. 전체 배경색 (연한 회색 - MyUser 느낌) */
+    .stApp {
+        background-color: #f5f7f9;
     }
 
-    /* ====================================================================
-       ⭐ 메인 화면 기간 버튼 디자인
-       ==================================================================== */
+    /* 3. 섹션 헤더 디자인 (크고 볼드하게) */
+    .section-header {
+        font-size: 22px;
+        font-weight: 800;
+        color: #111827; /* 진한 블랙 */
+        margin-top: 10px;
+        margin-bottom: 15px;
+        letter-spacing: -0.5px;
+    }
+
+    /* 4. ⭐ 카드 UI (핵심 Design) */
+    /* Streamlit의 컨테이너(border=True)를 카드처럼 변신시킴 */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb; /* 아주 연한 테두리 */
+        border-radius: 16px; /* 둥근 모서리 */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* 부드러운 그림자 */
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    /* 카드 호버 효과 (살짝 떠오름) */
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        border-color: #d1d5db;
+    }
+
+    /* 5. 버튼 디자인 (네이비 캡슐) */
     div[data-testid="stBlock"] div[role="radiogroup"] {
         background-color: transparent !important;
         flex-direction: row !important;
-        gap: 8px !important;
+        gap: 6px !important;
         flex-wrap: wrap !important;
         justify-content: flex-end !important;
     }
     
     div[data-testid="stBlock"] div[role="radiogroup"] label {
-        background-color: #f1f3f5 !important;
-        padding: 6px 16px !important;
-        border-radius: 20px !important;
-        border: 1px solid #e9ecef !important;
-        color: #666 !important;
-        font-size: 13px !important;
-        cursor: pointer !important;
+        background-color: #f3f4f6 !important; /* 연한 회색 배경 */
+        padding: 4px 12px !important;
+        border-radius: 9999px !important; /* 완전 둥근 캡슐 */
+        border: 1px solid transparent !important;
+        color: #6b7280 !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
         box-shadow: none !important;
-        display: flex !important; justify-content: center !important; align-items: center !important;
-        white-space: nowrap !important;
     }
     
+    /* 선택된 버튼 (진한 네이비) */
     div[data-testid="stBlock"] div[role="radiogroup"] label:has(input:checked) {
-        background-color: #003366 !important;
+        background-color: #1e293b !important; /* Slate 800 */
         color: #ffffff !important;
-        border-color: #003366 !important;
-        font-weight: 600 !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
-    
-    div[data-testid="stBlock"] div[role="radiogroup"] label:hover {
-        background-color: #e2e6ea !important;
-        color: #333 !important;
-    }
-    
+
     div[data-testid="stBlock"] div[role="radiogroup"] input { display: none; }
     div[data-testid="stBlock"] div[role="radiogroup"] div[data-testid="stMarkdownContainer"] { display: block; }
+
+    /* 6. 반응형 (좁은 화면에서 세로 스택) */
+    @media (max-width: 1200px) {
+        div[data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+    }
+
+    /* 7. 사이드바 스타일 */
+    section[data-testid="stSidebar"] {
+        background-color: #ffffff;
+        border-right: 1px solid #e5e7eb;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    section[data-testid="stSidebar"] label:has(input:checked) {
+        background-color: #eff6ff !important; /* 아주 연한 블루 */
+        color: #1d4ed8 !important; /* 블루 텍스트 */
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+    }
     
+    /* AI 답변 스타일 */
+    .ai-headline { font-size: 17px; font-weight: 800; color: #111827; margin-bottom: 8px; line-height: 1.4; }
+    .ai-details { font-size: 14px; line-height: 1.6; color: #4b5563; background-color: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
+    
+    /* 신호등 박스 */
+    .signal-box { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+    .light { width: 12px; height: 12px; border-radius: 50%; opacity: 0.2; background: #9ca3af; }
+    .red.active { background: #ef4444; opacity: 1; box-shadow: 0 0 8px #ef4444; }
+    .yellow.active { background: #f59e0b; opacity: 1; box-shadow: 0 0 8px #f59e0b; }
+    .green.active { background: #10b981; opacity: 1; box-shadow: 0 0 8px #10b981; }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -127,11 +134,8 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    # 한글화된 메뉴
     menu = st.radio("메뉴", ["주가 지수", "투자 관련 지표"], index=0, label_visibility="collapsed")
-    
     st.divider()
-    
     st.header("🛠 설정")
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
@@ -151,11 +155,9 @@ def get_yahoo_data(ticker, period="10y"):
             prev = data['Close'].iloc[-2]
             change = curr - prev
             pct_change = (change / prev) * 100
-            
             chart_df = data[['Close']].reset_index()
             chart_df.columns = ['Date', 'Value']
             chart_df['Date'] = chart_df['Date'].dt.tz_localize(None)
-            
             return curr, change, pct_change, chart_df
     except: pass
     return None, None, None, None
@@ -174,17 +176,14 @@ def get_fred_data(series_id, calculation_type='raw'):
                 df = df.rename(columns={date_col: 'Date'})
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
-                
                 if calculation_type == 'yoy': df['Value'] = df.iloc[:, 0].pct_change(12) * 100
                 elif calculation_type == 'diff': df['Value'] = df.iloc[:, 0].diff()
                 else: df['Value'] = df.iloc[:, 0]
-                
                 df = df.dropna()
                 curr = df['Value'].iloc[-1]
                 prev = df['Value'].iloc[-2]
                 change = curr - prev
                 pct_change = 0
-                
                 return curr, change, pct_change, df.reset_index()
         except: time.sleep(1); continue
     return None, None, None, None
@@ -215,48 +214,63 @@ def create_chart(data, color, height=180):
     ).properties(height=height).interactive()
     return st.altair_chart(chart, use_container_width=True)
 
-def styled_metric(label, value, change, pct_change, unit="", up_color="red", down_color="blue"):
+# ⭐ 디자인 업그레이드된 Metric (HTML)
+def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444", down_color="#3b82f6"):
     if value is None: 
         st.metric(label, "-")
         return
+    
+    # 폰트 및 디자인 세밀 조정
     if change > 0:
         color = up_color
+        bg_color = f"{up_color}15" # 투명도 15%
         arrow = "▲"
         sign = "+"
     elif change < 0:
         color = down_color
+        bg_color = f"{down_color}15"
         arrow = "▼"
         sign = ""
     else:
-        color = "gray"
+        color = "#6b7280"
+        bg_color = "#f3f4f6"
         arrow = "-"
         sign = ""
+
     st.markdown(f"""
-    <div style="margin-bottom: 5px;">
-        <div style="font-size: 14px; color: #666; margin-bottom: 2px;">{label}</div>
+    <div style="display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{label}</div>
         <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
-            <div style="font-size: 26px; font-weight: 700; color: #111;">{value:,.2f}{unit}</div>
-            <div style="font-size: 14px; font-weight: 600; color: {color}; background-color: {color}15; padding: 2px 6px; border-radius: 4px;">
+            <div style="font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -1px;">{value:,.2f}<span style="font-size: 18px; color: #9ca3af; font-weight: 600; margin-left: 2px;">{unit}</span></div>
+            <div style="font-size: 13px; font-weight: 700; color: {color}; background-color: {bg_color}; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center;">
                 {arrow} {sign}{change:,.2f} ({sign}{pct_change:.2f}%)
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+# ⭐ 차트 유닛: "카드(Container)" 적용
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
-    if use_columns:
-        c1, c2 = st.columns([1.2, 1.8])
-        with c1: 
+    # 여기서 st.container(border=True)를 사용하여 '카드 UI'를 만듭니다.
+    with st.container(border=True):
+        if use_columns:
+            c1, c2 = st.columns([1.5, 1.5])
+            with c1: 
+                styled_metric(label, val, chg, pct, unit, up_c, down_c)
+            with c2: 
+                # 버튼을 우측 하단으로 정렬하기 위해 빈 공간 사용 등도 가능하지만 CSS로 해결됨
+                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True) # 간격 조정
+                period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+        else:
             styled_metric(label, val, chg, pct, unit, up_c, down_c)
-        with c2: 
+            st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
             period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
-    else:
-        styled_metric(label, val, chg, pct, unit, up_c, down_c)
-        period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
-    filtered_data = filter_data_by_period(data, period)
-    create_chart(filtered_data, color, height=180)
+        st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True) # 차트 위 여백
+        filtered_data = filter_data_by_period(data, period)
+        create_chart(filtered_data, color, height=180)
 
+# AI 분석 함수
 if 'ai_results' not in st.session_state: st.session_state['ai_results'] = {}
 
 def analyze_sector(sector_name, data_summary):
@@ -278,31 +292,33 @@ def analyze_sector(sector_name, data_summary):
     except: return "YELLOW", "오류 발생", "분석 실패"
 
 def draw_ai_section(key_prefix, chart1, chart2):
-    st.markdown(f"<div class='signal-box'>", unsafe_allow_html=True)
-    st.markdown(f"**🤖 {key_prefix} AI 분석**")
-    if st.button("⚡ 분석 실행", key=f"btn_{key_prefix}", use_container_width=True):
-        data_sum = f"{chart1['label']}={chart1['val']}, {chart2['label']}={chart2['val']}"
-        sig, head, det = analyze_sector(key_prefix, data_sum)
-        st.session_state['ai_results'][key_prefix.lower()] = {'signal': sig, 'headline': head, 'details': det}
-    
-    res = st.session_state['ai_results'].get(key_prefix.lower(), {'signal': None, 'headline': None})
-    r = "active" if res['signal'] == "RED" else ""
-    y = "active" if res['signal'] == "YELLOW" else ""
-    g = "active" if res['signal'] == "GREEN" else ""
-    
-    st.markdown(f"""
-    <div style="margin-top: 15px; margin-bottom: 10px;">
-        <div class="light red {r}"></div>
-        <div class="light yellow {y}"></div>
-        <div class="light green {g}"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if res['headline']:
-        st.markdown(f"<div class='ai-headline'>{res['headline']}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='ai-details'>{res['details']}</div>", unsafe_allow_html=True)
-    else: st.info("버튼을 눌러 분석하세요.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # AI 섹션도 카드(Container) 안에 넣습니다.
+    with st.container(border=True):
+        st.markdown(f"<div style='font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 10px;'>🤖 {key_prefix} AI 분석</div>", unsafe_allow_html=True)
+        
+        if st.button("⚡ 분석 실행", key=f"btn_{key_prefix}", use_container_width=True):
+            data_sum = f"{chart1['label']}={chart1['val']}, {chart2['label']}={chart2['val']}"
+            sig, head, det = analyze_sector(key_prefix, data_sum)
+            st.session_state['ai_results'][key_prefix.lower()] = {'signal': sig, 'headline': head, 'details': det}
+        
+        res = st.session_state['ai_results'].get(key_prefix.lower(), {'signal': None, 'headline': None})
+        r = "active" if res['signal'] == "RED" else ""
+        y = "active" if res['signal'] == "YELLOW" else ""
+        g = "active" if res['signal'] == "GREEN" else ""
+        
+        st.markdown(f"""
+        <div class="signal-box" style="margin-top: 15px;">
+            <div class="light red {r}"></div>
+            <div class="light yellow {y}"></div>
+            <div class="light green {g}"></div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if res['headline']:
+            st.markdown(f"<div class='ai-headline'>{res['headline']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='ai-details'>{res['details']}</div>", unsafe_allow_html=True)
+        else:
+            st.info("버튼을 눌러 분석하세요.")
 
 # -----------------------------------------------------------------------------
 # 4. 페이지 로직 : 주가 지수 탭
@@ -310,32 +326,29 @@ def draw_ai_section(key_prefix, chart1, chart2):
 if menu == "주가 지수":
     st.title("글로벌 시장 지수")
     
-    with st.spinner("주가 데이터 수집 중..."):
+    with st.spinner("데이터 로딩 중..."):
         dow_v, dow_c, dow_p, dow_d = get_yahoo_data("^DJI")
         sp_v, sp_c, sp_p, sp_d = get_yahoo_data("^GSPC")
         nas_v, nas_c, nas_p, nas_d = get_yahoo_data("^IXIC")
         kospi_v, kospi_c, kospi_p, kospi_d = get_yahoo_data("^KS11")
         kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d = get_yahoo_data("^KQ11")
 
-    # [1] 미국 3대 지수
-    US_COLOR = "#00c853" 
+    # [1] 미국
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
+    # Green/Red
+    with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "dow", "#10b981", "#ef4444", "", False)
+    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "sp500", "#10b981", "#ef4444", "", False)
+    with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", "#10b981", "#ef4444", "", False)
     
-    # 좁은 화면에서는 이 컬럼들이 세로로 쌓입니다 (CSS 적용됨)
-    with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_p, dow_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "dow", "#00C853", "#D32F2F", "", False)
-    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "sp500", "#00C853", "#D32F2F", "", False)
-    with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_p, nas_d, US_COLOR, ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", "#00C853", "#D32F2F", "", False)
-    
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 30px'></div>", unsafe_allow_html=True) # 여백
 
-    # [2] 한국 2대 지수
-    KR_COLOR = "#ff1744"
+    # [2] 한국
     st.markdown("<div class='section-header'>국내 증시 (KR Market)</div>", unsafe_allow_html=True)
     c4, c5 = st.columns(2)
-    
-    with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_p, kospi_d, KR_COLOR, ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kospi", "#FF3333", "#0066FF", "", True)
-    with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, KR_COLOR, ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kosdaq", "#FF3333", "#0066FF", "", True)
+    # Red/Blue
+    with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
+    with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
 # -----------------------------------------------------------------------------
 # 5. 페이지 로직 : 투자 관련 지표 탭
@@ -356,26 +369,26 @@ elif menu == "투자 관련 지표":
         col_chart, col_ai = st.columns([3, 1])
         
         with col_chart:
-            draw_chart_unit(chart1['label'], chart1['val'], chart1['chg'], chart1['pct'], chart1['data'], chart1['color'], chart1['periods'], chart1['idx'], f"{key_prefix}_1", "#FF3333", "#0066FF", chart1['unit'], True)
+            # 2번 탭은 한국식 (상승=빨강/하락=파랑) 통일
+            draw_chart_unit(chart1['label'], chart1['val'], chart1['chg'], chart1['pct'], chart1['data'], chart1['color'], chart1['periods'], chart1['idx'], f"{key_prefix}_1", "#ef4444", "#3b82f6", chart1['unit'], True)
             st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
-            draw_chart_unit(chart2['label'], chart2['val'], chart2['chg'], chart2['pct'], chart2['data'], chart2['color'], chart2['periods'], chart2['idx'], f"{key_prefix}_2", "#FF3333", "#0066FF", chart2['unit'], True)
+            draw_chart_unit(chart2['label'], chart2['val'], chart2['chg'], chart2['pct'], chart2['data'], chart2['color'], chart2['periods'], chart2['idx'], f"{key_prefix}_2", "#ef4444", "#3b82f6", chart2['unit'], True)
         
-        # 화면이 좁아지면 이 AI 박스는 자동으로 차트 아래로 내려갑니다 (CSS에 의해).
         with col_ai:
             draw_ai_section(key_prefix, chart1, chart2)
         st.markdown("<hr>", unsafe_allow_html=True)
 
     draw_macro_section("1. 금융 시장 (금리 & 환율)", "Market",
-        {'label': "美 10년물 금리", 'val': rate_val, 'chg': rate_chg, 'pct': rate_pct, 'data': rate_data, 'color': '#fb8c00', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3, 'unit': "%"},
-        {'label': "원/달러 환율", 'val': exch_val, 'chg': exch_chg, 'pct': exch_pct, 'data': exch_data, 'color': '#2e7d32', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3, 'unit': "원"}
+        {'label': "美 10년물 금리", 'val': rate_val, 'chg': rate_chg, 'pct': rate_pct, 'data': rate_data, 'color': '#f59e0b', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3, 'unit': "%"},
+        {'label': "원/달러 환율", 'val': exch_val, 'chg': exch_chg, 'pct': exch_pct, 'data': exch_data, 'color': '#10b981', 'periods': ["1개월", "3개월", "6개월", "1년", "전체"], 'idx': 3, 'unit': "원"}
     )
     
     draw_macro_section("2. 물가 지표 (물가 상승률)", "Inflation",
-        {'label': "헤드라인 CPI", 'val': cpi_val, 'chg': cpi_chg, 'pct': cpi_pct, 'data': cpi_data, 'color': '#fb8c00', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"},
-        {'label': "근원(Core) CPI", 'val': core_val, 'chg': core_chg, 'pct': core_pct, 'data': core_data, 'color': '#d32f2f', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
+        {'label': "헤드라인 CPI", 'val': cpi_val, 'chg': cpi_chg, 'pct': cpi_pct, 'data': cpi_data, 'color': '#f59e0b', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"},
+        {'label': "근원(Core) CPI", 'val': core_val, 'chg': core_chg, 'pct': core_pct, 'data': core_data, 'color': '#ef4444', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
     )
     
     draw_macro_section("3. 고용 지표 (고용 & 경기)", "Economy",
-        {'label': "비농업 고용", 'val': job_val, 'chg': job_chg, 'pct': job_pct, 'data': job_data, 'color': '#1565c0', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "k"},
-        {'label': "실업률", 'val': unemp_val, 'chg': unemp_chg, 'pct': unemp_pct, 'data': unemp_data, 'color': '#2e7d32', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
+        {'label': "비농업 고용", 'val': job_val, 'chg': job_chg, 'pct': job_pct, 'data': job_data, 'color': '#3b82f6', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "k"},
+        {'label': "실업률", 'val': unemp_val, 'chg': unemp_chg, 'pct': unemp_pct, 'data': unemp_data, 'color': '#10b981', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
     )
