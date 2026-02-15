@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS (MyUser 스타일: 프리텐다드 + 카드 UI)
+# 1. 페이지 설정 및 CSS (아이콘 깨짐 방지 수정 완료 ✅)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Market Logic", 
@@ -23,38 +23,37 @@ st.markdown("""
     /* 1. 폰트 적용 (Pretendard) */
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    html, body, [class*="css"], [class*="st-"], .stApp {
+    /* 🚨 수정 포인트: 아이콘 폰트가 깨지지 않도록 선택자 범위를 안전하게 조정했습니다. */
+    html, body, .stApp {
         font-family: 'Pretendard', sans-serif !important;
     }
-
-    /* 2. 전체 배경색 (연한 회색 - MyUser 느낌) */
+    
+    /* 2. 전체 배경색 (연한 회색) */
     .stApp {
         background-color: #f5f7f9;
     }
 
-    /* 3. 섹션 헤더 디자인 (크고 볼드하게) */
+    /* 3. 섹션 헤더 디자인 */
     .section-header {
         font-size: 22px;
         font-weight: 800;
-        color: #111827; /* 진한 블랙 */
+        color: #111827;
         margin-top: 10px;
         margin-bottom: 15px;
         letter-spacing: -0.5px;
     }
 
-    /* 4. ⭐ 카드 UI (핵심 Design) */
-    /* Streamlit의 컨테이너(border=True)를 카드처럼 변신시킴 */
+    /* 4. 카드 UI */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #ffffff;
-        border: 1px solid #e5e7eb; /* 아주 연한 테두리 */
-        border-radius: 16px; /* 둥근 모서리 */
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* 부드러운 그림자 */
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         padding: 20px;
         margin-bottom: 20px;
         transition: transform 0.2s ease-in-out;
     }
     
-    /* 카드 호버 효과 (살짝 떠오름) */
     div[data-testid="stVerticalBlockBorderWrapper"]:hover {
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
         border-color: #d1d5db;
@@ -70,9 +69,9 @@ st.markdown("""
     }
     
     div[data-testid="stBlock"] div[role="radiogroup"] label {
-        background-color: #f3f4f6 !important; /* 연한 회색 배경 */
+        background-color: #f3f4f6 !important;
         padding: 4px 12px !important;
-        border-radius: 9999px !important; /* 완전 둥근 캡슐 */
+        border-radius: 9999px !important;
         border: 1px solid transparent !important;
         color: #6b7280 !important;
         font-size: 12px !important;
@@ -80,9 +79,8 @@ st.markdown("""
         box-shadow: none !important;
     }
     
-    /* 선택된 버튼 (진한 네이비) */
     div[data-testid="stBlock"] div[role="radiogroup"] label:has(input:checked) {
-        background-color: #1e293b !important; /* Slate 800 */
+        background-color: #1e293b !important;
         color: #ffffff !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
@@ -109,8 +107,8 @@ st.markdown("""
         gap: 10px !important;
     }
     section[data-testid="stSidebar"] label:has(input:checked) {
-        background-color: #eff6ff !important; /* 아주 연한 블루 */
-        color: #1d4ed8 !important; /* 블루 텍스트 */
+        background-color: #eff6ff !important;
+        color: #1d4ed8 !important;
         font-weight: 700 !important;
         border-radius: 8px !important;
     }
@@ -214,16 +212,15 @@ def create_chart(data, color, height=180):
     ).properties(height=height).interactive()
     return st.altair_chart(chart, use_container_width=True)
 
-# ⭐ 디자인 업그레이드된 Metric (HTML)
+# Metric (HTML)
 def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444", down_color="#3b82f6"):
     if value is None: 
         st.metric(label, "-")
         return
     
-    # 폰트 및 디자인 세밀 조정
     if change > 0:
         color = up_color
-        bg_color = f"{up_color}15" # 투명도 15%
+        bg_color = f"{up_color}15"
         arrow = "▲"
         sign = "+"
     elif change < 0:
@@ -249,28 +246,25 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
     </div>
     """, unsafe_allow_html=True)
 
-# ⭐ 차트 유닛: "카드(Container)" 적용
+# 차트 유닛: 카드 UI
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
-    # 여기서 st.container(border=True)를 사용하여 '카드 UI'를 만듭니다.
     with st.container(border=True):
         if use_columns:
             c1, c2 = st.columns([1.5, 1.5])
             with c1: 
                 styled_metric(label, val, chg, pct, unit, up_c, down_c)
             with c2: 
-                # 버튼을 우측 하단으로 정렬하기 위해 빈 공간 사용 등도 가능하지만 CSS로 해결됨
-                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True) # 간격 조정
+                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
                 period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         else:
             styled_metric(label, val, chg, pct, unit, up_c, down_c)
             st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
             period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
-        st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True) # 차트 위 여백
+        st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
         filtered_data = filter_data_by_period(data, period)
         create_chart(filtered_data, color, height=180)
 
-# AI 분석 함수
 if 'ai_results' not in st.session_state: st.session_state['ai_results'] = {}
 
 def analyze_sector(sector_name, data_summary):
@@ -292,7 +286,6 @@ def analyze_sector(sector_name, data_summary):
     except: return "YELLOW", "오류 발생", "분석 실패"
 
 def draw_ai_section(key_prefix, chart1, chart2):
-    # AI 섹션도 카드(Container) 안에 넣습니다.
     with st.container(border=True):
         st.markdown(f"<div style='font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 10px;'>🤖 {key_prefix} AI 분석</div>", unsafe_allow_html=True)
         
@@ -336,17 +329,15 @@ if menu == "주가 지수":
     # [1] 미국
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    # Green/Red
     with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "dow", "#10b981", "#ef4444", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "sp500", "#10b981", "#ef4444", "", False)
     with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", "#10b981", "#ef4444", "", False)
     
-    st.markdown("<div style='height: 30px'></div>", unsafe_allow_html=True) # 여백
+    st.markdown("<div style='height: 30px'></div>", unsafe_allow_html=True)
 
     # [2] 한국
     st.markdown("<div class='section-header'>국내 증시 (KR Market)</div>", unsafe_allow_html=True)
     c4, c5 = st.columns(2)
-    # Red/Blue
     with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
     with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
@@ -369,7 +360,6 @@ elif menu == "투자 관련 지표":
         col_chart, col_ai = st.columns([3, 1])
         
         with col_chart:
-            # 2번 탭은 한국식 (상승=빨강/하락=파랑) 통일
             draw_chart_unit(chart1['label'], chart1['val'], chart1['chg'], chart1['pct'], chart1['data'], chart1['color'], chart1['periods'], chart1['idx'], f"{key_prefix}_1", "#ef4444", "#3b82f6", chart1['unit'], True)
             st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
             draw_chart_unit(chart2['label'], chart2['val'], chart2['chg'], chart2['pct'], chart2['data'], chart2['color'], chart2['periods'], chart2['idx'], f"{key_prefix}_2", "#ef4444", "#3b82f6", chart2['unit'], True)
