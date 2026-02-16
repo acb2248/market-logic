@@ -320,7 +320,7 @@ if menu == "주가 지수":
     st.title("글로벌 시장 지수")
     
     with st.spinner("데이터 로딩 중..."):
-        dow_v, dow_c, dow_p, dow_d = get_yahoo_data("DJA")
+        dow_v, dow_c, dow_p, dow_d = get_yahoo_data("DIA")
         sp_v, sp_c, sp_p, sp_d = get_yahoo_data("^GSPC")
         nas_v, nas_c, nas_p, nas_d = get_yahoo_data("^IXIC")
         kospi_v, kospi_c, kospi_p, kospi_d = get_yahoo_data("^KS11")
@@ -382,4 +382,5 @@ elif menu == "투자 관련 지표":
         {'label': "비농업 고용", 'val': job_val, 'chg': job_chg, 'pct': job_pct, 'data': job_data, 'color': '#3b82f6', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "k"},
         {'label': "실업률", 'val': unemp_val, 'chg': unemp_chg, 'pct': unemp_pct, 'data': unemp_data, 'color': '#10b981', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
     )
+
 
