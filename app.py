@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS (아이콘 깨짐 방지 수정 완료 ✅)
+# 1. 페이지 설정 및 CSS
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Market Logic", 
@@ -23,12 +23,11 @@ st.markdown("""
     /* 1. 폰트 적용 (Pretendard) */
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    /* 🚨 수정 포인트: 아이콘 폰트가 깨지지 않도록 선택자 범위를 안전하게 조정했습니다. */
     html, body, .stApp {
         font-family: 'Pretendard', sans-serif !important;
     }
     
-    /* 2. 전체 배경색 (연한 회색) */
+    /* 2. 전체 배경색 */
     .stApp {
         background-color: #f5f7f9;
     }
@@ -51,20 +50,13 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         padding: 20px;
         margin-bottom: 20px;
-        transition: transform 0.2s ease-in-out;
-    }
-    
-    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-        border-color: #d1d5db;
     }
 
-    /* 5. 버튼 디자인 (네이비 캡슐) */
+    /* 5. 라디오 버튼 디자인 */
     div[data-testid="stBlock"] div[role="radiogroup"] {
         background-color: transparent !important;
         flex-direction: row !important;
         gap: 6px !important;
-        flex-wrap: wrap !important;
         justify-content: flex-end !important;
     }
     
@@ -82,40 +74,17 @@ st.markdown("""
     div[data-testid="stBlock"] div[role="radiogroup"] label:has(input:checked) {
         background-color: #1e293b !important;
         color: #ffffff !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
 
-    div[data-testid="stBlock"] div[role="radiogroup"] input { display: none; }
-    div[data-testid="stBlock"] div[role="radiogroup"] div[data-testid="stMarkdownContainer"] { display: block; }
-
-    /* 6. 반응형 (좁은 화면에서 세로 스택) */
-    @media (max-width: 1200px) {
-        div[data-testid="column"] {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            min-width: 100% !important;
-        }
-    }
-
-    /* 7. 사이드바 스타일 */
+    /* 6. 사이드바 스타일 */
     section[data-testid="stSidebar"] {
         background-color: #ffffff;
         border-right: 1px solid #e5e7eb;
     }
-    section[data-testid="stSidebar"] div[role="radiogroup"] {
-        flex-direction: column !important;
-        gap: 10px !important;
-    }
-    section[data-testid="stSidebar"] label:has(input:checked) {
-        background-color: #eff6ff !important;
-        color: #1d4ed8 !important;
-        font-weight: 700 !important;
-        border-radius: 8px !important;
-    }
     
     /* AI 답변 스타일 */
     .ai-headline { font-size: 17px; font-weight: 800; color: #111827; margin-bottom: 8px; line-height: 1.4; }
-    .ai-details { font-size: 14px; line-height: 1.6; color: #4b5563; background-color: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .ai-details { font-size: 14px; line-height: 1.6; color: #374151; background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
     
     /* 신호등 박스 */
     .signal-box { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
@@ -132,7 +101,7 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    menu = st.radio("메뉴", ["주가 지수", "투자 관련 지표"], index=0, label_visibility="collapsed")
+    menu = st.radio("메뉴", ["주가 지수", "투자 관련 지표", "📈 유망 종목 스캐너"], index=0)
     st.divider()
     st.header("🛠 설정")
     if "openai_api_key" in st.secrets:
@@ -191,6 +160,52 @@ def get_interest_rate_hybrid():
     if res[0] is not None: return res
     return get_fred_data("DGS10", "raw")
 
+# --- 스캐너용 데이터 함수 (Volume, High, Low 필요) ---
+def get_scanner_data(ticker):
+    try:
+        df = yf.download(ticker, period="6mo", progress=False)
+        if df.empty: return None
+        # 멀티인덱스 처리 (yfinance 최신버전 대응)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        return df
+    except: return None
+
+def calculate_accumulation_score(df):
+    """매집 점수 계산 (장기이평선 위 + 변동성 축소 + 거래량 증가)"""
+    if len(df) < 100: return 0, "데이터 부족"
+    
+    df['MA60'] = df['Close'].rolling(window=60).mean()
+    df['Vol20'] = df['Volume'].rolling(window=20).mean()
+    
+    curr_price = df['Close'].iloc[-1]
+    ma60 = df['MA60'].iloc[-1]
+    
+    # 1. 추세 (60일선 위)
+    trend_score = 1 if curr_price >= ma60 else 0
+    
+    # 2. 변동성 (최근 20일 고저폭 15% 이내)
+    recent_high = df['High'].tail(20).max()
+    recent_low = df['Low'].tail(20).min()
+    volatility = (recent_high - recent_low) / recent_low
+    vol_score = 1 if volatility < 0.15 else 0
+    
+    # 3. 수급 (최근 5일 평균 거래량이 20일 평균보다 10% 이상 증가)
+    recent_vol = df['Volume'].tail(5).mean()
+    avg_vol = df['Vol20'].iloc[-1]
+    volume_score = 1 if recent_vol > avg_vol * 1.1 else 0
+    
+    total = trend_score + vol_score + volume_score
+    reasons = []
+    if trend_score: reasons.append("추세 우상향")
+    if vol_score: reasons.append("기간 조정 중")
+    if volume_score: reasons.append("수급 유입")
+    
+    return total, ", ".join(reasons)
+
+# -----------------------------------------------------------------------------
+# 4. 차트 및 UI 컴포넌트
+# -----------------------------------------------------------------------------
 def filter_data_by_period(df, period):
     if df is None or df.empty: return df
     end_date = df['Date'].max()
@@ -212,47 +227,35 @@ def create_chart(data, color, height=180):
     ).properties(height=height).interactive()
     return st.altair_chart(chart, use_container_width=True)
 
-# Metric (HTML)
 def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444", down_color="#3b82f6"):
     if value is None: 
         st.metric(label, "-")
         return
     
     if change > 0:
-        color = up_color
-        bg_color = f"{up_color}15"
-        arrow = "▲"
-        sign = "+"
+        color, bg_color, arrow, sign = up_color, f"{up_color}15", "▲", "+"
     elif change < 0:
-        color = down_color
-        bg_color = f"{down_color}15"
-        arrow = "▼"
-        sign = ""
+        color, bg_color, arrow, sign = down_color, f"{down_color}15", "▼", ""
     else:
-        color = "#6b7280"
-        bg_color = "#f3f4f6"
-        arrow = "-"
-        sign = ""
+        color, bg_color, arrow, sign = "#6b7280", "#f3f4f6", "-", ""
 
     st.markdown(f"""
     <div style="display: flex; flex-direction: column; justify-content: center;">
-        <div style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{label}</div>
-        <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
-            <div style="font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -1px;">{value:,.2f}<span style="font-size: 18px; color: #9ca3af; font-weight: 600; margin-left: 2px;">{unit}</span></div>
-            <div style="font-size: 13px; font-weight: 700; color: {color}; background-color: {bg_color}; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase;">{label}</div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+            <div style="font-size: 28px; font-weight: 800; color: #111827;">{value:,.2f}<span style="font-size: 18px; color: #9ca3af; margin-left: 2px;">{unit}</span></div>
+            <div style="font-size: 13px; font-weight: 700; color: {color}; background-color: {bg_color}; padding: 4px 8px; border-radius: 6px;">
                 {arrow} {sign}{change:,.2f} ({sign}{pct_change:.2f}%)
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-# 차트 유닛: 카드 UI
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
     with st.container(border=True):
         if use_columns:
             c1, c2 = st.columns([1.5, 1.5])
-            with c1: 
-                styled_metric(label, val, chg, pct, unit, up_c, down_c)
+            with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
             with c2: 
                 st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
                 period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
@@ -262,64 +265,91 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
-        filtered_data = filter_data_by_period(data, period)
-        create_chart(filtered_data, color, height=180)
+        create_chart(filter_data_by_period(data, period), color, height=180)
 
+# -----------------------------------------------------------------------------
+# 5. AI 분석 엔진 (4가지 지표 포함)
+# -----------------------------------------------------------------------------
 if 'ai_results' not in st.session_state: st.session_state['ai_results'] = {}
 
 def analyze_sector(sector_name, data_summary):
-    if not api_key: return "YELLOW", "API 키 필요", "설정에서 키를 입력하세요."
+    if not api_key: return "YELLOW", "API 키 필요", "설정 탭에서 API Key를 입력해주세요."
+    
     client = openai.OpenAI(api_key=api_key)
+    
+    # 요청하신 4가지 지표를 포함한 프롬프트
     prompt = f"""
-    당신은 펀드매니저 버너드 보몰입니다. 데이터: {data_summary}
-    [Output Rules]
-    1. Language: Korean (한국어)
-    2. Format: SIGNAL: (RED/YELLOW/GREEN) HEADLINE: (Bold 1-line) DETAILS: (2-3 sentences)
+    당신은 글로벌 헤지펀드 매니저입니다. 데이터: {data_summary}
+    주제: {sector_name}
+    
+    [필수 작성 항목]
+    1. SIGNAL: (RED/YELLOW/GREEN 중 택1)
+    2. HEADLINE: (핵심을 찌르는 1줄 요약)
+    3. DETAILS: 아래 형식으로 작성 (Markdown)
+       - 📊 **Thoroughness Score**: (0~100점, 분석 신뢰도)
+       - 🛡️ **Risk & Counter-argument**: (치명적 리스크 1가지)
+       - 🔮 **Future Strategy**: (단기 대응 전략 1줄)
+       - 🏷️ **Keywords**: (관련 심층 키워드 3개 해시태그)
+       - ❓ **Engagement Trigger**: (통찰을 주는 질문 1개)
+    
+    답변은 반드시 한국어로, 전문적이지만 읽기 쉽게 작성하세요.
     """
     try:
         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
         text = resp.choices[0].message.content
+        
         signal = "RED" if "RED" in text else "GREEN" if "GREEN" in text else "YELLOW"
-        headline = text.split("HEADLINE:")[1].split("DETAILS:")[0].strip() if "HEADLINE:" in text else "분석 완료"
-        details = text.split("DETAILS:")[1].strip() if "DETAILS:" in text else text
+        
+        # 파싱 로직 강화
+        if "HEADLINE:" in text:
+            parts = text.split("HEADLINE:")
+            headline = parts[1].split("DETAILS:")[0].strip()
+            details = parts[1].split("DETAILS:")[1].strip()
+        else:
+            headline = "분석 완료"
+            details = text
+            
         return signal, headline, details
-    except: return "YELLOW", "오류 발생", "분석 실패"
+    except Exception as e: return "YELLOW", "오류 발생", f"분석 중 문제가 생겼습니다: {str(e)}"
 
 def draw_ai_section(key_prefix, chart1, chart2):
     with st.container(border=True):
         st.markdown(f"<div style='font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 10px;'>🤖 {key_prefix} AI 분석</div>", unsafe_allow_html=True)
         
-        if st.button("⚡ 분석 실행", key=f"btn_{key_prefix}", use_container_width=True):
+        if st.button("⚡ 정밀 분석 실행", key=f"btn_{key_prefix}", use_container_width=True):
             data_sum = f"{chart1['label']}={chart1['val']}, {chart2['label']}={chart2['val']}"
             sig, head, det = analyze_sector(key_prefix, data_sum)
             st.session_state['ai_results'][key_prefix.lower()] = {'signal': sig, 'headline': head, 'details': det}
         
         res = st.session_state['ai_results'].get(key_prefix.lower(), {'signal': None, 'headline': None})
+        
+        # 신호등 표시
         r = "active" if res['signal'] == "RED" else ""
         y = "active" if res['signal'] == "YELLOW" else ""
         g = "active" if res['signal'] == "GREEN" else ""
         
-        st.markdown(f"""
-        <div class="signal-box" style="margin-top: 15px;">
-            <div class="light red {r}"></div>
-            <div class="light yellow {y}"></div>
-            <div class="light green {g}"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if res['headline']:
+        if res['signal']:
+            st.markdown(f"""
+            <div class="signal-box" style="margin-top: 15px;">
+                <div class="light red {r}"></div>
+                <div class="light yellow {y}"></div>
+                <div class="light green {g}"></div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             st.markdown(f"<div class='ai-headline'>{res['headline']}</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='ai-details'>{res['details']}</div>", unsafe_allow_html=True)
         else:
-            st.info("버튼을 눌러 분석하세요.")
+            st.info("버튼을 눌러 4가지 지표가 포함된 리포트를 받아보세요.")
 
 # -----------------------------------------------------------------------------
-# 4. 페이지 로직 : 주가 지수 탭
+# 6. 메인 페이지 로직
 # -----------------------------------------------------------------------------
 if menu == "주가 지수":
     st.title("글로벌 시장 지수")
     
     with st.spinner("데이터 로딩 중..."):
+        # 다우존스는 ETF(DIA)로 대체 (안정성 확보)
         dow_v, dow_c, dow_p, dow_d = get_yahoo_data("DIA")
         sp_v, sp_c, sp_p, sp_d = get_yahoo_data("^GSPC")
         nas_v, nas_c, nas_p, nas_d = get_yahoo_data("^IXIC")
@@ -329,7 +359,7 @@ if menu == "주가 지수":
     # [1] 미국
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: draw_chart_unit("Dow Jones 30", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "dow", "#10b981", "#ef4444", "", False)
+    with c1: draw_chart_unit("Dow Jones (ETF)", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "dow", "#10b981", "#ef4444", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "sp500", "#10b981", "#ef4444", "", False)
     with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", "#10b981", "#ef4444", "", False)
     
@@ -341,11 +371,8 @@ if menu == "주가 지수":
     with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
     with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년", "전체"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
-# -----------------------------------------------------------------------------
-# 5. 페이지 로직 : 투자 관련 지표 탭
-# -----------------------------------------------------------------------------
 elif menu == "투자 관련 지표":
-    st.title("경제 지표")
+    st.title("경제 지표 & AI 분석")
 
     with st.spinner('거시경제 데이터 분석 중...'):
         rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
@@ -383,4 +410,64 @@ elif menu == "투자 관련 지표":
         {'label': "실업률", 'val': unemp_val, 'chg': unemp_chg, 'pct': unemp_pct, 'data': unemp_data, 'color': '#10b981', 'periods': ["1년", "3년", "5년", "전체"], 'idx': 1, 'unit': "%"}
     )
 
+# -----------------------------------------------------------------------------
+# 7. 신규 기능: 유망 종목 스캐너 (Beta)
+# -----------------------------------------------------------------------------
+elif menu == "📈 유망 종목 스캐너":
+    st.title("📈 유망 매집(Accumulation) 종목 발굴")
+    st.info("""
+    💡 **Weinstein Stage Analysis 기반**: 
+    1. **추세**: 60일 이평선 위에 주가가 형성되어야 함.
+    2. **기간 조정**: 최근 가격 변동성이 낮아야 함 (바닥 다지기).
+    3. **수급**: 평소보다 거래량이 증가하는 '매집' 신호가 보여야 함.
+    """)
 
+    # 분석 대상 (주요 섹터 대장주)
+    target_sectors = {
+        "반도체/IT": ["005930.KS", "000660.KS", "042700.KS"],
+        "배터리/2차전지": ["373220.KS", "006400.KS", "003670.KS"],
+        "자동차/모빌리티": ["005380.KS", "000270.KS", "012330.KS"],
+        "바이오/헬스케어": ["207940.KS", "068270.KS", "000100.KS"],
+        "플랫폼/게임": ["035420.KS", "035720.KS", "259960.KS"],
+        "금융/지주": ["105560.KS", "055550.KS", "086790.KS"]
+    }
+
+    selected_sector = st.selectbox("분석할 섹터를 선택하세요", list(target_sectors.keys()))
+    
+    if st.button("🔍 스캔 시작", use_container_width=True):
+        tickers = target_sectors[selected_sector]
+        results = []
+        progress = st.progress(0)
+        
+        for idx, t in enumerate(tickers):
+            df = get_scanner_data(t)
+            if df is not None:
+                score, reason = calculate_accumulation_score(df)
+                price = df['Close'].iloc[-1]
+                results.append({"티커": t, "현재가": price, "매집 점수": score, "포착 사유": reason})
+            progress.progress((idx + 1) / len(tickers))
+        
+        progress.empty()
+        
+        if results:
+            res_df = pd.DataFrame(results).sort_values(by="매집 점수", ascending=False)
+            
+            st.markdown("### 📊 분석 결과")
+            st.dataframe(
+                res_df,
+                column_config={
+                    "현재가": st.column_config.NumberColumn(format="%d원"),
+                    "매집 점수": st.column_config.ProgressColumn(
+                        "매집 강도 (3점 만점)", min_value=0, max_value=3, format="%d점"
+                    )
+                },
+                hide_index=True,
+                use_container_width=True
+            )
+            
+            # 1위 종목 AI 코멘트
+            best = res_df.iloc[0]
+            if best['매집 점수'] >= 2:
+                st.success(f"🏆 Top Pick: **{best['티커']}** - {best['포착 사유']}")
+        else:
+            st.warning("데이터를 가져올 수 없습니다.")
