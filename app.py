@@ -7,7 +7,8 @@ import altair as alt
 import plotly.graph_objects as go
 from io import StringIO
 import time
-from datetime import datetime, date
+# 🚨 수정된 부분: timedelta 추가 완료!
+from datetime import datetime, date, timedelta
 
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정 및 CSS
