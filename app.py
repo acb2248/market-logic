@@ -40,7 +40,7 @@ st.markdown("""
         padding: 20px; margin-bottom: 15px;
     }
 
-    /* D-Day 카드 (디자인 복구) */
+    /* D-Day 카드 (디자인 유지) */
     .d-day-card {
         background-color: #1e293b !important; 
         color: white !important;
@@ -59,7 +59,7 @@ st.markdown("""
     .ai-title { font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #166534; border-bottom: 1px solid #bbf7d0; padding-bottom: 5px; }
     .ai-text { font-size: 14px; line-height: 1.7; color: #14532d; word-break: keep-all; }
     
-    /* 심리 탭 설명 박스 (파란색) */
+    /* 심리 탭 설명 박스 */
     .info-box {
         background-color: #eff6ff;
         border: 1px solid #bfdbfe;
@@ -75,11 +75,12 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바
+# 2. 사이드바 (메뉴명 4글자 통일)
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    menu = st.radio("메뉴 선택", ["주가 지수", "투자 관련 지표", "시장 심리", "주요 일정"], index=0)
+    # "투자 관련 지표" -> "투자 지표"로 변경
+    menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "주요 일정"], index=0)
     st.markdown("---")
     st.subheader("설정 (Settings)")
     if "openai_api_key" in st.secrets:
@@ -121,8 +122,6 @@ def get_fred_data(series_id, calculation_type='raw'):
                 df = df.rename(columns={date_col: 'Date'})
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
-                
-                # 데이터 정렬 보장
                 df = df.sort_index()
                 
                 if calculation_type == 'yoy': df['Value'] = df.iloc[:, 0].pct_change(12) * 100
@@ -159,7 +158,6 @@ def filter_data_by_period(df, period):
     if df is None or df.empty: return df
     end_date = df['Date'].max()
     
-    # FRED 데이터(월간) 등을 고려해 1개월 옵션은 제외하고 로직 구성
     if period == "1개월" or period == "1M": start = end_date - timedelta(days=30)
     elif period == "3개월" or period == "3M": start = end_date - timedelta(days=90)
     elif period == "6개월" or period == "6M": start = end_date - timedelta(days=180)
@@ -167,20 +165,17 @@ def filter_data_by_period(df, period):
     elif period == "3년" or period == "3Y": start = end_date - timedelta(days=365*3)
     elif period == "5년" or period == "5Y": start = end_date - timedelta(days=365*5)
     elif period == "10년" or period == "10Y": start = end_date - timedelta(days=365*10)
-    else: start = df['Date'].min() # 전체
+    else: start = df['Date'].min()
     
     return df[df['Date'] >= start]
 
 def create_chart(data, color, height=180):
     if data is None or data.empty: return st.error("데이터 없음")
-    
-    # 차트 생성 (X축 포맷 개선)
     chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
         x=alt.X('Date:T', axis=alt.Axis(format='%y-%m', title=None, grid=False)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
         tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
     ).properties(height=height).interactive()
-    
     return st.altair_chart(chart, use_container_width=True)
 
 def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444", down_color="#3b82f6"):
@@ -210,7 +205,6 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
             with c2: 
                 st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
-                # 라디오 버튼의 선택값을 변수에 저장
                 selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         else:
             styled_metric(label, val, chg, pct, unit, up_c, down_c)
@@ -218,20 +212,18 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
-        
-        # 여기서 필터링된 데이터를 바로 차트에 넘겨줍니다.
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, height=180)
 
 def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
     steps = []
     bar_color = "black"
-    if "공포" in title: # VIX
+    if "공포" in title: 
         steps = [{'range': [0, 20], 'color': "#dcfce7"}, {'range': [20, 30], 'color': "#fef9c3"}, {'range': [30, 100], 'color': "#fee2e2"}]
         if value < 20: bar_color = "#16a34a"
         elif value < 30: bar_color = "#ca8a04"
         else: bar_color = "#dc2626"
-    elif "RSI" in title: # RSI
+    elif "RSI" in title:
         steps = [{'range': [0, 30], 'color': "#dcfce7"}, {'range': [30, 70], 'color': "#f3f4f6"}, {'range': [70, 100], 'color': "#fee2e2"}]
         if value < 30: bar_color = "#16a34a"
         elif value > 70: bar_color = "#dc2626"
@@ -255,7 +247,6 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
 def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     client = openai.OpenAI(api_key=api_key)
-    # ** 사용 금지 요청 반영
     prompt = f"""
     당신은 글로벌 매크로 전략가입니다. 주제: {topic}, 데이터: {data_summary}
     [작성 양식]
@@ -310,7 +301,8 @@ if menu == "주가 지수":
     with c4: draw_chart_unit("코스피 (KOSPI)", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
     with c5: draw_chart_unit("코스닥 (KOSDAQ)", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
-elif menu == "투자 관련 지표":
+# [메뉴 이름 변경 반영]
+elif menu == "투자 지표":
     st.title("경제 지표 (Economic Indicators)")
     with st.spinner('데이터 로딩 중...'):
         rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
@@ -320,7 +312,7 @@ elif menu == "투자 관련 지표":
         job_val, job_chg, job_pct, job_data = get_fred_data("PAYEMS", "diff")
         unemp_val, unemp_chg, unemp_pct, unemp_data = get_fred_data("UNRATE", "raw")
 
-    # 금융 시장 (일일 데이터라 1개월/1년/전체 유지)
+    # 금융 시장
     draw_section_with_ai(
         "금융 시장 (금리 & 환율)",
         {'l': "미국 10년물 금리", 'v': rate_val, 'c': rate_chg, 'p': rate_pct, 'd': rate_data, 'col': "#f59e0b", 'prd': ["1개월", "1년", "전체"], 'idx': 1, 'uc': "#f59e0b", 'dc': "#3b82f6", 'u': "%"},
@@ -328,7 +320,7 @@ elif menu == "투자 관련 지표":
         "finance", "금융 시장(금리, 환율)", f"금리: {rate_val}%, 환율: {exch_val}원"
     )
 
-    # 물가 지표 (월간 데이터라 1년/5년/10년으로 변경, 기본값 5년)
+    # 물가 지표
     draw_section_with_ai(
         "물가 지표 (인플레이션)",
         {'l': "헤드라인 CPI", 'v': cpi_val, 'c': cpi_chg, 'p': cpi_pct, 'd': cpi_data, 'col': "#ef4444", 'prd': ["1년", "3년", "5년", "10년"], 'idx': 1, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"},
@@ -336,7 +328,7 @@ elif menu == "투자 관련 지표":
         "inflation", "물가 지표(CPI)", f"헤드라인CPI: {cpi_val}%, 근원CPI: {core_val}%"
     )
 
-    # 고용 지표 (월간 데이터라 1년/3년/5년으로 변경, 기본값 3년으로 해서 코로나 왜곡 회피)
+    # 고용 지표
     draw_section_with_ai(
         "고용 지표 (경기 & 고용)",
         {'l': "비농업 고용 지수", 'v': job_val, 'c': job_chg, 'p': job_pct, 'd': job_data, 'col': "#3b82f6", 'prd': ["1년", "3년", "5년", "10년"], 'idx': 1, 'uc': "#3b82f6", 'dc': "#ef4444", 'u': "k"},
@@ -347,7 +339,6 @@ elif menu == "투자 관련 지표":
 elif menu == "시장 심리":
     st.title("시장 심리 (Market Sentiment)")
     
-    # 설명 박스 (아이콘 제거, 정의 설명으로 변경)
     st.markdown("""
     <div class="info-box">
         <strong>[지표 설명]</strong><br>
@@ -383,7 +374,7 @@ elif menu == "시장 심리":
 elif menu == "주요 일정":
     st.title("주요 일정 (Key Schedule)")
 
-    # 1. FOMC D-Day (디자인 클래스 적용 확인)
+    # 1. FOMC D-Day
     fomc_dates_2026 = [
         date(2026, 1, 28), date(2026, 3, 18), date(2026, 4, 29), 
         date(2026, 6, 17), date(2026, 7, 29), date(2026, 9, 16), 
@@ -399,7 +390,6 @@ elif menu == "주요 일정":
             break
             
     if next_fomc:
-        # 이 HTML 구조가 CSS .d-day-card와 매칭됨
         st.markdown(f"""
         <div class="d-day-card">
             <div class="d-day-title">Next FOMC Meeting</div>
@@ -410,8 +400,8 @@ elif menu == "주요 일정":
     else:
         st.info("2026년 FOMC 일정이 종료되었습니다.")
 
-    # 2. 네 마녀의 날
-    st.markdown("<div class='section-header'>🚨 네 마녀의 날 (Quadruple Witching Day)</div>", unsafe_allow_html=True)
+    # 2. 네 마녀의 날 (아이콘 제거)
+    st.markdown("<div class='section-header'>네 마녀의 날 (Quadruple Witching Day)</div>", unsafe_allow_html=True)
     st.warning("매 분기(3, 6, 9, 12월) 셋째 주 금요일은 선물/옵션 만기일이 겹쳐 변동성이 극대화되는 날입니다.")
     
     witching_days_2026 = [date(2026, 3, 20), date(2026, 6, 19), date(2026, 9, 18), date(2026, 12, 18)]
