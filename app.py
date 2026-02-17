@@ -7,8 +7,7 @@ import altair as alt
 import plotly.graph_objects as go
 from io import StringIO
 import time
-# 🚨 수정된 부분: timedelta 추가 완료!
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta  # 🚨 timedelta 포함됨
 
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정 및 CSS
@@ -39,8 +38,8 @@ st.markdown("""
         font-size: 20px;
         font-weight: 700;
         color: #111827;
-        margin-top: 20px;
-        margin-bottom: 10px;
+        margin-top: 25px;
+        margin-bottom: 15px;
         border-left: 4px solid #111827;
         padding-left: 10px;
     }
@@ -70,7 +69,7 @@ st.markdown("""
     .d-day-date { font-size: 16px; color: #cbd5e1; margin-top: 10px; font-weight: 500; }
 
     /* 6. AI 분석 박스 */
-    .ai-box { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; }
+    .ai-box { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-top: 20px; }
     .ai-title { font-weight: 700; font-size: 18px; margin-bottom: 10px; color: #111827; }
     .ai-text { font-size: 15px; line-height: 1.7; color: #374151; }
 
@@ -235,7 +234,6 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
     bar_color = "black"
     
     if "공포" in title: # VIX
-        # 0~20:안전(초록), 20~30:경계(노랑), 30~:위험(빨강)
         steps = [
             {'range': [0, 20], 'color': "#dcfce7"},
             {'range': [20, 30], 'color': "#fef9c3"},
@@ -246,14 +244,13 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
         else: bar_color = "#dc2626"
         
     elif "RSI" in title: # RSI
-        # 0~30:침체(초록/매수기회), 30~70:중립, 70~100:과열(빨강/매도고려)
         steps = [
             {'range': [0, 30], 'color': "#dcfce7"},
             {'range': [30, 70], 'color': "#f3f4f6"},
             {'range': [70, 100], 'color': "#fee2e2"}
         ]
-        if value < 30: bar_color = "#16a34a" # 침체(기회)
-        elif value > 70: bar_color = "#dc2626" # 과열(위험)
+        if value < 30: bar_color = "#16a34a"
+        elif value > 70: bar_color = "#dc2626"
         else: bar_color = "#4b5563"
 
     fig = go.Figure(go.Indicator(
@@ -336,7 +333,7 @@ if menu == "주가 지수":
     with c4: draw_chart_unit("코스피 (KOSPI)", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
     with c5: draw_chart_unit("코스닥 (KOSDAQ)", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
-# [메뉴 2] 투자 관련 지표
+# [메뉴 2] 투자 관련 지표 (복구 완료!)
 elif menu == "투자 관련 지표":
     st.title("경제 지표 (Economic Indicators)")
     with st.spinner('데이터 로딩 중...'):
@@ -344,6 +341,9 @@ elif menu == "투자 관련 지표":
         exch_val, exch_chg, exch_pct, exch_data = get_yahoo_data("KRW=X", "10y")
         cpi_val, cpi_chg, cpi_pct, cpi_data = get_fred_data("CPIAUCSL", "yoy")
         core_val, core_chg, core_pct, core_data = get_fred_data("CPILFESL", "yoy")
+        # 🚨 고용 데이터 복구
+        job_val, job_chg, job_pct, job_data = get_fred_data("PAYEMS", "diff")
+        unemp_val, unemp_chg, unemp_pct, unemp_data = get_fred_data("UNRATE", "raw")
 
     st.markdown("<div class='section-header'>금융 시장 (금리 & 환율)</div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -357,7 +357,28 @@ elif menu == "투자 관련 지표":
     with c3: draw_chart_unit("헤드라인 CPI (전년비)", cpi_val, cpi_chg, cpi_pct, cpi_data, "#ef4444", ["1년", "5년", "전체"], 1, "cpi", "#ef4444", "#3b82f6", "%", True)
     with c4: draw_chart_unit("근원(Core) CPI (전년비)", core_val, core_chg, core_pct, core_data, "#ef4444", ["1년", "5년", "전체"], 1, "core", "#ef4444", "#3b82f6", "%", True)
 
-# [메뉴 3] 시장 심리 (Sentiment) - 분리됨
+    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+
+    # 🚨 고용 지표 섹션 복구
+    st.markdown("<div class='section-header'>고용 지표 (경기 & 고용)</div>", unsafe_allow_html=True)
+    c5, c6 = st.columns(2)
+    with c5: draw_chart_unit("비농업 고용 지수 (전월비)", job_val, job_chg, job_pct, job_data, "#3b82f6", ["1년", "5년", "전체"], 1, "job", "#3b82f6", "#ef4444", "k", True)
+    with c6: draw_chart_unit("실업률", unemp_val, unemp_chg, unemp_pct, unemp_data, "#10b981", ["1년", "5년", "전체"], 1, "unemp", "#10b981", "#3b82f6", "%", True)
+
+    # 🚨 AI 분석 버튼 복구
+    st.markdown("<div class='section-header'>AI 경제 분석</div>", unsafe_allow_html=True)
+    if st.button("📢 현재 경제 지표 AI 분석", use_container_width=True):
+        summary_text = f"금리: {rate_val}%, 환율: {exch_val}원, CPI: {cpi_val}%, 실업률: {unemp_val}%"
+        title, content = analyze_market_ai("현재 거시경제 및 금융시장 분석", summary_text)
+        
+        st.markdown(f"""
+        <div class="ai-box">
+            <div class="ai-title">🤖 {title}</div>
+            <div class="ai-text">{content}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# [메뉴 3] 시장 심리 (Sentiment)
 elif menu == "시장 심리 (Sentiment)":
     st.title("시장 심리 (Market Sentiment)")
     st.info("💡 **계기판 보는 법**: 바늘이 **초록색**이면 기회(침체/안정), **빨간색**이면 위험(과열/공포) 구간을 의미합니다.")
@@ -397,7 +418,7 @@ elif menu == "시장 심리 (Sentiment)":
         </div>
         """, unsafe_allow_html=True)
 
-# [메뉴 4] 주요 경제 일정 (Macro Calendar) - 분리됨
+# [메뉴 4] 주요 경제 일정 (Macro Calendar)
 elif menu == "주요 경제 일정":
     st.title("주요 경제 일정 (Macro Calendar)")
 
@@ -445,7 +466,6 @@ elif menu == "주요 경제 일정":
     
     upcoming_holidays = {d: n for d, n in holidays_2026.items() if d >= today}
     
-    # 3개씩 끊어서 보여주기
     h_cols = st.columns(3)
     if upcoming_holidays:
         for i, (d, name) in enumerate(list(upcoming_holidays.items())[:3]):
