@@ -10,7 +10,7 @@ import time
 from datetime import datetime, date
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 CSS (아이콘 제거 및 디자인 통일)
+# 1. 페이지 설정 및 CSS
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Market Logic", 
@@ -33,7 +33,7 @@ st.markdown("""
         background-color: #f5f7f9;
     }
 
-    /* 3. 섹션 헤더 디자인 (아이콘 제거, 심플하게) */
+    /* 3. 섹션 헤더 디자인 */
     .section-header {
         font-size: 20px;
         font-weight: 700;
@@ -54,40 +54,46 @@ st.markdown("""
         margin-bottom: 15px;
     }
 
-    /* 5. D-Day 카운터 스타일 */
+    /* 5. D-Day 카운터 스타일 (진한 네이비) */
     .d-day-card {
-        background-color: #1f2937;
+        background-color: #1e293b;
         color: white;
-        padding: 20px;
-        border-radius: 12px;
+        padding: 25px;
+        border-radius: 16px;
         text-align: center;
         margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    .d-day-title { font-size: 16px; font-weight: 500; color: #9ca3af; margin-bottom: 5px; }
-    .d-day-count { font-size: 42px; font-weight: 800; color: #ffffff; }
-    .d-day-date { font-size: 14px; color: #d1d5db; margin-top: 5px; }
+    .d-day-title { font-size: 15px; font-weight: 500; color: #94a3b8; margin-bottom: 8px; letter-spacing: 1px; }
+    .d-day-count { font-size: 48px; font-weight: 800; color: #ffffff; line-height: 1; }
+    .d-day-date { font-size: 16px; color: #cbd5e1; margin-top: 10px; font-weight: 500; }
 
     /* 6. AI 분석 박스 */
-    .ai-box { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; }
-    .ai-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
-    .ai-text { font-size: 14px; line-height: 1.6; color: #374151; }
+    .ai-box { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; }
+    .ai-title { font-weight: 700; font-size: 18px; margin-bottom: 10px; color: #111827; }
+    .ai-text { font-size: 15px; line-height: 1.7; color: #374151; }
 
     </style>
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바 (아이콘 제거)
+# 2. 사이드바 (메뉴 4개로 분리)
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    # 메뉴: 아이콘 제거하고 텍스트로만 구성
-    menu = st.radio("MENU", ["주가 지수", "투자 관련 지표", "시장 심리 & 투자 일정"], index=0)
+    
+    menu = st.radio("메뉴 선택", [
+        "주가 지수", 
+        "투자 관련 지표", 
+        "시장 심리 (Sentiment)", 
+        "주요 경제 일정"
+    ], index=0)
     
     st.markdown("---")
-    st.subheader("Settings")
+    st.subheader("설정 (Settings)")
     if "openai_api_key" in st.secrets:
         api_key = st.secrets["openai_api_key"]
-        st.success("AI Ready")
+        st.success("✅ AI 연결됨")
     else:
         api_key = st.text_input("OpenAI API Key", type="password")
 
@@ -152,10 +158,10 @@ def calculate_rsi(data, window=14):
     return rsi.iloc[-1]
 
 # -----------------------------------------------------------------------------
-# 4. 차트 컴포넌트
+# 4. 차트 및 시각화 컴포넌트
 # -----------------------------------------------------------------------------
 def create_chart(data, color, height=180):
-    if data is None or data.empty: return st.error("No Data")
+    if data is None or data.empty: return st.error("데이터 없음")
     chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
         x=alt.X('Date:T', axis=alt.Axis(format='%y-%m', title=None, grid=False)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
@@ -201,7 +207,7 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
-        # 차트 그리기 헬퍼 함수
+        # 차트 그리기 헬퍼
         def filter_data_by_period(df, period):
             if df is None or df.empty: return df
             end_date = df['Date'].max()
@@ -217,42 +223,36 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         create_chart(filter_data_by_period(data, period), color, height=180)
 
 # -----------------------------------------------------------------------------
-# 5. 게이지 차트 (자동차 계기판 스타일)
+# 5. 계기판(Gauge) 차트 그리기
 # -----------------------------------------------------------------------------
 def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
     """
-    thresholds: [안전 구간 끝, 위험 구간 시작]
-    inverse: True면 낮은게 좋음(VIX), False면 높은게 좋음(RSI는 중간이 좋음)
-    여기서는 단순화를 위해 색상 커스텀
+    thresholds: [녹색 구간 끝, 노란색 구간 끝]
     """
-    
-    # 색상 결정 로직 (RSI, VIX 특성에 맞게)
-    # VIX: 낮음(Green/Greed), 높음(Red/Fear)
-    # RSI: 30이하(Green/Oversold), 70이상(Red/Overbought), 중간(Grey)
-    
+    # 색상 결정 로직
     steps = []
     bar_color = "black"
     
-    if "VIX" in title:
-        # VIX: 0~20(Green), 20~30(Yellow), 30~(Red)
+    if "공포" in title: # VIX
+        # 0~20:안전(초록), 20~30:경계(노랑), 30~:위험(빨강)
         steps = [
-            {'range': [0, 20], 'color': "#dcfce7"},  # Green
-            {'range': [20, 30], 'color': "#fef9c3"}, # Yellow
-            {'range': [30, 100], 'color': "#fee2e2"} # Red
+            {'range': [0, 20], 'color': "#dcfce7"},
+            {'range': [20, 30], 'color': "#fef9c3"},
+            {'range': [30, 100], 'color': "#fee2e2"}
         ]
         if value < 20: bar_color = "#16a34a"
         elif value < 30: bar_color = "#ca8a04"
         else: bar_color = "#dc2626"
         
-    elif "RSI" in title:
-        # RSI: 0~30(Green/Oversold), 30~70(Grey/Neutral), 70~100(Red/Overbought)
+    elif "RSI" in title: # RSI
+        # 0~30:침체(초록/매수기회), 30~70:중립, 70~100:과열(빨강/매도고려)
         steps = [
             {'range': [0, 30], 'color': "#dcfce7"},
             {'range': [30, 70], 'color': "#f3f4f6"},
             {'range': [70, 100], 'color': "#fee2e2"}
         ]
-        if value < 30: bar_color = "#16a34a"
-        elif value > 70: bar_color = "#dc2626"
+        if value < 30: bar_color = "#16a34a" # 침체(기회)
+        elif value > 70: bar_color = "#dc2626" # 과열(위험)
         else: bar_color = "#4b5563"
 
     fig = go.Figure(go.Indicator(
@@ -288,7 +288,7 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
 if 'ai_results' not in st.session_state: st.session_state['ai_results'] = {}
 
 def analyze_market_ai(topic, data_summary):
-    if not api_key: return "API Key Needed", "설정 탭에서 API Key를 입력해주세요."
+    if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     
     client = openai.OpenAI(api_key=api_key)
     prompt = f"""
@@ -305,8 +305,8 @@ def analyze_market_ai(topic, data_summary):
     """
     try:
         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
-        return "AI 분석 완료", resp.choices[0].message.content
-    except Exception as e: return "Error", str(e)
+        return "AI 분석 결과", resp.choices[0].message.content
+    except Exception as e: return "오류 발생", str(e)
 
 # -----------------------------------------------------------------------------
 # 7. 메인 페이지 로직
@@ -314,53 +314,93 @@ def analyze_market_ai(topic, data_summary):
 
 # [메뉴 1] 주가 지수
 if menu == "주가 지수":
-    st.title("Global Indices")
-    with st.spinner("Loading Data..."):
+    st.title("글로벌 시장 지수")
+    with st.spinner("데이터 로딩 중..."):
         dow_v, dow_c, dow_p, dow_d = get_yahoo_data("DIA")
         sp_v, sp_c, sp_p, sp_d = get_yahoo_data("^GSPC")
         nas_v, nas_c, nas_p, nas_d = get_yahoo_data("^IXIC")
         kospi_v, kospi_c, kospi_p, kospi_d = get_yahoo_data("^KS11")
         kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d = get_yahoo_data("^KQ11")
 
-    st.markdown("<div class='section-header'>US Market</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: draw_chart_unit("Dow Jones (ETF)", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1M", "3M", "1Y", "All"], 2, "dow", "#10b981", "#ef4444", "", False)
-    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1M", "3M", "1Y", "All"], 2, "sp500", "#10b981", "#ef4444", "", False)
-    with c3: draw_chart_unit("Nasdaq 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1M", "3M", "1Y", "All"], 2, "nasdaq", "#10b981", "#ef4444", "", False)
+    with c1: draw_chart_unit("다우존스 (ETF)", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "dow", "#10b981", "#ef4444", "", False)
+    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "sp500", "#10b981", "#ef4444", "", False)
+    with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 2, "nasdaq", "#10b981", "#ef4444", "", False)
     
     st.markdown("<div style='height: 30px'></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-header'>KR Market</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>국내 증시 (KR Market)</div>", unsafe_allow_html=True)
     c4, c5 = st.columns(2)
-    with c4: draw_chart_unit("KOSPI", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1M", "3M", "6M", "1Y"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
-    with c5: draw_chart_unit("KOSDAQ", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1M", "3M", "6M", "1Y"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
+    with c4: draw_chart_unit("코스피 (KOSPI)", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 3, "kospi", "#ef4444", "#3b82f6", "", True)
+    with c5: draw_chart_unit("코스닥 (KOSDAQ)", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 3, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
 # [메뉴 2] 투자 관련 지표
 elif menu == "투자 관련 지표":
-    st.title("Economic Indicators")
-    with st.spinner('Loading Data...'):
+    st.title("경제 지표 (Economic Indicators)")
+    with st.spinner('데이터 로딩 중...'):
         rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
         exch_val, exch_chg, exch_pct, exch_data = get_yahoo_data("KRW=X", "10y")
         cpi_val, cpi_chg, cpi_pct, cpi_data = get_fred_data("CPIAUCSL", "yoy")
         core_val, core_chg, core_pct, core_data = get_fred_data("CPILFESL", "yoy")
 
-    st.markdown("<div class='section-header'>Financial Market</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>금융 시장 (금리 & 환율)</div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
-    with c1: draw_chart_unit("US 10Y Yield", rate_val, rate_chg, rate_pct, rate_data, "#f59e0b", ["1M", "1Y", "All"], 1, "rate", "#f59e0b", "#3b82f6", "%", True)
-    with c2: draw_chart_unit("USD/KRW", exch_val, exch_chg, exch_pct, exch_data, "#10b981", ["1M", "1Y", "All"], 1, "exch", "#10b981", "#3b82f6", "원", True)
+    with c1: draw_chart_unit("미국 10년물 금리", rate_val, rate_chg, rate_pct, rate_data, "#f59e0b", ["1개월", "1년", "전체"], 1, "rate", "#f59e0b", "#3b82f6", "%", True)
+    with c2: draw_chart_unit("원/달러 환율", exch_val, exch_chg, exch_pct, exch_data, "#10b981", ["1개월", "1년", "전체"], 1, "exch", "#10b981", "#3b82f6", "원", True)
 
     st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-header'>Inflation (CPI)</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>물가 지표 (인플레이션)</div>", unsafe_allow_html=True)
     c3, c4 = st.columns(2)
-    with c3: draw_chart_unit("Headline CPI", cpi_val, cpi_chg, cpi_pct, cpi_data, "#ef4444", ["1Y", "5Y", "All"], 1, "cpi", "#ef4444", "#3b82f6", "%", True)
-    with c4: draw_chart_unit("Core CPI", core_val, core_chg, core_pct, core_data, "#ef4444", ["1Y", "5Y", "All"], 1, "core", "#ef4444", "#3b82f6", "%", True)
+    with c3: draw_chart_unit("헤드라인 CPI (전년비)", cpi_val, cpi_chg, cpi_pct, cpi_data, "#ef4444", ["1년", "5년", "전체"], 1, "cpi", "#ef4444", "#3b82f6", "%", True)
+    with c4: draw_chart_unit("근원(Core) CPI (전년비)", core_val, core_chg, core_pct, core_data, "#ef4444", ["1년", "5년", "전체"], 1, "core", "#ef4444", "#3b82f6", "%", True)
 
-# [메뉴 3] 시장 심리 & 투자 일정 (New!)
-elif menu == "시장 심리 & 투자 일정":
-    st.title("Market Sentiment & Calendar")
+# [메뉴 3] 시장 심리 (Sentiment) - 분리됨
+elif menu == "시장 심리 (Sentiment)":
+    st.title("시장 심리 (Market Sentiment)")
+    st.info("💡 **계기판 보는 법**: 바늘이 **초록색**이면 기회(침체/안정), **빨간색**이면 위험(과열/공포) 구간을 의미합니다.")
 
-    # 1. FOMC D-Day (최상단 배치)
+    st.markdown("<div class='section-header'>위험 및 과열 신호 (Gauge)</div>", unsafe_allow_html=True)
+    
+    with st.spinner("지표 분석 중..."):
+        vix_curr, _, _, _ = get_yahoo_data("^VIX")
+        _, _, _, sp_data = get_yahoo_data("^GSPC", "6mo")
+        _, _, _, ks_data = get_yahoo_data("^KS11", "6mo")
+        rsi_sp = calculate_rsi(sp_data)
+        rsi_ks = calculate_rsi(ks_data)
+
+    g1, g2, g3 = st.columns(3)
+    
+    with g1:
+        if vix_curr: draw_gauge_chart("공포 지수 (VIX)", vix_curr, 0, 50, [20, 30])
+        else: st.error("VIX 데이터 오류")
+        
+    with g2:
+        if rsi_sp: draw_gauge_chart("RSI (S&P 500)", rsi_sp, 0, 100, [30, 70])
+        else: st.error("RSI 데이터 오류")
+        
+    with g3:
+        if rsi_ks: draw_gauge_chart("RSI (코스피)", rsi_ks, 0, 100, [30, 70])
+        else: st.error("RSI 데이터 오류")
+
+    st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
+    if st.button("📢 현재 시장 심리 AI 분석", use_container_width=True):
+        summary_text = f"VIX(공포지수): {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, 코스피 RSI: {rsi_ks:.2f}"
+        title, content = analyze_market_ai("현재 시장 심리 및 대응 전략", summary_text)
+        
+        st.markdown(f"""
+        <div class="ai-box">
+            <div class="ai-title">🤖 {title}</div>
+            <div class="ai-text">{content}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# [메뉴 4] 주요 경제 일정 (Macro Calendar) - 분리됨
+elif menu == "주요 경제 일정":
+    st.title("주요 경제 일정 (Macro Calendar)")
+
+    # 1. FOMC D-Day
     fomc_dates_2026 = [
         date(2026, 1, 28), date(2026, 3, 18), date(2026, 4, 29), 
         date(2026, 6, 17), date(2026, 7, 29), date(2026, 9, 16), 
@@ -379,74 +419,38 @@ elif menu == "시장 심리 & 투자 일정":
     if next_fomc:
         st.markdown(f"""
         <div class="d-day-card">
-            <div class="d-day-title">Next FOMC Meeting</div>
+            <div class="d-day-title">NEXT FOMC MEETING</div>
             <div class="d-day-count">D-{days_left}</div>
-            <div class="d-day-date">{next_fomc.strftime('%Y. %m. %d')}</div>
+            <div class="d-day-date">{next_fomc.strftime('%Y년 %m월 %d일')} (금리 결정)</div>
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("2026년 FOMC 일정이 종료되었습니다.")
+        st.info("2026년 FOMC 일정이 모두 종료되었습니다.")
 
-    # 2. 시장 심리 (계기판)
-    st.markdown("<div class='section-header'>Market Sentiment (Gauge)</div>", unsafe_allow_html=True)
-    
-    with st.spinner("Analyzing Sentiment..."):
-        # VIX
-        vix_curr, _, _, _ = get_yahoo_data("^VIX")
-        # RSI Calculation
-        _, _, _, sp_data = get_yahoo_data("^GSPC", "6mo")
-        _, _, _, ks_data = get_yahoo_data("^KS11", "6mo")
-        rsi_sp = calculate_rsi(sp_data)
-        rsi_ks = calculate_rsi(ks_data)
-
-    g1, g2, g3 = st.columns(3)
-    
-    with g1:
-        if vix_curr: draw_gauge_chart("VIX (Fear Index)", vix_curr, 0, 50, [20, 30])
-        else: st.error("VIX Data Error")
-        
-    with g2:
-        if rsi_sp: draw_gauge_chart("RSI (S&P 500)", rsi_sp, 0, 100, [30, 70])
-        else: st.error("RSI Data Error")
-        
-    with g3:
-        if rsi_ks: draw_gauge_chart("RSI (KOSPI)", rsi_ks, 0, 100, [30, 70])
-        else: st.error("RSI Data Error")
-
-    # 3. 주요 휴장일 정보
-    st.markdown("<div class='section-header'>Upcoming Holidays (US Market)</div>", unsafe_allow_html=True)
+    # 2. 주요 휴장일 정보
+    st.markdown("<div class='section-header'>주요 휴장일 (미국 증시)</div>", unsafe_allow_html=True)
     holidays_2026 = {
-        date(2026, 1, 1): "New Year's Day",
-        date(2026, 1, 19): "Martin Luther King, Jr. Day",
-        date(2026, 2, 16): "Washington's Birthday",
-        date(2026, 4, 3): "Good Friday",
-        date(2026, 5, 25): "Memorial Day",
-        date(2026, 6, 19): "Juneteenth",
-        date(2026, 7, 3): "Independence Day",
-        date(2026, 9, 7): "Labor Day",
-        date(2026, 11, 26): "Thanksgiving Day",
-        date(2026, 12, 25): "Christmas Day"
+        date(2026, 1, 1): "새해 첫날 (New Year's Day)",
+        date(2026, 1, 19): "마틴 루터 킹 데이",
+        date(2026, 2, 16): "대통령의 날 (Washington's Birthday)",
+        date(2026, 4, 3): "성금요일 (Good Friday)",
+        date(2026, 5, 25): "메모리얼 데이 (Memorial Day)",
+        date(2026, 6, 19): "준틴스 (Juneteenth)",
+        date(2026, 7, 3): "독립기념일 (Independence Day)",
+        date(2026, 9, 7): "노동절 (Labor Day)",
+        date(2026, 11, 26): "추수감사절 (Thanksgiving Day)",
+        date(2026, 12, 25): "크리스마스 (Christmas Day)"
     }
     
     upcoming_holidays = {d: n for d, n in holidays_2026.items() if d >= today}
     
     # 3개씩 끊어서 보여주기
     h_cols = st.columns(3)
-    for i, (d, name) in enumerate(list(upcoming_holidays.items())[:3]):
-        with h_cols[i]:
-            with st.container(border=True):
-                st.markdown(f"**{name}**")
-                st.markdown(f"<span style='color:#6b7280'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
-
-    # 4. AI 심리 분석
-    st.markdown("<div class='section-header'>AI Sentiment Analysis</div>", unsafe_allow_html=True)
-    if st.button("Analyze Current Market Sentiment", use_container_width=True):
-        summary_text = f"VIX: {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, KOSPI RSI: {rsi_ks:.2f}, FOMC D-Day: {days_left}"
-        title, content = analyze_market_ai("현재 시장 심리 및 대응 전략", summary_text)
-        
-        st.markdown(f"""
-        <div class="ai-box">
-            <div class="ai-title">🤖 {title}</div>
-            <div class="ai-text">{content}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    if upcoming_holidays:
+        for i, (d, name) in enumerate(list(upcoming_holidays.items())[:3]):
+            with h_cols[i]:
+                with st.container(border=True):
+                    st.markdown(f"**{name}**")
+                    st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
+    else:
+        st.write("올해 남은 휴장일이 없습니다.")
