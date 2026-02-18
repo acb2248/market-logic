@@ -78,8 +78,8 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    # 메뉴명 4글자 통일
-    menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "주요 일정"], index=0)
+    # 메뉴 추가: "시장 지도"
+    menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정"], index=0)
     st.markdown("---")
     st.subheader("설정 (Settings)")
     if "openai_api_key" in st.secrets:
@@ -292,7 +292,7 @@ if menu == "주가 지수":
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     # 기본값 1개월(맨 왼쪽, idx=0)
-    with c1: draw_chart_unit("다우존스", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
+    with c1: draw_chart_unit("다우존스 지수", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "sp500", "#10b981", "#ef4444", "", False)
     with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "nasdaq", "#10b981", "#ef4444", "", False)
     
@@ -371,6 +371,63 @@ elif menu == "시장 심리":
         title, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, 코스피 RSI: {rsi_ks:.2f}")
         st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
 
+# -----------------------------------------------------------------------------
+# [New] 시장 지도 (Market Map)
+# -----------------------------------------------------------------------------
+elif menu == "시장 지도":
+    st.title("시장 지도 (Market Map)")
+    st.info("💡 S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.")
+
+    # 1. 섹터 정의 (S&P 500 ETF)
+    sectors = {
+        'XLK': '기술 (Tech)',
+        'XLV': '헬스케어 (Health)',
+        'XLF': '금융 (Financials)',
+        'XLY': '임의소비재 (Discret.)',
+        'XLP': '필수소비재 (Staples)',
+        'XLE': '에너지 (Energy)',
+        'XLI': '산업재 (Industrial)',
+        'XLU': '유틸리티 (Utilities)',
+        'XLRE': '부동산 (Real Estate)',
+        'XLB': '소재 (Materials)',
+        'XLC': '통신 (Comm.)'
+    }
+
+    # 2. 데이터 수집 및 가공
+    with st.spinner("섹터 데이터 분석 중..."):
+        rows = []
+        for ticker, name in sectors.items():
+            try:
+                # 5일치 데이터를 가져와서 안전하게 전일 대비 등락률 계산
+                d = yf.Ticker(ticker).history(period="5d")
+                if len(d) >= 2:
+                    curr = d['Close'].iloc[-1]
+                    prev = d['Close'].iloc[-2]
+                    chg = (curr - prev) / prev * 100
+                    rows.append({'Sector': name, 'Change': chg})
+            except:
+                pass
+
+    if rows:
+        # 3. 데이터프레임 변환 및 정렬
+        df_sector = pd.DataFrame(rows)
+        df_sector = df_sector.sort_values('Change', ascending=False) # 상위부터 정렬
+
+        # 4. 색상 지정 (상승: 빨강, 하락: 파랑)
+        df_sector['Color'] = df_sector['Change'].apply(lambda x: '#ef4444' if x > 0 else '#3b82f6')
+
+        # 5. 차트 그리기 (Altair Bar Chart)
+        chart = alt.Chart(df_sector).mark_bar().encode(
+            x=alt.X('Change', title='등락률 (%)', axis=alt.Axis(format='.2f')),
+            y=alt.Y('Sector', sort='-x', title=None), # 등락률 순으로 정렬
+            color=alt.Color('Color', scale=None),
+            tooltip=['Sector', alt.Tooltip('Change', format='.2f')]
+        ).properties(height=450)
+
+        st.altair_chart(chart, use_container_width=True)
+    else:
+        st.error("섹터 데이터를 불러올 수 없습니다.")
+
 elif menu == "주요 일정":
     st.title("주요 일정 (Key Schedule)")
 
@@ -435,4 +492,3 @@ elif menu == "주요 일정":
                     st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
     else:
         st.write("올해 남은 휴장일이 없습니다.")
-
