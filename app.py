@@ -59,13 +59,25 @@ st.markdown("""
     .ai-title { font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #166534; border-bottom: 1px solid #bbf7d0; padding-bottom: 5px; }
     .ai-text { font-size: 14px; line-height: 1.7; color: #14532d; word-break: keep-all; }
     
-    /* 심리 탭 설명 박스 */
+    /* [공통] 설명 박스 디자인 (파란색) */
     .info-box {
         background-color: #eff6ff;
         border: 1px solid #bfdbfe;
         border-radius: 8px;
         padding: 15px;
         color: #1e3a8a;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    /* [공통] 경고/알림 박스 디자인 (노란색) - 모양은 위와 동일 */
+    .warning-box {
+        background-color: #fefce8;
+        border: 1px solid #fde047;
+        border-radius: 8px;
+        padding: 15px;
+        color: #854d0e;
         font-size: 14px;
         line-height: 1.6;
         margin-bottom: 20px;
@@ -78,7 +90,6 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
-    # 메뉴 추가: "시장 지도"
     menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정"], index=0)
     st.markdown("---")
     st.subheader("설정 (Settings)")
@@ -266,7 +277,6 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     col_main, col_ai = st.columns([3, 1])
     with col_main:
         c1, c2 = st.columns(2)
-        # default_idx를 0으로 설정하여 맨 왼쪽 버튼이 기본값이 되도록 함
         with c1: draw_chart_unit(chart1['l'], chart1['v'], chart1['c'], chart1['p'], chart1['d'], chart1['col'], chart1['prd'], 0, f"{key_suffix}_1", chart1['uc'], chart1['dc'], chart1['u'], True)
         with c2: draw_chart_unit(chart2['l'], chart2['v'], chart2['c'], chart2['p'], chart2['d'], chart2['col'], chart2['prd'], 0, f"{key_suffix}_2", chart2['uc'], chart2['dc'], chart2['u'], True)
     with col_ai:
@@ -291,7 +301,6 @@ if menu == "주가 지수":
 
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    # 기본값 1개월(맨 왼쪽, idx=0)
     with c1: draw_chart_unit("다우존스 지수", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "sp500", "#10b981", "#ef4444", "", False)
     with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "nasdaq", "#10b981", "#ef4444", "", False)
@@ -372,12 +381,19 @@ elif menu == "시장 심리":
         st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# [New] 시장 지도 (Market Map)
+# [New] 시장 지도 (Market Map) - 디자인 수정됨 (파란색 커스텀 박스)
 # -----------------------------------------------------------------------------
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
+    
     today_str = date.today().strftime('%Y-%m-%d')
-    st.info(f"S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.\n\n기준일: {today_str}")
+    # .info-box 클래스 적용
+    st.markdown(f"""
+    <div class="info-box">
+        S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.<br>
+        <span style="font-size: 13px; color: #64748b;">기준일: {today_str}</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 1. 섹터 정의 (S&P 500 ETF)
     sectors = {
@@ -458,9 +474,15 @@ elif menu == "주요 일정":
     else:
         st.info("2026년 FOMC 일정이 종료되었습니다.")
 
-    # 2. 네 마녀의 날 (아이콘 제거)
+    # 2. 네 마녀의 날 (디자인 수정됨 - 노란색 커스텀 박스)
     st.markdown("<div class='section-header'>네 마녀의 날 (Quadruple Witching Day)</div>", unsafe_allow_html=True)
-    st.warning("매 분기(3, 6, 9, 12월) 셋째 주 금요일은 선물/옵션 만기일이 겹쳐 변동성이 극대화되는 날입니다.")
+    
+    # .warning-box 클래스 적용
+    st.markdown("""
+    <div class="warning-box">
+        매 분기(3, 6, 9, 12월) 셋째 주 금요일은 선물/옵션 만기일이 겹쳐 변동성이 극대화되는 날입니다.
+    </div>
+    """, unsafe_allow_html=True)
     
     witching_days_2026 = [date(2026, 3, 20), date(2026, 6, 19), date(2026, 9, 18), date(2026, 12, 18)]
     w_cols = st.columns(4)
@@ -493,5 +515,3 @@ elif menu == "주요 일정":
                     st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
     else:
         st.write("올해 남은 휴장일이 없습니다.")
-
-
