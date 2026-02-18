@@ -283,7 +283,7 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
 if menu == "주가 지수":
     st.title("글로벌 시장 지수")
     with st.spinner("데이터 로딩 중..."):
-        dow_v, dow_c, dow_p, dow_d = get_yahoo_data("DIA")
+        dow_v, dow_c, dow_p, dow_d = get_yahoo_data("^DJI")
         sp_v, sp_c, sp_p, sp_d = get_yahoo_data("^GSPC")
         nas_v, nas_c, nas_p, nas_d = get_yahoo_data("^IXIC")
         kospi_v, kospi_c, kospi_p, kospi_d = get_yahoo_data("^KS11")
@@ -292,7 +292,7 @@ if menu == "주가 지수":
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     # 기본값 1개월(맨 왼쪽, idx=0)
-    with c1: draw_chart_unit("다우존스 (ETF)", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
+    with c1: draw_chart_unit("다우존스", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "sp500", "#10b981", "#ef4444", "", False)
     with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "nasdaq", "#10b981", "#ef4444", "", False)
     
@@ -435,3 +435,4 @@ elif menu == "주요 일정":
                     st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
     else:
         st.write("올해 남은 휴장일이 없습니다.")
+
