@@ -377,7 +377,7 @@ elif menu == "시장 심리":
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
     today_str = date.today().strftime('%Y-%m-%d')
-        st.info(f"S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.\n\n기준일: {today_str}")
+    st.info(f"S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.\n\n기준일: {today_str}")
 
     # 1. 섹터 정의 (S&P 500 ETF)
     sectors = {
@@ -493,4 +493,5 @@ elif menu == "주요 일정":
                     st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
     else:
         st.write("올해 남은 휴장일이 없습니다.")
+
 
