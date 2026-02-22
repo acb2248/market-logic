@@ -13,11 +13,9 @@ import urllib.parse
 # -----------------------------------------------------------------------------
 # 0. 구글 OAuth 설정 & 세션 초기화
 # -----------------------------------------------------------------------------
-# st.secrets에서 구글 로그인 정보 가져오기 (없으면 빈 문자열)
 GOOGLE_CLIENT_ID = st.secrets.get("google_client_id", "")
 GOOGLE_CLIENT_SECRET = st.secrets.get("google_client_secret", "")
-# 로컬 테스트 시 http://localhost:8501, 실제 배포 시 홈페이지 주소 (예: https://marketlogic.co.kr)
-GOOGLE_REDIRECT_URI = st.secrets.get("google_redirect_uri", "http://localhost:8501")
+GOOGLE_REDIRECT_URI = st.secrets.get("google_redirect_uri", "https://marketlogic.co.kr")
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -63,20 +61,20 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# [New] 구글 로그인 리디렉션 처리
+# 구글 로그인 리디렉션 처리
 # -----------------------------------------------------------------------------
 query_params = st.query_params
 if "code" in query_params and not st.session_state.logged_in:
     code = query_params["code"]
     token_url = "https://oauth2.googleapis.com/token"
-    data = {
+    token_data = {
         "code": code,
         "client_id": GOOGLE_CLIENT_ID,
         "client_secret": GOOGLE_CLIENT_SECRET,
         "redirect_uri": GOOGLE_REDIRECT_URI,
         "grant_type": "authorization_code"
     }
-    res = requests.post(token_url, data=data)
+    res = requests.post(token_url, data=token_data)
     if res.status_code == 200:
         access_token = res.json().get("access_token")
         user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
@@ -86,50 +84,27 @@ if "code" in query_params and not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.session_state.user_email = user_info.get("email")
             st.session_state.user_name = user_info.get("name")
-            
-            # 여기서 나중에는 DB에서 남은 횟수를 불러옵니다. 지금은 100회로 세팅!
             st.session_state.remaining_calls = 100 
-            
-            st.query_params.clear() # URL 깔끔하게 정리
+            st.query_params.clear()
             st.rerun()
 
 # -----------------------------------------------------------------------------
-# [New] 로그인 화면 UI (비로그인 상태)
-# -----------------------------------------------------------------------------
-if not st.session_state.logged_in:
-    st.markdown("<div style='text-align: center; margin-top: 80px;'><h1 style='color: #111827; font-size: 40px;'>Market Logic 📈</h1><p style='color: #6b7280; font-size: 18px;'>글로벌 매크로 분석 프리미엄 대시보드</p></div>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        with st.container(border=True):
-            st.markdown("<h3 style='text-align: center;'>멤버십 입장</h3>", unsafe_allow_html=True)
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-            
-            if not GOOGLE_CLIENT_ID:
-                st.warning("⚠️ 구글 로그인 API 키가 설정되지 않았습니다. st.secrets를 먼저 설정해주세요.")
-            else:
-                st.link_button("🌐 Google 계정으로 시작하기", get_google_login_url(), type="primary", use_container_width=True)
-            
-            st.markdown("<div style='text-align: center; font-size: 12px; color: #9ca3af; margin-top: 15px;'>인가된 회원만 접속 가능합니다.</div>", unsafe_allow_html=True)
-    st.stop() # 로그인이 안 되어있으면 여기서 코드 실행을 멈춥니다!
-
-# -----------------------------------------------------------------------------
-# 2. 사이드바 (로그인 성공 후)
+# 2. 사이드바
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
     
-    # 내 정보 및 남은 횟수 표시
-    st.markdown("---")
-    st.markdown(f"👤 **{st.session_state.user_name}** 님")
-    st.markdown(f"<span style='font-size:12px; color:gray;'>{st.session_state.user_email}</span>", unsafe_allow_html=True)
-    st.info(f"⚡ 잔여 분석 횟수: **{st.session_state.remaining_calls} / 100회**")
+    if st.session_state.logged_in:
+        st.markdown(f"👤 **{st.session_state.user_name}** 님")
+        st.info(f"⚡ 잔여 분석 횟수: **{st.session_state.remaining_calls} / 100회**")
+        if st.button("로그아웃", use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
+    else:
+        st.warning("로그인 후 AI 분석 기능을 이용하세요.")
+        st.link_button("🌐 Google 로그인", get_google_login_url(), type="primary", use_container_width=True)
         
-    if st.button("로그아웃", use_container_width=True):
-        st.session_state.clear()
-        st.rerun()
     st.markdown("---")
-
     menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정"], index=0)
     st.markdown("---")
     st.subheader("설정 (Settings)")
@@ -172,18 +147,14 @@ def get_fred_data(series_id, calculation_type='raw'):
                 df = df.rename(columns={date_col: 'Date'})
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
-                df = df.sort_index()
-                
                 if calculation_type == 'yoy': df['Value'] = df.iloc[:, 0].pct_change(12) * 100
                 elif calculation_type == 'diff': df['Value'] = df.iloc[:, 0].diff()
                 else: df['Value'] = df.iloc[:, 0]
-                
                 df = df.dropna()
                 curr = df['Value'].iloc[-1]
                 prev = df['Value'].iloc[-2]
                 change = curr - prev
-                pct_change = 0
-                return curr, change, pct_change, df.reset_index()
+                return curr, change, 0, df.reset_index()
         except: time.sleep(1); continue
     return None, None, None, None
 
@@ -207,7 +178,6 @@ def calculate_rsi(data, window=14):
 def filter_data_by_period(df, period):
     if df is None or df.empty: return df
     end_date = df['Date'].max()
-    
     if period == "1개월": start = end_date - timedelta(days=30)
     elif period == "3개월": start = end_date - timedelta(days=90)
     elif period == "6개월": start = end_date - timedelta(days=180)
@@ -216,19 +186,14 @@ def filter_data_by_period(df, period):
     elif period == "5년": start = end_date - timedelta(days=365*5)
     elif period == "전체": start = df['Date'].min()
     else: start = end_date - timedelta(days=365)
-    
     return df[df['Date'] >= start]
 
 def create_chart(data, color, period="1년", height=180):
     if data is None or data.empty: return st.error("데이터 없음")
-    
     if period in ["1개월", "3개월", "6개월"]:
-        x_format = '%m/%d'
-        tick_cnt = 5
+        x_format = '%m/%d'; tick_cnt = 5
     else:
-        x_format = '%y.%m'
-        tick_cnt = 6
-
+        x_format = '%y.%m'; tick_cnt = 6
     chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
         x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False, tickCount=tick_cnt)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
@@ -243,7 +208,6 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
     if change > 0: color, bg_color, arrow, sign = up_color, f"{up_color}15", "▲", "+"
     elif change < 0: color, bg_color, arrow, sign = down_color, f"{down_color}15", "▼", ""
     else: color, bg_color, arrow, sign = "#6b7280", "#f3f4f6", "-", ""
-
     st.markdown(f"""
     <div style="display: flex; flex-direction: column;">
         <div style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">{label}</div>
@@ -268,7 +232,6 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             styled_metric(label, val, chg, pct, unit, up_c, down_c)
             st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
             selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
-        
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, period=selected_period, height=180)
@@ -286,40 +249,27 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
         if value < 30: bar_color = "#16a34a"
         elif value > 70: bar_color = "#dc2626"
         else: bar_color = "#4b5563"
-
     fig = go.Figure(go.Indicator(
         mode = "gauge+number", value = value,
         title = {'text': title, 'font': {'size': 18, 'color': "#374151"}},
-        gauge = {
-            'axis': {'range': [min_val, max_val], 'tickwidth': 1, 'tickcolor': "#374151"},
-            'bar': {'color': bar_color}, 'bgcolor': "white", 'borderwidth': 2, 'bordercolor': "white",
-            'steps': steps, 'threshold': {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': value}
-        }
+        gauge = {'axis': {'range': [min_val, max_val]}, 'bar': {'color': bar_color}, 'steps': steps}
     ))
     fig.update_layout(height=250, margin=dict(l=20, r=20, t=50, b=20), paper_bgcolor='rgba(0,0,0,0)', font={'family': "Pretendard"})
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# 5. AI 분석 엔진 (횟수 차감 로직 완벽 적용)
+# 5. AI 분석 엔진
 # -----------------------------------------------------------------------------
 def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     client = openai.OpenAI(api_key=api_key)
-    prompt = f"""
-    당신은 글로벌 매크로 전략가입니다. 주제: {topic}, 데이터: {data_summary}
-    [작성 양식]
-    - 핵심 요약: (상황 정의 1문장)
-    - 상세 분석: (3개 내외 불렛포인트)
-    - 대응 전략: (투자자 행동 가이드)
-    
-    주의: 텍스트에 볼드체(**)를 절대 사용하지 마세요. 평문으로 작성하세요.
-    한국어로 작성하세요.
-    """
+    prompt = f"당신은 글로벌 매크로 전략가입니다. 주제: {topic}, 데이터: {data_summary}. 핵심 요약, 상세 분석, 대응 전략을 평문으로 작성하세요. 볼드체(**)를 절대 사용하지 마세요."
     try:
         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
         return "AI 분석 리포트", resp.choices[0].message.content
     except Exception as e: return "오류 발생", str(e)
 
+# 💡 분석 버튼 자리에 로그인 유도 로직 적용
 def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     st.markdown(f"<div class='section-header'>{title}</div>", unsafe_allow_html=True)
     col_main, col_ai = st.columns([3, 1])
@@ -327,22 +277,26 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
         c1, c2 = st.columns(2)
         with c1: draw_chart_unit(chart1['l'], chart1['v'], chart1['c'], chart1['p'], chart1['d'], chart1['col'], chart1['prd'], 0, f"{key_suffix}_1", chart1['uc'], chart1['dc'], chart1['u'], True)
         with c2: draw_chart_unit(chart2['l'], chart2['v'], chart2['c'], chart2['p'], chart2['d'], chart2['col'], chart2['prd'], 0, f"{key_suffix}_2", chart2['uc'], chart2['dc'], chart2['u'], True)
+    
     with col_ai:
-        if st.button(f"⚡ {ai_topic} 분석", key=f"btn_{key_suffix}", use_container_width=True):
-            if st.session_state.remaining_calls > 0:
-                with st.spinner("AI 분석 중..."):
-                    title_text, content = analyze_market_ai(ai_topic, ai_data)
-                    st.session_state.remaining_calls -= 1 # 횟수 1 차감
-                st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
-                st.rerun() # 화면 업데이트
+        if st.session_state.logged_in:
+            if st.button(f"⚡ {ai_topic} 분석", key=f"btn_{key_suffix}", use_container_width=True):
+                if st.session_state.remaining_calls > 0:
+                    with st.spinner("AI 분석 중..."):
+                        t_text, content = analyze_market_ai(ai_topic, ai_data)
+                        st.session_state.remaining_calls -= 1
+                    st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+                    st.rerun()
+                else: st.error("⚠️ 잔여 횟수 소진")
             else:
-                st.error("⚠️ 잔여 AI 분석 횟수를 모두 소진했습니다.")
+                st.markdown(f"<div class='ai-box' style='background-color:#f9fafb;'><div class='ai-title'>AI Analyst</div><div class='ai-text'>버튼을 눌러 분석을 시작하세요.</div></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='ai-box' style='background-color:#f9fafb; border-color:#e5e7eb;'><div class='ai-title' style='color:#6b7280; border-color:#e5e7eb;'>AI Analyst</div><div class='ai-text' style='color:#9ca3af;'>버튼을 누르면<br>{ai_topic}에 대한<br>심층 분석을 시작합니다.</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>심층 AI 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
+            st.link_button("🌐 Google 로그인", get_google_login_url(), use_container_width=True)
     st.markdown("<hr>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 6. 메인 페이지 로직
+# 6. 메인 페이지 로직 (데이터 즉시 노출)
 # -----------------------------------------------------------------------------
 if menu == "주가 지수":
     st.title("글로벌 시장 지수")
@@ -355,19 +309,18 @@ if menu == "주가 지수":
 
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: draw_chart_unit("다우존스 지수", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
+    with c1: draw_chart_unit("다우존스", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
     with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "sp500", "#10b981", "#ef4444", "", False)
     with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "nasdaq", "#10b981", "#ef4444", "", False)
     
-    st.markdown("<div style='height: 30px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-header'>국내 증시 (KR Market)</div>", unsafe_allow_html=True)
     c4, c5 = st.columns(2)
-    with c4: draw_chart_unit("코스피 (KOSPI)", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 0, "kospi", "#ef4444", "#3b82f6", "", True)
-    with c5: draw_chart_unit("코스닥 (KOSDAQ)", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 0, "kosdaq", "#ef4444", "#3b82f6", "", True)
+    with c4: draw_chart_unit("코스피", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 0, "kospi", "#ef4444", "#3b82f6", "", True)
+    with c5: draw_chart_unit("코스닥", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 0, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
 elif menu == "투자 지표":
     st.title("투자 지표 (Economic Indicators)")
-    with st.spinner('데이터 로딩 중...'):
+    with st.spinner('로딩 중...'):
         rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
         exch_val, exch_chg, exch_pct, exch_data = get_yahoo_data("KRW=X", "10y")
         cpi_val, cpi_chg, cpi_pct, cpi_data = get_fred_data("CPIAUCSL", "yoy")
@@ -375,185 +328,82 @@ elif menu == "투자 지표":
         job_val, job_chg, job_pct, job_data = get_fred_data("PAYEMS", "diff")
         unemp_val, unemp_chg, unemp_pct, unemp_data = get_fred_data("UNRATE", "raw")
 
-    draw_section_with_ai(
-        "금융 시장 (금리 & 환율)",
-        {'l': "미국 10년물 금리", 'v': rate_val, 'c': rate_chg, 'p': rate_pct, 'd': rate_data, 'col': "#f59e0b", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#f59e0b", 'dc': "#3b82f6", 'u': "%"},
-        {'l': "원/달러 환율", 'v': exch_val, 'c': exch_chg, 'p': exch_pct, 'd': exch_data, 'col': "#10b981", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#10b981", 'dc': "#3b82f6", 'u': "원"},
-        "finance", "금융 시장(금리, 환율)", f"금리: {rate_val}%, 환율: {exch_val}원"
-    )
-
-    draw_section_with_ai(
-        "물가 지표 (인플레이션)",
-        {'l': "헤드라인 CPI", 'v': cpi_val, 'c': cpi_chg, 'p': cpi_pct, 'd': cpi_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"},
-        {'l': "근원(Core) CPI", 'v': core_val, 'c': core_chg, 'p': core_pct, 'd': core_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"},
-        "inflation", "물가 지표(CPI)", f"헤드라인CPI: {cpi_val}%, 근원CPI: {core_val}%"
-    )
-
-    draw_section_with_ai(
-        "고용 지표 (경기 & 고용)",
-        {'l': "비농업 고용 지수", 'v': job_val, 'c': job_chg, 'p': job_pct, 'd': job_data, 'col': "#3b82f6", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#3b82f6", 'dc': "#ef4444", 'u': "k"},
-        {'l': "실업률", 'v': unemp_val, 'c': unemp_chg, 'p': unemp_pct, 'd': unemp_data, 'col': "#10b981", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#10b981", 'dc': "#3b82f6", 'u': "%"},
-        "employment", "고용 지표(실업률)", f"비농업고용: {job_val}k, 실업률: {unemp_val}%"
-    )
+    draw_section_with_ai("금융 시장 (금리 & 환율)", {'l': "미국 10년물 금리", 'v': rate_val, 'c': rate_chg, 'p': rate_pct, 'd': rate_data, 'col': "#f59e0b", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#f59e0b", 'dc': "#3b82f6", 'u': "%"}, {'l': "원/달러 환율", 'v': exch_val, 'c': exch_chg, 'p': exch_pct, 'd': exch_data, 'col': "#10b981", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#10b981", 'dc': "#3b82f6", 'u': "원"}, "finance", "금융 시장", f"금리: {rate_val}%, 환율: {exch_val}원")
+    draw_section_with_ai("물가 지표 (인플레이션)", {'l': "헤드라인 CPI", 'v': cpi_val, 'c': cpi_chg, 'p': cpi_pct, 'd': cpi_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"}, {'l': "근원(Core) CPI", 'v': core_val, 'c': core_chg, 'p': core_pct, 'd': core_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"}, "inflation", "물가 지표", f"헤드라인CPI: {cpi_val}%, 근원CPI: {core_val}%")
+    draw_section_with_ai("고용 지표 (경기 & 고용)", {'l': "비농업 고용 지수", 'v': job_val, 'c': job_chg, 'p': job_pct, 'd': job_data, 'col': "#3b82f6", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#3b82f6", 'dc': "#ef4444", 'u': "k"}, {'l': "실업률", 'v': unemp_val, 'c': unemp_chg, 'p': unemp_pct, 'd': unemp_data, 'col': "#10b981", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#10b981", 'dc': "#3b82f6", 'u': "%"}, "employment", "고용 지표", f"비농업: {job_val}k, 실업률: {unemp_val}%")
 
 elif menu == "시장 심리":
     st.title("시장 심리 (Market Sentiment)")
-    
-    st.markdown("""
-    <div class="info-box">
-        <strong>[지표 정의]</strong><br>
-        • <strong>VIX (공포지수)</strong>: 향후 30일간 S&P 500 지수의 변동성에 대한 시장의 기대치를 나타냅니다.<br>
-        • <strong>RSI (상대강도지수)</strong>: 일정 기간 동안 주가가 전일 대비 상승한 변화량과 하락한 변화량의 평균값을 구하여, 상승분 강도를 백분율로 나타낸 지표입니다.
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div class='section-header'>위험 및 과열 신호 (Gauge)</div>", unsafe_allow_html=True)
-    with st.spinner("지표 분석 중..."):
+    st.markdown('<div class="info-box"><strong>VIX와 RSI</strong>를 통해 시장의 공포와 과열 정도를 파악합니다.</div>', unsafe_allow_html=True)
+    with st.spinner("데이터 분석 중..."):
         vix_curr, _, _, _ = get_yahoo_data("^VIX")
         _, _, _, sp_data = get_yahoo_data("^GSPC", "6mo")
         _, _, _, ks_data = get_yahoo_data("^KS11", "6mo")
-        rsi_sp = calculate_rsi(sp_data)
-        rsi_ks = calculate_rsi(ks_data)
-
+        rsi_sp = calculate_rsi(sp_data); rsi_ks = calculate_rsi(ks_data)
     g1, g2, g3 = st.columns(3)
-    with g1:
-        if vix_curr: draw_gauge_chart("공포 지수 (VIX)", vix_curr, 0, 50, [20, 30])
-        else: st.error("VIX 데이터 오류")
-    with g2:
-        if rsi_sp: draw_gauge_chart("RSI (S&P 500)", rsi_sp, 0, 100, [30, 70])
-        else: st.error("RSI 데이터 오류")
-    with g3:
-        if rsi_ks: draw_gauge_chart("RSI (코스피)", rsi_ks, 0, 100, [30, 70])
-        else: st.error("RSI 데이터 오류")
-
+    with g1: draw_gauge_chart("공포 지수 (VIX)", vix_curr, 0, 50, [20, 30])
+    with g2: draw_gauge_chart("RSI (S&P 500)", rsi_sp, 0, 100, [30, 70])
+    with g3: draw_gauge_chart("RSI (코스피)", rsi_ks, 0, 100, [30, 70])
+    
     st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
-    if st.button("📢 현재 시장 심리 AI 분석", use_container_width=True):
-        if st.session_state.remaining_calls > 0:
-            with st.spinner("AI 분석 중..."):
-                title_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, 코스피 RSI: {rsi_ks:.2f}")
-                st.session_state.remaining_calls -= 1
-            st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
-            st.rerun()
-        else:
-            st.error("⚠️ 잔여 AI 분석 횟수를 모두 소진했습니다.")
+    if st.session_state.logged_in:
+        if st.button("📢 현재 시장 심리 AI 분석", use_container_width=True):
+            if st.session_state.remaining_calls > 0:
+                with st.spinner("분석 중..."):
+                    t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
+                    st.session_state.remaining_calls -= 1
+                st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+                st.rerun()
+            else: st.error("⚠️ 잔여 횟수 소진")
+    else:
+        st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
+        st.link_button("🌐 Google 로그인", get_google_login_url(), use_container_width=True)
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
-    
     today_str = date.today().strftime('%Y-%m-%d')
-    st.markdown(f"""
-    <div class="info-box">
-        S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.<br>
-        <span style="font-size: 13px; color: #64748b;">기준일: {today_str}</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    sectors = {
-        'XLK': '기술 (Tech)', 'XLV': '헬스케어 (Health)', 'XLF': '금융 (Financials)',
-        'XLY': '임의소비재 (Discret.)', 'XLP': '필수소비재 (Staples)', 'XLE': '에너지 (Energy)',
-        'XLI': '산업재 (Industrial)', 'XLU': '유틸리티 (Utilities)', 'XLRE': '부동산 (Real Estate)',
-        'XLB': '소재 (Materials)', 'XLC': '통신 (Comm.)'
-    }
-
-    with st.spinner("섹터 데이터 분석 중..."):
-        rows = []
-        for ticker, name in sectors.items():
-            try:
-                d = yf.Ticker(ticker).history(period="5d")
-                if len(d) >= 2:
-                    curr = d['Close'].iloc[-1]
-                    prev = d['Close'].iloc[-2]
-                    chg = (curr - prev) / prev * 100
-                    rows.append({'Sector': name, 'Change': chg})
-            except:
-                pass
-
+    st.markdown(f'<div class="info-box">S&P 500 주요 섹터별 등락률 ({today_str})</div>', unsafe_allow_html=True)
+    sectors = {'XLK': '기술', 'XLV': '헬스케어', 'XLF': '금융', 'XLY': '임의소비재', 'XLP': '필수소비재', 'XLE': '에너지', 'XLI': '산업재', 'XLU': '유틸리티', 'XLRE': '부동산', 'XLB': '소재', 'XLC': '통신'}
+    rows = []
+    for t, n in sectors.items():
+        d = yf.Ticker(t).history(period="5d")
+        if len(d) >= 2:
+            c = (d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2] * 100
+            rows.append({'Sector': n, 'Change': c})
     if rows:
-        df_sector = pd.DataFrame(rows)
-        df_sector = df_sector.sort_values('Change', ascending=False)
+        df_sector = pd.DataFrame(rows).sort_values('Change', ascending=False)
         df_sector['Color'] = df_sector['Change'].apply(lambda x: '#ef4444' if x > 0 else '#3b82f6')
-
-        chart = alt.Chart(df_sector).mark_bar().encode(
-            x=alt.X('Change', title='등락률 (%)', axis=alt.Axis(format='.2f')),
-            y=alt.Y('Sector', sort='-x', title=None),
-            color=alt.Color('Color', scale=None),
-            tooltip=['Sector', alt.Tooltip('Change', format='.2f')]
-        ).properties(height=450)
-
+        chart = alt.Chart(df_sector).mark_bar().encode(x='Change', y=alt.Y('Sector', sort='-x'), color=alt.Color('Color', scale=None), tooltip=['Sector', alt.Tooltip('Change', format='.2f')]).properties(height=450)
         st.altair_chart(chart, use_container_width=True)
-    else:
-        st.error("섹터 데이터를 불러올 수 없습니다.")
 
 elif menu == "주요 일정":
     st.title("주요 일정 (Key Schedule)")
-
-    fomc_dates_2026 = [
-        date(2026, 1, 28), date(2026, 3, 18), date(2026, 4, 29), 
-        date(2026, 6, 17), date(2026, 7, 29), date(2026, 9, 16), 
-        date(2026, 10, 28), date(2026, 12, 9)
-    ]
+    fomc = [date(2026, 1, 28), date(2026, 3, 18), date(2026, 4, 29), date(2026, 6, 17), date(2026, 7, 29), date(2026, 9, 16), date(2026, 10, 28), date(2026, 12, 9)]
     today = date.today()
-    next_fomc = None
-    days_left = 0
-    for d in fomc_dates_2026:
-        if d >= today:
-            next_fomc = d
-            days_left = (d - today).days
-            break
-            
-    if next_fomc:
-        st.markdown(f"""
-        <div class="d-day-container">
-            <div class="d-day-title">Next FOMC Meeting</div>
-            <div class="d-day-count">D-{days_left}</div>
-            <div class="d-day-date">{next_fomc.strftime('%Y년 %m월 %d일')} (금리 결정)</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("2026년 FOMC 일정이 종료되었습니다.")
-
+    next_f = next((d for d in fomc if d >= today), None)
+    if next_f:
+        st.markdown(f'<div class="d-day-container"><div class="d-day-title">Next FOMC Meeting</div><div class="d-day-count">D-{(next_f-today).days}</div><div class="d-day-date">{next_f.strftime("%Y년 %m월 %d일")}</div></div>', unsafe_allow_html=True)
+    
     st.markdown("<div class='section-header'>네 마녀의 날 (Quadruple Witching Day)</div>", unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="warning-box">
-        매 분기(3, 6, 9, 12월) 셋째 주 금요일은 선물/옵션 만기일이 겹쳐 변동성이 극대화되는 날입니다.
-    </div>
-    """, unsafe_allow_html=True)
-    
-    witching_days_2026 = [date(2026, 3, 20), date(2026, 6, 19), date(2026, 9, 18), date(2026, 12, 18)]
+    witching = [date(2026, 3, 20), date(2026, 6, 19), date(2026, 9, 18), date(2026, 12, 18)]
     w_cols = st.columns(4)
-    for i, d in enumerate(witching_days_2026):
+    for i, d in enumerate(witching):
         with w_cols[i]:
-            bg_color = "#fee2e2" if d >= today and (d - today).days < 30 else "#ffffff"
-            with st.container(border=True):
-                st.markdown(f"**{d.month}월 만기일**")
-                st.markdown(f"{d.strftime('%Y-%m-%d')}")
-
+            with st.container(border=True): st.write(f"**{d.month}월 만기일**\n\n{d}")
+            
     st.markdown("<div class='section-header'>주요 휴장일 (미국 증시)</div>", unsafe_allow_html=True)
-    holidays_2026 = {
-        date(2026, 4, 3): "성금요일 (Good Friday)", date(2026, 5, 25): "메모리얼 데이 (Memorial Day)",
-        date(2026, 6, 19): "준틴스 (Juneteenth)", date(2026, 7, 3): "독립기념일 (Independence Day)",
-        date(2026, 9, 7): "노동절 (Labor Day)", date(2026, 11, 26): "추수감사절 (Thanksgiving Day)",
-        date(2026, 12, 25): "크리스마스 (Christmas Day)"
-    }
-    
-    upcoming_holidays = {d: n for d, n in holidays_2026.items() if d >= today}
+    holidays = {date(2026, 4, 3): "성금요일", date(2026, 5, 25): "메모리얼 데이", date(2026, 6, 19): "준틴스", date(2026, 7, 3): "독립기념일", date(2026, 9, 7): "노동절", date(2026, 11, 26): "추수감사절", date(2026, 12, 25): "크리스마스"}
     h_cols = st.columns(3)
-    if upcoming_holidays:
-        for i, (d, name) in enumerate(list(upcoming_holidays.items())[:3]):
-            with h_cols[i]:
-                with st.container(border=True):
-                    st.markdown(f"**{name}**")
-                    st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
-    else:
-        st.write("올해 남은 휴장일이 없습니다.")
+    upcoming = {d: n for d, n in holidays.items() if d >= today}
+    for i, (d, n) in enumerate(list(upcoming.items())[:3]):
+        with h_cols[i]:
+            with st.container(border=True): st.write(f"**{n}**\n\n{d}")
 
 # -----------------------------------------------------------------------------
 # 7. 공통 푸터 (투자 면책 조항)
 # -----------------------------------------------------------------------------
 st.markdown("""
 <div class="footer-disclaimer">
-    <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 모든 데이터 및 AI 분석 정보는 투자 참고용입니다.<br>
-    시장의 변동성이나 데이터 제공처의 사정에 따라 정보의 정확성이나 완벽성을 보장할 수 없으며, 투자에 대한 최종 판단과 책임은 전적으로 투자자 본인에게 있습니다.
+    <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
