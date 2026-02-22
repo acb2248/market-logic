@@ -292,7 +292,7 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                 st.markdown(f"<div class='ai-box' style='background-color:#f9fafb;'><div class='ai-title'>AI Analyst</div><div class='ai-text'>버튼을 눌러 분석을 시작하세요.</div></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>심층 AI 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
-            st.link_button("⚡ AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
+            st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
     st.markdown("<hr>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
@@ -357,7 +357,7 @@ elif menu == "시장 심리":
             else: st.error("⚠️ 잔여 횟수 소진")
     else:
         st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
-        st.link_button("⚡ AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
+        st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
@@ -407,4 +407,5 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
