@@ -102,7 +102,7 @@ with st.sidebar:
             st.rerun()
     else:
         st.warning("로그인 후 AI 분석 기능을 이용하세요.")
-        st.link_button("🌐 Google 로그인", get_google_login_url(), type="primary", use_container_width=True)
+        st.link_button("Google 로그인", get_google_login_url(), type="primary", use_container_width=True)
         
     st.markdown("---")
     menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정"], index=0)
@@ -407,5 +407,6 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
