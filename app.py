@@ -8,6 +8,30 @@ import plotly.graph_objects as go
 from io import StringIO
 import time
 from datetime import datetime, date, timedelta
+import urllib.parse
+
+# -----------------------------------------------------------------------------
+# 0. 구글 OAuth 설정 & 세션 초기화
+# -----------------------------------------------------------------------------
+# st.secrets에서 구글 로그인 정보 가져오기 (없으면 빈 문자열)
+GOOGLE_CLIENT_ID = st.secrets.get("google_client_id", "")
+GOOGLE_CLIENT_SECRET = st.secrets.get("google_client_secret", "")
+# 로컬 테스트 시 http://localhost:8501, 실제 배포 시 홈페이지 주소 (예: https://marketlogic.co.kr)
+GOOGLE_REDIRECT_URI = st.secrets.get("google_redirect_uri", "http://localhost:8501")
+
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+def get_google_login_url():
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "prompt": "select_account"
+    }
+    return f"{auth_url}?{urllib.parse.urlencode(params)}"
 
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정 및 CSS
@@ -22,85 +46,90 @@ st.set_page_config(
 st.markdown("""
     <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    
     html, body, .stApp { font-family: 'Pretendard', sans-serif !important; background-color: #f5f7f9; }
-
-    /* 섹션 헤더 */
-    .section-header {
-        font-size: 20px; font-weight: 700; color: #111827;
-        margin-top: 30px; margin-bottom: 15px;
-        border-left: 4px solid #111827; padding-left: 10px;
-    }
-
-    /* 카드 UI */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #ffffff;
-        border: 1px solid #e5e7eb; border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        padding: 20px; margin-bottom: 15px;
-    }
-
-    /* D-Day 카드 (디자인 강제 적용) */
-    div.d-day-container {
-        background-color: #1e293b; 
-        color: white;
-        padding: 30px; 
-        border-radius: 16px; 
-        text-align: center;
-        margin-bottom: 20px; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
+    .section-header { font-size: 20px; font-weight: 700; color: #111827; margin-top: 30px; margin-bottom: 15px; border-left: 4px solid #111827; padding-left: 10px; }
+    div[data-testid="stVerticalBlockBorderWrapper"] { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; }
+    div.d-day-container { background-color: #1e293b; color: white; padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .d-day-title { font-size: 16px; color: #94a3b8; margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
     .d-day-count { font-size: 56px; font-weight: 800; color: #ffffff; line-height: 1.1; margin: 10px 0; }
     .d-day-date { font-size: 18px; color: #cbd5e1; margin-top: 10px; }
-
-    /* AI 분석 박스 */
     .ai-box { background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; height: 100%; }
     .ai-title { font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #166534; border-bottom: 1px solid #bbf7d0; padding-bottom: 5px; }
     .ai-text { font-size: 14px; line-height: 1.7; color: #14532d; word-break: keep-all; }
-    
-    /* [공통] 설명 박스 디자인 (파란색) */
-    .info-box {
-        background-color: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        padding: 15px;
-        color: #1e3a8a;
-        font-size: 14px;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-
-    /* [공통] 경고/알림 박스 디자인 (노란색) */
-    .warning-box {
-        background-color: #fefce8;
-        border: 1px solid #fde047;
-        border-radius: 8px;
-        padding: 15px;
-        color: #854d0e;
-        font-size: 14px;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-    
-    /* 면책 조항 푸터 */
-    .footer-disclaimer {
-        text-align: center;
-        color: #9ca3af;
-        font-size: 13px;
-        padding: 20px 0;
-        margin-top: 40px;
-        border-top: 1px solid #e5e7eb;
-        line-height: 1.6;
-    }
+    .info-box { background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; color: #1e3a8a; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    .warning-box { background-color: #fefce8; border: 1px solid #fde047; border-radius: 8px; padding: 15px; color: #854d0e; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    .footer-disclaimer { text-align: center; color: #9ca3af; font-size: 13px; padding: 20px 0; margin-top: 40px; border-top: 1px solid #e5e7eb; line-height: 1.6; }
     </style>
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바
+# [New] 구글 로그인 리디렉션 처리
+# -----------------------------------------------------------------------------
+query_params = st.query_params
+if "code" in query_params and not st.session_state.logged_in:
+    code = query_params["code"]
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code"
+    }
+    res = requests.post(token_url, data=data)
+    if res.status_code == 200:
+        access_token = res.json().get("access_token")
+        user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+        user_res = requests.get(user_info_url, headers={"Authorization": f"Bearer {access_token}"})
+        if user_res.status_code == 200:
+            user_info = user_res.json()
+            st.session_state.logged_in = True
+            st.session_state.user_email = user_info.get("email")
+            st.session_state.user_name = user_info.get("name")
+            
+            # 여기서 나중에는 DB에서 남은 횟수를 불러옵니다. 지금은 100회로 세팅!
+            st.session_state.remaining_calls = 100 
+            
+            st.query_params.clear() # URL 깔끔하게 정리
+            st.rerun()
+
+# -----------------------------------------------------------------------------
+# [New] 로그인 화면 UI (비로그인 상태)
+# -----------------------------------------------------------------------------
+if not st.session_state.logged_in:
+    st.markdown("<div style='text-align: center; margin-top: 80px;'><h1 style='color: #111827; font-size: 40px;'>Market Logic 📈</h1><p style='color: #6b7280; font-size: 18px;'>글로벌 매크로 분석 프리미엄 대시보드</p></div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        with st.container(border=True):
+            st.markdown("<h3 style='text-align: center;'>멤버십 입장</h3>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+            
+            if not GOOGLE_CLIENT_ID:
+                st.warning("⚠️ 구글 로그인 API 키가 설정되지 않았습니다. st.secrets를 먼저 설정해주세요.")
+            else:
+                st.link_button("🌐 Google 계정으로 시작하기", get_google_login_url(), type="primary", use_container_width=True)
+            
+            st.markdown("<div style='text-align: center; font-size: 12px; color: #9ca3af; margin-top: 15px;'>인가된 회원만 접속 가능합니다.</div>", unsafe_allow_html=True)
+    st.stop() # 로그인이 안 되어있으면 여기서 코드 실행을 멈춥니다!
+
+# -----------------------------------------------------------------------------
+# 2. 사이드바 (로그인 성공 후)
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.title("Market Logic")
+    
+    # 내 정보 및 남은 횟수 표시
+    st.markdown("---")
+    st.markdown(f"👤 **{st.session_state.user_name}** 님")
+    st.markdown(f"<span style='font-size:12px; color:gray;'>{st.session_state.user_email}</span>", unsafe_allow_html=True)
+    st.info(f"⚡ 잔여 분석 횟수: **{st.session_state.remaining_calls} / 100회**")
+        
+    if st.button("로그아웃", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
+    st.markdown("---")
+
     menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정"], index=0)
     st.markdown("---")
     st.subheader("설정 (Settings)")
@@ -186,30 +215,22 @@ def filter_data_by_period(df, period):
     elif period == "3년": start = end_date - timedelta(days=365*3)
     elif period == "5년": start = end_date - timedelta(days=365*5)
     elif period == "전체": start = df['Date'].min()
-    else: start = end_date - timedelta(days=365) # Fallback
+    else: start = end_date - timedelta(days=365)
     
     return df[df['Date'] >= start]
 
 def create_chart(data, color, period="1년", height=180):
     if data is None or data.empty: return st.error("데이터 없음")
     
-    # 💡 기간별 가로축(X축) 날짜 표기 및 라벨 간격(tickCount) 강제 조절
     if period in ["1개월", "3개월", "6개월"]:
-        x_format = '%m/%d'  # 1년 미만은 '월/일' 형식
-        tick_cnt = 5        # 라벨이 너무 뭉치지 않게 최대 5개로 제한
+        x_format = '%m/%d'
+        tick_cnt = 5
     else:
-        x_format = '%y.%m'  # 1년 이상은 '년.월' 형식
-        tick_cnt = 6        # 1년 이상은 최대 6개로 제한
+        x_format = '%y.%m'
+        tick_cnt = 6
 
     chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
         x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False, tickCount=tick_cnt)),
-        y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
-        tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
-    ).properties(height=height).interactive()
-    return st.altair_chart(chart, use_container_width=True)
-
-    chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
-        x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
         tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
     ).properties(height=height).interactive()
@@ -250,8 +271,6 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
         filtered_data = filter_data_by_period(data, selected_period)
-        
-        # 선택된 기간(selected_period)을 create_chart로 넘겨줌
         create_chart(filtered_data, color, period=selected_period, height=180)
 
 def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
@@ -281,7 +300,7 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# 5. AI 분석 엔진
+# 5. AI 분석 엔진 (횟수 차감 로직 완벽 적용)
 # -----------------------------------------------------------------------------
 def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
@@ -310,8 +329,14 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
         with c2: draw_chart_unit(chart2['l'], chart2['v'], chart2['c'], chart2['p'], chart2['d'], chart2['col'], chart2['prd'], 0, f"{key_suffix}_2", chart2['uc'], chart2['dc'], chart2['u'], True)
     with col_ai:
         if st.button(f"⚡ {ai_topic} 분석", key=f"btn_{key_suffix}", use_container_width=True):
-            title, content = analyze_market_ai(ai_topic, ai_data)
-            st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+            if st.session_state.remaining_calls > 0:
+                with st.spinner("AI 분석 중..."):
+                    title_text, content = analyze_market_ai(ai_topic, ai_data)
+                    st.session_state.remaining_calls -= 1 # 횟수 1 차감
+                st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+                st.rerun() # 화면 업데이트
+            else:
+                st.error("⚠️ 잔여 AI 분석 횟수를 모두 소진했습니다.")
         else:
             st.markdown(f"<div class='ai-box' style='background-color:#f9fafb; border-color:#e5e7eb;'><div class='ai-title' style='color:#6b7280; border-color:#e5e7eb;'>AI Analyst</div><div class='ai-text' style='color:#9ca3af;'>버튼을 누르면<br>{ai_topic}에 대한<br>심층 분석을 시작합니다.</div></div>", unsafe_allow_html=True)
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -350,7 +375,6 @@ elif menu == "투자 지표":
         job_val, job_chg, job_pct, job_data = get_fred_data("PAYEMS", "diff")
         unemp_val, unemp_chg, unemp_pct, unemp_data = get_fred_data("UNRATE", "raw")
 
-    # 1. 금융 시장 (금리/환율: 1개월 / 3개월 / 1년)
     draw_section_with_ai(
         "금융 시장 (금리 & 환율)",
         {'l': "미국 10년물 금리", 'v': rate_val, 'c': rate_chg, 'p': rate_pct, 'd': rate_data, 'col': "#f59e0b", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#f59e0b", 'dc': "#3b82f6", 'u': "%"},
@@ -358,7 +382,6 @@ elif menu == "투자 지표":
         "finance", "금융 시장(금리, 환율)", f"금리: {rate_val}%, 환율: {exch_val}원"
     )
 
-    # 2. 물가 지표 (6개월 / 1년 / 3년)
     draw_section_with_ai(
         "물가 지표 (인플레이션)",
         {'l': "헤드라인 CPI", 'v': cpi_val, 'c': cpi_chg, 'p': cpi_pct, 'd': cpi_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"},
@@ -366,7 +389,6 @@ elif menu == "투자 지표":
         "inflation", "물가 지표(CPI)", f"헤드라인CPI: {cpi_val}%, 근원CPI: {core_val}%"
     )
 
-    # 3. 고용 지표 (6개월 / 1년 / 3년)
     draw_section_with_ai(
         "고용 지표 (경기 & 고용)",
         {'l': "비농업 고용 지수", 'v': job_val, 'c': job_chg, 'p': job_pct, 'd': job_data, 'col': "#3b82f6", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#3b82f6", 'dc': "#ef4444", 'u': "k"},
@@ -406,8 +428,14 @@ elif menu == "시장 심리":
 
     st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
     if st.button("📢 현재 시장 심리 AI 분석", use_container_width=True):
-        title, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, 코스피 RSI: {rsi_ks:.2f}")
-        st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+        if st.session_state.remaining_calls > 0:
+            with st.spinner("AI 분석 중..."):
+                title_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, 코스피 RSI: {rsi_ks:.2f}")
+                st.session_state.remaining_calls -= 1
+            st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+            st.rerun()
+        else:
+            st.error("⚠️ 잔여 AI 분석 횟수를 모두 소진했습니다.")
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
@@ -421,17 +449,10 @@ elif menu == "시장 지도":
     """, unsafe_allow_html=True)
 
     sectors = {
-        'XLK': '기술 (Tech)',
-        'XLV': '헬스케어 (Health)',
-        'XLF': '금융 (Financials)',
-        'XLY': '임의소비재 (Discret.)',
-        'XLP': '필수소비재 (Staples)',
-        'XLE': '에너지 (Energy)',
-        'XLI': '산업재 (Industrial)',
-        'XLU': '유틸리티 (Utilities)',
-        'XLRE': '부동산 (Real Estate)',
-        'XLB': '소재 (Materials)',
-        'XLC': '통신 (Comm.)'
+        'XLK': '기술 (Tech)', 'XLV': '헬스케어 (Health)', 'XLF': '금융 (Financials)',
+        'XLY': '임의소비재 (Discret.)', 'XLP': '필수소비재 (Staples)', 'XLE': '에너지 (Energy)',
+        'XLI': '산업재 (Industrial)', 'XLU': '유틸리티 (Utilities)', 'XLRE': '부동산 (Real Estate)',
+        'XLB': '소재 (Materials)', 'XLC': '통신 (Comm.)'
     }
 
     with st.spinner("섹터 데이터 분석 중..."):
@@ -510,12 +531,9 @@ elif menu == "주요 일정":
 
     st.markdown("<div class='section-header'>주요 휴장일 (미국 증시)</div>", unsafe_allow_html=True)
     holidays_2026 = {
-        date(2026, 4, 3): "성금요일 (Good Friday)",
-        date(2026, 5, 25): "메모리얼 데이 (Memorial Day)",
-        date(2026, 6, 19): "준틴스 (Juneteenth)",
-        date(2026, 7, 3): "독립기념일 (Independence Day)",
-        date(2026, 9, 7): "노동절 (Labor Day)",
-        date(2026, 11, 26): "추수감사절 (Thanksgiving Day)",
+        date(2026, 4, 3): "성금요일 (Good Friday)", date(2026, 5, 25): "메모리얼 데이 (Memorial Day)",
+        date(2026, 6, 19): "준틴스 (Juneteenth)", date(2026, 7, 3): "독립기념일 (Independence Day)",
+        date(2026, 9, 7): "노동절 (Labor Day)", date(2026, 11, 26): "추수감사절 (Thanksgiving Day)",
         date(2026, 12, 25): "크리스마스 (Christmas Day)"
     }
     
@@ -539,4 +557,3 @@ st.markdown("""
     시장의 변동성이나 데이터 제공처의 사정에 따라 정보의 정확성이나 완벽성을 보장할 수 없으며, 투자에 대한 최종 판단과 책임은 전적으로 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
-
