@@ -193,11 +193,20 @@ def filter_data_by_period(df, period):
 def create_chart(data, color, period="1년", height=180):
     if data is None or data.empty: return st.error("데이터 없음")
     
-    # 💡 기간별 가로축(X축) 날짜 표기 변경
+    # 💡 기간별 가로축(X축) 날짜 표기 및 라벨 간격(tickCount) 강제 조절
     if period in ["1개월", "3개월", "6개월"]:
         x_format = '%m/%d'  # 1년 미만은 '월/일' 형식
+        tick_cnt = 5        # 라벨이 너무 뭉치지 않게 최대 5개로 제한
     else:
         x_format = '%y.%m'  # 1년 이상은 '년.월' 형식
+        tick_cnt = 6        # 1년 이상은 최대 6개로 제한
+
+    chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
+        x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False, tickCount=tick_cnt)),
+        y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
+        tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
+    ).properties(height=height).interactive()
+    return st.altair_chart(chart, use_container_width=True)
 
     chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
         x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False)),
@@ -530,3 +539,4 @@ st.markdown("""
     시장의 변동성이나 데이터 제공처의 사정에 따라 정보의 정확성이나 완벽성을 보장할 수 없으며, 투자에 대한 최종 판단과 책임은 전적으로 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
