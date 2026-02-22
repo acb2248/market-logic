@@ -79,12 +79,21 @@ if "code" in query_params and not st.session_state.logged_in:
         access_token = res.json().get("access_token")
         user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
         user_res = requests.get(user_info_url, headers={"Authorization": f"Bearer {access_token}"})
-        if user_res.status_code == 200:
+       if user_res.status_code == 200:
             user_info = user_res.json()
             st.session_state.logged_in = True
-            st.session_state.user_email = user_info.get("email")
+            user_email = user_info.get("email")
+            st.session_state.user_email = user_email
             st.session_state.user_name = user_info.get("name")
-            st.session_state.remaining_calls = 100 
+            
+            # 💡 [핵심] 지정된 관리자(선생님) 이메일만 허용합니다.
+            ALLOWED_EMAILS = ["jyr05090@gmail.com"] # 아까 캡처에서 본 선생님 이메일을 넣었습니다.
+            
+            if user_email in ALLOWED_EMAILS:
+                st.session_state.remaining_calls = 100  # 관리자는 100회
+            else:
+                st.session_state.remaining_calls = 0    # 다른 사람은 무조건 0회로 시작
+                
             st.query_params.clear()
             st.rerun()
 
@@ -287,7 +296,7 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                         st.session_state.remaining_calls -= 1
                     st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
                     st.rerun()
-                else: st.error("⚠️ 잔여 횟수 소진")
+                else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
             else:
                 st.markdown(f"<div class='ai-box' style='background-color:#f9fafb;'><div class='ai-title'>AI Analyst</div><div class='ai-text'>버튼을 눌러 분석을 시작하세요.</div></div>", unsafe_allow_html=True)
         else:
@@ -354,7 +363,7 @@ elif menu == "시장 심리":
                     st.session_state.remaining_calls -= 1
                 st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
                 st.rerun()
-            else: st.error("⚠️ 잔여 횟수 소진")
+            else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
     else:
         st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
         st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
@@ -407,6 +416,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
