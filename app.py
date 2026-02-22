@@ -79,7 +79,7 @@ if "code" in query_params and not st.session_state.logged_in:
         access_token = res.json().get("access_token")
         user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
         user_res = requests.get(user_info_url, headers={"Authorization": f"Bearer {access_token}"})
-       if user_res.status_code == 200:
+        if user_res.status_code == 200:
             user_info = user_res.json()
             st.session_state.logged_in = True
             user_email = user_info.get("email")
@@ -416,6 +416,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
