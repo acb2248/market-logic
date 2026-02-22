@@ -71,7 +71,7 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* [공통] 경고/알림 박스 디자인 (노란색) - 모양은 위와 동일 */
+    /* [공통] 경고/알림 박스 디자인 (노란색) */
     .warning-box {
         background-color: #fefce8;
         border: 1px solid #fde047;
@@ -81,6 +81,17 @@ st.markdown("""
         font-size: 14px;
         line-height: 1.6;
         margin-bottom: 20px;
+    }
+    
+    /* 면책 조항 푸터 */
+    .footer-disclaimer {
+        text-align: center;
+        color: #9ca3af;
+        font-size: 13px;
+        padding: 20px 0;
+        margin-top: 40px;
+        border-top: 1px solid #e5e7eb;
+        line-height: 1.6;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -179,10 +190,17 @@ def filter_data_by_period(df, period):
     
     return df[df['Date'] >= start]
 
-def create_chart(data, color, height=180):
+def create_chart(data, color, period="1년", height=180):
     if data is None or data.empty: return st.error("데이터 없음")
+    
+    # 💡 기간별 가로축(X축) 날짜 표기 변경
+    if period in ["1개월", "3개월", "6개월"]:
+        x_format = '%m/%d'  # 1년 미만은 '월/일' 형식
+    else:
+        x_format = '%y.%m'  # 1년 이상은 '년.월' 형식
+
     chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
-        x=alt.X('Date:T', axis=alt.Axis(format='%y-%m', title=None, grid=False)),
+        x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
         tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
     ).properties(height=height).interactive()
@@ -223,7 +241,9 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
         filtered_data = filter_data_by_period(data, selected_period)
-        create_chart(filtered_data, color, height=180)
+        
+        # 선택된 기간(selected_period)을 create_chart로 넘겨줌
+        create_chart(filtered_data, color, period=selected_period, height=180)
 
 def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
     steps = []
@@ -380,14 +400,10 @@ elif menu == "시장 심리":
         title, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr:.2f}, S&P500 RSI: {rsi_sp:.2f}, 코스피 RSI: {rsi_ks:.2f}")
         st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {title}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
-# [New] 시장 지도 (Market Map) - 디자인 수정됨 (파란색 커스텀 박스)
-# -----------------------------------------------------------------------------
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
     
     today_str = date.today().strftime('%Y-%m-%d')
-    # .info-box 클래스 적용
     st.markdown(f"""
     <div class="info-box">
         S&P 500 주요 섹터(ETF)의 등락률을 통해 오늘의 자금 흐름을 한눈에 파악합니다.<br>
@@ -395,7 +411,6 @@ elif menu == "시장 지도":
     </div>
     """, unsafe_allow_html=True)
 
-    # 1. 섹터 정의 (S&P 500 ETF)
     sectors = {
         'XLK': '기술 (Tech)',
         'XLV': '헬스케어 (Health)',
@@ -410,12 +425,10 @@ elif menu == "시장 지도":
         'XLC': '통신 (Comm.)'
     }
 
-    # 2. 데이터 수집 및 가공
     with st.spinner("섹터 데이터 분석 중..."):
         rows = []
         for ticker, name in sectors.items():
             try:
-                # 5일치 데이터를 가져와서 안전하게 전일 대비 등락률 계산
                 d = yf.Ticker(ticker).history(period="5d")
                 if len(d) >= 2:
                     curr = d['Close'].iloc[-1]
@@ -426,17 +439,13 @@ elif menu == "시장 지도":
                 pass
 
     if rows:
-        # 3. 데이터프레임 변환 및 정렬
         df_sector = pd.DataFrame(rows)
-        df_sector = df_sector.sort_values('Change', ascending=False) # 상위부터 정렬
-
-        # 4. 색상 지정 (상승: 빨강, 하락: 파랑)
+        df_sector = df_sector.sort_values('Change', ascending=False)
         df_sector['Color'] = df_sector['Change'].apply(lambda x: '#ef4444' if x > 0 else '#3b82f6')
 
-        # 5. 차트 그리기 (Altair Bar Chart)
         chart = alt.Chart(df_sector).mark_bar().encode(
             x=alt.X('Change', title='등락률 (%)', axis=alt.Axis(format='.2f')),
-            y=alt.Y('Sector', sort='-x', title=None), # 등락률 순으로 정렬
+            y=alt.Y('Sector', sort='-x', title=None),
             color=alt.Color('Color', scale=None),
             tooltip=['Sector', alt.Tooltip('Change', format='.2f')]
         ).properties(height=450)
@@ -448,7 +457,6 @@ elif menu == "시장 지도":
 elif menu == "주요 일정":
     st.title("주요 일정 (Key Schedule)")
 
-    # 1. FOMC D-Day (디자인 CSS 강제 적용)
     fomc_dates_2026 = [
         date(2026, 1, 28), date(2026, 3, 18), date(2026, 4, 29), 
         date(2026, 6, 17), date(2026, 7, 29), date(2026, 9, 16), 
@@ -474,10 +482,8 @@ elif menu == "주요 일정":
     else:
         st.info("2026년 FOMC 일정이 종료되었습니다.")
 
-    # 2. 네 마녀의 날 (디자인 수정됨 - 노란색 커스텀 박스)
     st.markdown("<div class='section-header'>네 마녀의 날 (Quadruple Witching Day)</div>", unsafe_allow_html=True)
     
-    # .warning-box 클래스 적용
     st.markdown("""
     <div class="warning-box">
         매 분기(3, 6, 9, 12월) 셋째 주 금요일은 선물/옵션 만기일이 겹쳐 변동성이 극대화되는 날입니다.
@@ -493,7 +499,6 @@ elif menu == "주요 일정":
                 st.markdown(f"**{d.month}월 만기일**")
                 st.markdown(f"{d.strftime('%Y-%m-%d')}")
 
-    # 3. 휴장일
     st.markdown("<div class='section-header'>주요 휴장일 (미국 증시)</div>", unsafe_allow_html=True)
     holidays_2026 = {
         date(2026, 4, 3): "성금요일 (Good Friday)",
@@ -515,3 +520,13 @@ elif menu == "주요 일정":
                     st.markdown(f"<span style='color:#6b7280; font-weight:bold;'>{d.strftime('%Y-%m-%d')}</span>", unsafe_allow_html=True)
     else:
         st.write("올해 남은 휴장일이 없습니다.")
+
+# -----------------------------------------------------------------------------
+# 7. 공통 푸터 (투자 면책 조항)
+# -----------------------------------------------------------------------------
+st.markdown("""
+<div class="footer-disclaimer">
+    <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 모든 데이터 및 AI 분석 정보는 투자 참고용입니다.<br>
+    시장의 변동성이나 데이터 제공처의 사정에 따라 정보의 정확성이나 완벽성을 보장할 수 없으며, 투자에 대한 최종 판단과 책임은 전적으로 투자자 본인에게 있습니다.
+</div>
+""", unsafe_allow_html=True)
