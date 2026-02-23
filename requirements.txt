@@ -5,3 +5,4 @@ pandas
 requests
 altair
 plotly
+st-gsheets-connection
