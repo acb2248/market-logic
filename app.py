@@ -9,6 +9,7 @@ from io import StringIO
 import time
 from datetime import datetime, date, timedelta
 import urllib.parse
+from streamlit_gsheets import GSheetsConnection # 💡 구글 시트 연결용
 
 # -----------------------------------------------------------------------------
 # 0. 구글 OAuth 설정 & 세션 초기화
@@ -79,21 +80,53 @@ if "code" in query_params and not st.session_state.logged_in:
         access_token = res.json().get("access_token")
         user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
         user_res = requests.get(user_info_url, headers={"Authorization": f"Bearer {access_token}"})
+        
         if user_res.status_code == 200:
             user_info = user_res.json()
             st.session_state.logged_in = True
             user_email = user_info.get("email")
+            user_name = user_info.get("name")
             st.session_state.user_email = user_email
-            st.session_state.user_name = user_info.get("name")
+            st.session_state.user_name = user_name
             
-            # 💡 [핵심] 지정된 관리자(선생님) 이메일만 허용합니다.
-            ALLOWED_EMAILS = ["jyr05090@gmail.com"] # 아까 캡처에서 본 선생님 이메일을 넣었습니다.
+            # ---------------------------------------------------------
+            # 💡 구글 시트 DB 연결 및 '매일 1회 무료' 로직 시작
+            # ---------------------------------------------------------
+            conn = st.connection("gsheets", type=GSheetsConnection)
+            df = conn.read(worksheet="Users", ttl=0) # 시트 내용 읽기
+            today_str = date.today().strftime('%Y-%m-%d')
             
-            if user_email in ALLOWED_EMAILS:
-                st.session_state.remaining_calls = 100  # 관리자는 100회
-            else:
-                st.session_state.remaining_calls = 0    # 다른 사람은 무조건 0회로 시작
+            # 1. 빈 시트일 경우 기본 구조 생성
+            if df.empty or 'Email' not in df.columns:
+                df = pd.DataFrame(columns=['Email', 'Name', 'Plan', 'Remaining_Calls', 'Last_Free_Date'])
                 
+            if user_email in df['Email'].values:
+                # 2. 기존 가입자인 경우
+                user_idx = df.index[df['Email'] == user_email].tolist()[0]
+                plan = df.at[user_idx, 'Plan']
+                calls = int(df.at[user_idx, 'Remaining_Calls'])
+                last_free = str(df.at[user_idx, 'Last_Free_Date'])
+                
+                # '매일 1회 무료' 로직: 오늘 접속한 게 아니면
+                if last_free != today_str:
+                    if calls < 1:  # 남은 횟수가 0일 때만 1회 충전 (결제 회원의 횟수는 깎지 않음)
+                        calls = 1
+                    df.at[user_idx, 'Remaining_Calls'] = calls
+                    df.at[user_idx, 'Last_Free_Date'] = today_str
+                    conn.update(worksheet="Users", data=df) # 시트에 변경사항 저장
+            else:
+                # 3. 신규 가입자인 경우 (환영 무료 1회 제공)
+                plan = "Free"
+                calls = 1
+                last_free = today_str
+                new_row = pd.DataFrame([{'Email': user_email, 'Name': user_name, 'Plan': plan, 'Remaining_Calls': calls, 'Last_Free_Date': last_free}])
+                df = pd.concat([df, new_row], ignore_index=True)
+                conn.update(worksheet="Users", data=df) # 시트에 새 회원 저장
+                
+            # 세션에 최종 횟수 및 등급 저장
+            st.session_state.remaining_calls = calls
+            st.session_state.plan = plan
+            
             st.query_params.clear()
             st.rerun()
 
@@ -269,6 +302,17 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
 # -----------------------------------------------------------------------------
 # 5. AI 분석 엔진
 # -----------------------------------------------------------------------------
+def deduct_user_call():
+    """DB(구글 시트)에서 사용자의 횟수를 1회 차감하는 함수"""
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    df = conn.read(worksheet="Users", ttl=0)
+    user_email = st.session_state.user_email
+    if user_email in df['Email'].values:
+        user_idx = df.index[df['Email'] == user_email].tolist()[0]
+        current_calls = int(df.at[user_idx, 'Remaining_Calls'])
+        if current_calls > 0:
+            df.at[user_idx, 'Remaining_Calls'] = current_calls - 1
+            conn.update(worksheet="Users", data=df)
 def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     client = openai.OpenAI(api_key=api_key)
@@ -294,6 +338,7 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                     with st.spinner("AI 분석 중..."):
                         t_text, content = analyze_market_ai(ai_topic, ai_data)
                         st.session_state.remaining_calls -= 1
+                        deduct_user_call() # 💡 DB에서도 1회 차감 반영
                     st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
                     st.rerun()
                 else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
@@ -361,6 +406,7 @@ elif menu == "시장 심리":
                 with st.spinner("분석 중..."):
                     t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
                     st.session_state.remaining_calls -= 1
+                    deduct_user_call() # 💡 DB에서도 1회 차감 반영
                 st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
                 st.rerun()
             else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
@@ -416,6 +462,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
