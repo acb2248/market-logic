@@ -338,17 +338,20 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                     with st.spinner("AI 분석 중..."):
                         t_text, content = analyze_market_ai(ai_topic, ai_data)
                         st.session_state.remaining_calls -= 1
-                        deduct_user_call() # 💡 DB에서도 1회 차감 반영
-                    st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
-                    st.rerun()
-                else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
-            else:
-                st.markdown(f"<div class='ai-box' style='background-color:#f9fafb;'><div class='ai-title'>AI Analyst</div><div class='ai-text'>버튼을 눌러 분석을 시작하세요.</div></div>", unsafe_allow_html=True)
+                        deduct_user_call() # DB 차감
+                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content) # 💡 결과를 브라우저 메모리에 단단히 저장!
+                    st.rerun() # 💡 저장 후 사이드바 횟수 차감을 위해 새로고침
+                else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
+            
+            # 💡 메모리에 저장된 결과가 있다면 화면에 계속 띄워주기
+            if f"ai_res_{key_suffix}" in st.session_state:
+                t_text, content = st.session_state[f"ai_res_{key_suffix}"]
+                st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>심층 AI 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
             st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
     st.markdown("<hr>", unsafe_allow_html=True)
-
+    
 # -----------------------------------------------------------------------------
 # 6. 메인 페이지 로직 (데이터 즉시 노출)
 # -----------------------------------------------------------------------------
@@ -406,10 +409,15 @@ elif menu == "시장 심리":
                 with st.spinner("분석 중..."):
                     t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
                     st.session_state.remaining_calls -= 1
-                    deduct_user_call() # 💡 DB에서도 1회 차감 반영
-                st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+                    deduct_user_call()
+                    st.session_state["ai_res_sentiment"] = (t_text, content) # 💡 결과 저장!
                 st.rerun()
             else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
+        
+        # 💡 저장된 결과 화면에 유지
+        if "ai_res_sentiment" in st.session_state:
+            t_text, content = st.session_state["ai_res_sentiment"]
+            st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
     else:
         st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
         st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
@@ -462,6 +470,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
