@@ -316,12 +316,34 @@ def deduct_user_call():
 def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     client = openai.OpenAI(api_key=api_key)
-    prompt = f"당신은 글로벌 매크로 전략가입니다. 주제: {topic}, 데이터: {data_summary}. 핵심 요약, 상세 분석, 대응 전략을 평문으로 작성하세요. 볼드체(**)를 절대 사용하지 마세요."
+    
+    # 💡 펀드매니저 컨셉 + 4단계 분석 프롬프트 적용
+    prompt = f"""당신은 '세계 경제지표의 비밀'의 저자이자 개인 투자자들의 멘토 역할을 하는 월스트리트 탑클래스 펀드매니저입니다. 
+주제: {topic}
+데이터: {data_summary}
+
+아래 4가지 구조에 맞춰 분석 리포트를 작성해주세요. 초보자도 이해하기 쉽게 일상적인 비유를 들어 설명해야 합니다:
+
+💡 지표의 숨은 의미
+(이 데이터가 현재 시장에서 왜 중요한지 체온계나 나침반 같은 일상적인 비유로 아주 쉽게 설명)
+
+🔍 펀드매니저의 시장 해석
+(현재 숫자가 주식 시장, 금리, 환율에 어떤 강력한 신호를 보내고 있는지 현장감 있게 분석)
+
+🎯 주식 투자 실전 활용법
+(개인 투자자가 구체적으로 어떤 섹터(업종)를 피하고, 어떤 자산에 돈을 옮겨야 하는지 명확한 조언)
+
+🚀 미래 전략 제안 (Future Strategy Suggestions)
+(앞으로 1~3개월 내에 예상되는 시장 시나리오와 지금 당장 취해야 할 선제적 대응 전략)
+
+주의: 읽기 편하도록 줄바꿈을 적절히 사용하고, 볼드체(**)는 절대 사용하지 마세요."""
+
     try:
         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
-        return "AI 분석 리포트", resp.choices[0].message.content
+        return "AI 펀드매니저 리포트", resp.choices[0].message.content
     except Exception as e: return "오류 발생", str(e)
 
+# 💡 분석 버튼 자리에 로그인 유도 로직 적용
 # 💡 분석 버튼 자리에 로그인 유도 로직 적용
 def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     st.markdown(f"<div class='section-header'>{title}</div>", unsafe_allow_html=True)
@@ -333,23 +355,25 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     
     with col_ai:
         if st.session_state.logged_in:
-            if st.button(f"⚡ {ai_topic} 분석", key=f"btn_{key_suffix}", use_container_width=True):
+            # 💡 버튼 이름 변경!
+            if st.button(f"👔 {ai_topic} AI 펀드매니저 분석", key=f"btn_{key_suffix}", use_container_width=True):
                 if st.session_state.remaining_calls > 0:
-                    with st.spinner("AI 분석 중..."):
+                    with st.spinner("펀드매니저가 시장 데이터를 분석 중입니다..."):
                         t_text, content = analyze_market_ai(ai_topic, ai_data)
                         st.session_state.remaining_calls -= 1
                         deduct_user_call() # DB 차감
-                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content) # 💡 결과를 브라우저 메모리에 단단히 저장!
-                    st.rerun() # 💡 저장 후 사이드바 횟수 차감을 위해 새로고침
+                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content) # 결과를 브라우저 메모리에 단단히 저장!
+                    st.rerun() # 저장 후 사이드바 횟수 차감을 위해 새로고침
                 else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
             
             # 💡 메모리에 저장된 결과가 있다면 화면에 계속 띄워주기
             if f"ai_res_{key_suffix}" in st.session_state:
                 t_text, content = st.session_state[f"ai_res_{key_suffix}"]
-                st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>심층 AI 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
-            st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
+            # 💡 로그인 전 안내 문구도 고급스럽게 변경
+            st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>월스트리트급 AI 펀드매니저 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
+            st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
     st.markdown("<hr>", unsafe_allow_html=True)
     
 # -----------------------------------------------------------------------------
@@ -402,11 +426,12 @@ elif menu == "시장 심리":
     with g2: draw_gauge_chart("RSI (S&P 500)", rsi_sp, 0, 100, [30, 70])
     with g3: draw_gauge_chart("RSI (코스피)", rsi_ks, 0, 100, [30, 70])
     
-    st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
+   st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
     if st.session_state.logged_in:
-        if st.button("현재 시장 심리 AI 분석", use_container_width=True):
+        # 💡 버튼 이름 변경!
+        if st.button("👔 현재 시장 심리 AI 펀드매니저 분석", use_container_width=True):
             if st.session_state.remaining_calls > 0:
-                with st.spinner("분석 중..."):
+                with st.spinner("펀드매니저가 투자자들의 심리를 읽는 중입니다..."):
                     t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
                     st.session_state.remaining_calls -= 1
                     deduct_user_call()
@@ -417,10 +442,10 @@ elif menu == "시장 심리":
         # 💡 저장된 결과 화면에 유지
         if "ai_res_sentiment" in st.session_state:
             t_text, content = st.session_state["ai_res_sentiment"]
-            st.markdown(f"<div class='ai-box'><div class='ai-title'>🤖 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
     else:
         st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
-        st.link_button("AI 심층 분석", get_google_login_url(), type="primary", use_container_width=True)
+        st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
@@ -470,6 +495,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
