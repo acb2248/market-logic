@@ -317,12 +317,15 @@ def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     client = openai.OpenAI(api_key=api_key)
     
-    # 💡 펀드매니저 컨셉 + 4단계 분석 프롬프트 적용
+    # 💡 요약부(📌)와 상세부(💡)를 코드가 분리할 수 있도록 명확한 기호 사용
     prompt = f"""당신은 '세계 경제지표의 비밀'의 저자이자 개인 투자자들의 멘토 역할을 하는 월스트리트 탑클래스 펀드매니저입니다. 
 주제: {topic}
 데이터: {data_summary}
 
-아래 4가지 구조에 맞춰 분석 리포트를 작성해주세요. 초보자도 이해하기 쉽게 일상적인 비유를 들어 설명해야 합니다:
+반드시 아래의 특수기호 목차를 그대로 사용하여 리포트를 작성해주세요. (볼드체 절대 사용 금지)
+
+📌 [핵심 브리핑]
+(이 상황을 관통하는 가장 중요한 핵심 인사이트를 1~2줄로 아주 강렬하고 직관적으로 요약하세요.)
 
 💡 지표의 숨은 의미
 (이 데이터가 현재 시장에서 왜 중요한지 체온계나 나침반 같은 일상적인 비유로 아주 쉽게 설명)
@@ -331,13 +334,11 @@ def analyze_market_ai(topic, data_summary):
 (현재 숫자가 주식 시장, 금리, 환율에 어떤 강력한 신호를 보내고 있는지 현장감 있게 분석)
 
 🎯 주식 투자 실전 활용법
-(개인 투자자가 구체적으로 어떤 섹터(업종)를 피하고, 어떤 자산에 돈을 옮겨야 하는지 명확한 조언)
+(어떤 섹터(업종)를 피하고, 어떤 자산에 돈을 옮겨야 하는지 명확한 조언)
 
-🚀 미래 전략 제안 (Future Strategy Suggestions)
+🚀 미래 전략 제안
 (앞으로 1~3개월 내에 예상되는 시장 시나리오와 지금 당장 취해야 할 선제적 대응 전략)
-
-주의: 읽기 편하도록 줄바꿈을 적절히 사용하고, 볼드체(**)는 절대 사용하지 마세요."""
-
+"""
     try:
         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
         return "AI 펀드매니저 리포트", resp.choices[0].message.content
@@ -345,6 +346,7 @@ def analyze_market_ai(topic, data_summary):
 
 # 💡 분석 버튼 자리에 로그인 유도 로직 적용
 # 💡 분석 버튼 자리에 로그인 유도 로직 적용
+# 💡 분석 버튼 자리에 로그인 유도 로직 및 분할 레이아웃 적용
 def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     st.markdown(f"<div class='section-header'>{title}</div>", unsafe_allow_html=True)
     col_main, col_ai = st.columns([3, 1])
@@ -355,29 +357,48 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     
     with col_ai:
         if st.session_state.logged_in:
-            # 💡 분석이 이미 완료되었는지 기억 장치에서 확인
             is_analyzed = f"ai_res_{key_suffix}" in st.session_state
             btn_text = "✅ 분석 완료" if is_analyzed else f"{ai_topic} 분석"
             
-            # 💡 type="primary"로 로그인 버튼처럼 눈에 띄게! 
-            # 💡 disabled=is_analyzed 로 분석이 끝나면 회색으로 클릭 방지!
             if st.button(btn_text, key=f"btn_{key_suffix}", type="primary", disabled=is_analyzed, use_container_width=True):
                 if st.session_state.remaining_calls > 0:
                     with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."):
                         t_text, content = analyze_market_ai(ai_topic, ai_data)
                         st.session_state.remaining_calls -= 1
                         deduct_user_call() # DB 차감
-                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content) # 결과 저장
-                    st.rerun() # 새로고침
+                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content)
+                    st.rerun() 
                 else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
             
-            # 💡 메모리에 저장된 결과가 있다면 화면에 계속 띄워주기
+            # 💡 [우측 영역] 메모리에 저장된 결과 중 '📌 [핵심 브리핑]' 부분만 잘라서 크게 보여줌
             if is_analyzed:
                 t_text, content = st.session_state[f"ai_res_{key_suffix}"]
-                st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+                summary = content.split('💡')[0].replace('📌 [핵심 브리핑]', '').replace('📌', '').strip()
+                if not summary: summary = content[:50] + "..." # 분리 실패 시 예외 처리
+                
+                st.markdown(f"""
+                <div style='background-color:#eff6ff; padding:20px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+                    <div style='font-size:14px; color:#1d4ed8; font-weight:700; margin-bottom:8px;'>👔 펀드매니저 핵심 요약</div>
+                    <div style='font-size:16px; font-weight:700; color:#1e3a8a; line-height:1.5; word-break:keep-all;'>{summary}</div>
+                </div>
+                """, unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>월스트리트급 AI 펀드매니저 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
             st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
+            
+    # 💡 [하단 전체 영역] 상세 리포트는 차트 아래쪽에 넓게 배치!
+    if st.session_state.logged_in and f"ai_res_{key_suffix}" in st.session_state:
+        t_text, content = st.session_state[f"ai_res_{key_suffix}"]
+        # '💡' 이후의 텍스트(상세 분석)만 잘라서 출력
+        detail_content = "💡" + content.split('💡')[1] if '💡' in content else content
+        
+        st.markdown(f"""
+        <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:30px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <h3 style='color:#166534; font-size:18px; margin-top:0; margin-bottom:15px; border-bottom:2px solid #bbf7d0; padding-bottom:10px;'>{t_text} (상세)</h3>
+            <div style='font-size:15px; line-height:1.8; color:#14532d;'>{detail_content}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     st.markdown("<hr>", unsafe_allow_html=True)
     
 # -----------------------------------------------------------------------------
@@ -503,6 +524,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
