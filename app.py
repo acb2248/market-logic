@@ -355,24 +355,29 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     
     with col_ai:
         if st.session_state.logged_in:
-            if st.button(f"{ai_topic} 분석", key=f"btn_{key_suffix}", use_container_width=True): # 💡 아이콘과 펀드매니저 글씨 제거
+            # 💡 분석이 이미 완료되었는지 기억 장치에서 확인
+            is_analyzed = f"ai_res_{key_suffix}" in st.session_state
+            btn_text = "✅ 분석 완료" if is_analyzed else f"{ai_topic} 분석"
+            
+            # 💡 type="primary"로 로그인 버튼처럼 눈에 띄게! 
+            # 💡 disabled=is_analyzed 로 분석이 끝나면 회색으로 클릭 방지!
+            if st.button(btn_text, key=f"btn_{key_suffix}", type="primary", disabled=is_analyzed, use_container_width=True):
                 if st.session_state.remaining_calls > 0:
-                    with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."): # 💡 요청하신 문구로 변경
+                    with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."):
                         t_text, content = analyze_market_ai(ai_topic, ai_data)
                         st.session_state.remaining_calls -= 1
                         deduct_user_call() # DB 차감
-                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content) # 결과를 브라우저 메모리에 단단히 저장!
-                    st.rerun() # 저장 후 사이드바 횟수 차감을 위해 새로고침
+                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content) # 결과 저장
+                    st.rerun() # 새로고침
                 else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
             
             # 💡 메모리에 저장된 결과가 있다면 화면에 계속 띄워주기
-            if f"ai_res_{key_suffix}" in st.session_state:
+            if is_analyzed:
                 t_text, content = st.session_state[f"ai_res_{key_suffix}"]
                 st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
         else:
-            # 💡 로그인 전 안내 문구도 고급스럽게 변경
             st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>월스트리트급 AI 펀드매니저 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
-            st.link_button("AI 펀드매니저 분석", get_google_login_url(), type="primary", use_container_width=True)
+            st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
     st.markdown("<hr>", unsafe_allow_html=True)
     
 # -----------------------------------------------------------------------------
@@ -427,23 +432,28 @@ elif menu == "시장 심리":
     
     st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
     if st.session_state.logged_in:
-        if st.button("현재 시장 심리 분석", use_container_width=True): # 💡 아이콘과 펀드매니저 글씨 제거
+        # 💡 분석 완료 여부 확인
+        is_analyzed_sentiment = "ai_res_sentiment" in st.session_state
+        btn_text_sentiment = "✅ 분석 완료" if is_analyzed_sentiment else "현재 시장 심리 분석"
+        
+        # 💡 버튼 강조(primary) 및 완료 시 회색 비활성화(disabled) 적용
+        if st.button(btn_text_sentiment, type="primary", disabled=is_analyzed_sentiment, use_container_width=True):
             if st.session_state.remaining_calls > 0:
-                with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."): # 💡 똑같은 문구로 통일
+                with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."):
                     t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
                     st.session_state.remaining_calls -= 1
                     deduct_user_call()
-                    st.session_state["ai_res_sentiment"] = (t_text, content) # 💡 결과 저장!
+                    st.session_state["ai_res_sentiment"] = (t_text, content) # 결과 저장
                 st.rerun()
             else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
         
         # 💡 저장된 결과 화면에 유지
-        if "ai_res_sentiment" in st.session_state:
+        if is_analyzed_sentiment:
             t_text, content = st.session_state["ai_res_sentiment"]
             st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
     else:
         st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
-        st.link_button("AI 펀드매니저 분석", get_google_login_url(), type="primary", use_container_width=True)
+        st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
@@ -493,6 +503,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
