@@ -355,10 +355,9 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
     
     with col_ai:
         if st.session_state.logged_in:
-            # 💡 버튼 이름 변경!
-            if st.button(f"👔 {ai_topic} AI 펀드매니저 분석", key=f"btn_{key_suffix}", use_container_width=True):
+            if st.button(f"{ai_topic} 분석", key=f"btn_{key_suffix}", use_container_width=True): # 💡 아이콘과 펀드매니저 글씨 제거
                 if st.session_state.remaining_calls > 0:
-                    with st.spinner("펀드매니저가 시장 데이터를 분석 중입니다..."):
+                    with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."): # 💡 요청하신 문구로 변경
                         t_text, content = analyze_market_ai(ai_topic, ai_data)
                         st.session_state.remaining_calls -= 1
                         deduct_user_call() # DB 차감
@@ -428,10 +427,9 @@ elif menu == "시장 심리":
     
     st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
     if st.session_state.logged_in:
-        # 💡 버튼 이름 변경!
-        if st.button("👔 현재 시장 심리 AI 펀드매니저 분석", use_container_width=True):
+        if st.button("현재 시장 심리 분석", use_container_width=True): # 💡 아이콘과 펀드매니저 글씨 제거
             if st.session_state.remaining_calls > 0:
-                with st.spinner("펀드매니저가 투자자들의 심리를 읽는 중입니다..."):
+                with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."): # 💡 똑같은 문구로 통일
                     t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
                     st.session_state.remaining_calls -= 1
                     deduct_user_call()
@@ -495,6 +493,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
