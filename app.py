@@ -209,7 +209,7 @@ with st.sidebar:
         st.link_button("Google 로그인", get_google_login_url(), type="primary", use_container_width=True)
         
     st.markdown("---")
-    menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정"], index=0)
+    menu = st.radio("메뉴 선택", ["주가 지수", "투자 지표", "시장 심리", "시장 지도", "주요 일정", "🔒 VIP 포트폴리오"], index=0)
     st.markdown("---")
     st.subheader("설정 (Settings)")
     if "openai_api_key" in st.secrets:
@@ -609,7 +609,62 @@ elif menu == "주요 일정":
     for i, (d, n) in enumerate(list(upcoming.items())[:3]):
         with h_cols[i]:
             with st.container(border=True): st.write(f"**{n}**\n\n{d}")
-
+                
+elif menu == "🔒 VIP 포트폴리오":
+    st.title("🔒 VIP 시크릿 포트폴리오")
+    
+    # 💡 Pro 회원에게만 진짜 내용을 보여줍니다.
+    if st.session_state.get('plan', 'Free') == 'Pro':
+        st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 주도주를 확인하세요.")
+        
+        st.markdown("<div class='section-header'>🚀 이번 주 주도주 스크리닝 (Stage 2 돌파 국면)</div>", unsafe_allow_html=True)
+        st.info("추세 추종 전략(Trend Template)과 VCP(변동성 축소 패턴) 기반으로 선별된 돌파 임박 종목입니다.")
+        
+        # (예시 데이터입니다. 나중에 선생님의 실제 분석으로 내용을 채워주시면 됩니다!)
+        st.markdown("""
+        <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <h3 style='color:#111827; margin-top:0;'>1. 엔비디아 (NVDA) - AI 인프라 대장주</h3>
+            <ul style='color:#374151; font-size:16px; line-height:1.6;'>
+                <li>기술적 분석: 10주 및 30주 이동평균선 우상향 (2단계 상승 국면). 최근 3주간 거래량 감소하며 매물 소화 (VCP 패턴 완성 임박).</li>
+                <li>기본적 분석: 다음 분기 EPS 120% 성장 예상. 강력한 기관 스폰서십.</li>
+                <li>매매 전략: 저항선 135달러 돌파 시 적극 매수. 손절가는 50일 이평선 하향 이탈 시.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <h3 style='color:#111827; margin-top:0;'>2. 팔란티어 (PLTR) - B2B AI 소프트웨어 주도주</h3>
+            <ul style='color:#374151; font-size:16px; line-height:1.6;'>
+                <li>기술적 분석: 52주 신고가 근처에서 얕은 베이스(Base) 형성 중. 상대강도(RS) 95 이상.</li>
+                <li>매매 전략: 25달러 안착 확인 시 비중 확대.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    else:
+        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면
+        st.markdown("<div class='section-header'>🚀 이번 주 주도주 스크리닝 (Stage 2 돌파 국면)</div>", unsafe_allow_html=True)
+        
+        # 글씨가 흐릿하게 보이게 하는 특수 효과(filter: blur) 적용
+        st.markdown("""
+        <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:center; filter: blur(5px); user-select: none;'>
+            <h3 style='color:#111827;'>1. 압도적 주도주 (티커 비공개)</h3>
+            <p style='color:#374151;'>기술적 분석: 10주 및 30주 이동평균선 우상향... VCP 패턴 완성 임박...</p>
+            <p style='color:#374151;'>기본적 분석: 다음 분기 EPS 120% 성장 예상... 기관 매집 포착...</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 블러 처리된 화면 위에 띄우는 안내문
+        st.markdown("""
+        <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-100px; position:relative; z-index:10;'>
+            <div style='font-size:40px; margin-bottom:10px;'>🔒</div>
+            <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 콘텐츠입니다</h3>
+            <p style='color:#92400e; font-size:16px;'>월스트리트 검증 기법으로 선별된 압도적 주도주 포트폴리오를 확인하세요.</p>
+            <p style='color:#9ca3af; font-size:14px; margin-top:15px;'>👉 왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
 # -----------------------------------------------------------------------------
 # 7. 공통 푸터 (투자 면책 조항)
 # -----------------------------------------------------------------------------
@@ -618,6 +673,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
