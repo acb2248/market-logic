@@ -163,7 +163,6 @@ if "code" in query_params and not st.session_state.logged_in:
             st.session_state.plan = plan
             
             st.query_params.clear()
-            st.rerun()
 
 # -----------------------------------------------------------------------------
 # 2. 사이드바
@@ -175,7 +174,9 @@ with st.sidebar:
         st.markdown(f"👤 **{st.session_state.user_name}** 님")
         st.info(f"⚡ 잔여 분석 횟수: **{st.session_state.remaining_calls} / 100회**")
         if st.button("로그아웃", use_container_width=True):
+            cookie_manager.delete("user_email") # 💡 브라우저 쿠키 삭제
             st.session_state.clear()
+            time.sleep(0.5) # 💡 쿠키가 지워질 수 있도록 0.5초 틈을 줍니다
             st.rerun()
     else:
         st.warning("로그인 후 AI 분석 기능을 이용하세요.")
@@ -198,6 +199,11 @@ with st.sidebar:
 def get_yahoo_data(ticker, period="10y"):
     try:
         data = yf.Ticker(ticker).history(period=period) 
+        
+        # 💡 다우존스(^DJI) 서버 에러 발생 시, 동일한 지수를 추종하는 ETF(DIA)로 자동 대체!
+        if len(data) < 2 and ticker == "^DJI":
+            data = yf.Ticker("DIA").history(period=period)
+            
         if len(data) > 1:
             curr = data['Close'].iloc[-1]
             prev = data['Close'].iloc[-2]
@@ -581,6 +587,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
