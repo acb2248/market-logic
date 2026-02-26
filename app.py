@@ -191,6 +191,11 @@ with st.sidebar:
         st.success("✅ AI 연결됨")
     else:
         api_key = st.text_input("OpenAI API Key", type="password")
+        
+    # 👇 새로 추가할 마법의 버튼 3줄!
+    if st.button("🔄 서버 캐시 초기화 (관리자용)"):
+        st.cache_data.clear()
+        st.rerun()
 
 # -----------------------------------------------------------------------------
 # 3. 데이터 엔진
@@ -587,6 +592,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
