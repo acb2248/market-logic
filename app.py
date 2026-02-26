@@ -185,22 +185,21 @@ with st.sidebar:
             # 👇 여기서부터 결제 유도 시스템 시작!
         st.markdown("---")
         
-        # 유저 등급이 'Free'일 때만 결제 안내 박스를 보여줍니다.
+       # 유저 등급이 'Free'일 때만 결제 안내 박스를 보여줍니다.
         if st.session_state.get('plan', 'Free') == 'Free':
             st.markdown("""
             <div style='background-color:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
                 <div style='font-size:15px; font-weight:800; color:#b45309; margin-bottom:8px;'>👑 Pro 멤버십 업그레이드</div>
-                <div style='font-size:13px; color:#92400e; line-height:1.5; margin-bottom:12px; word-break:keep-all;'>
-                    무제한 AI 펀드매니저 분석과<br>VIP 시크릿 탭을 열어보세요!
-                </div>
-                <div style='font-size:13px; color:#b45309; background-color:#fef3c7; padding:10px; border-radius:6px; text-align:center; font-weight:bold; letter-spacing:0.5px;'>
-                    월 9,900원<br>국민 123456-00-123456 (홍길동)
+                <div style='font-size:13px; color:#92400e; line-height:1.5; margin-bottom:0px; word-break:keep-all;'>
+                    무제한 AI 펀드매니저 분석과<br>VIP 시크릿 탭을 열어보세요! (월 9,900원)
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            # 구글 폼 링크 버튼 (주소는 나중에 진짜 폼 주소로 바꾸시면 됩니다)
-            st.link_button("📝 입금 후 1초 승인 요청", "https://forms.google.com", type="primary", use_container_width=True)
+            # 카카오페이/토스 송금 링크 버튼 (추후 본인의 송금 QR 링크로 변경)
+            st.link_button("💸 간편 송금하기 (카카오/토스)", "https://qr.kakaopay.com/...", use_container_width=True)
+            # 입금 확인 구글 폼 버튼
+            st.link_button("📝 송금 후 1초 승인 요청", "https://forms.google.com", type="primary", use_container_width=True)
             
         else:
             # Pro 회원에게 보여줄 자부심 넘치는 메시지!
@@ -619,6 +618,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
