@@ -171,8 +171,12 @@ with st.sidebar:
     st.title("Market Logic")
     
     if st.session_state.logged_in:
-        st.markdown(f"👤 **{st.session_state.user_name}** 님")
-        st.info(f"⚡ 잔여 분석 횟수: **{st.session_state.remaining_calls} / 100회**")
+        # 💡 안전망(.get) 추가: 혹시 기억을 못 하면 기본값('회원', 0)을 사용해 에러를 막습니다.
+        user_name = st.session_state.get('user_name', '회원')
+        rem_calls = st.session_state.get('remaining_calls', 0)
+        
+        st.markdown(f"👤 **{user_name}** 님")
+        st.info(f"⚡ 잔여 분석 횟수: **{rem_calls} / 100회**")
         if st.button("로그아웃", use_container_width=True):
             cookie_manager.delete("user_email") # 💡 브라우저 쿠키 삭제
             st.session_state.clear()
@@ -592,6 +596,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
