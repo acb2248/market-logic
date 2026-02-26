@@ -389,9 +389,9 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                     summary = content[:100] + "..."
                 
                 st.markdown(f"""
-                <div style='background-color:#eff6ff; padding:25px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height:285px; display:flex; flex-direction:column; justify-content:center;'>
-                    <div style='font-size:16px; color:#1d4ed8; font-weight:800; margin-bottom:15px;'>펀드매니저 핵심 요약</div>
-                    <div style='font-size:18px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div>
+                <div style='background-color:#eff6ff; padding:20px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height:250px; display:flex; flex-direction:column; justify-content:center;'>
+                    <div style='font-size:18px; color:#1d4ed8; font-weight:800; margin-bottom:15px;'>펀드매니저 핵심 요약</div>
+                    <div style='font-size:20px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -408,15 +408,15 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
             detail_raw = content
             
         # 대괄호 소제목을 크고 굵은 HTML 디자인으로 변환 (위 여백 45px로 시원하게 분리)
-        detail_html = detail_raw.replace('[지표의 숨은 의미]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:10px; margin-bottom:15px;'>지표의 숨은 의미</div>")
-        detail_html = detail_html.replace('[펀드매니저의 시장 해석]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:45px; margin-bottom:15px;'>펀드매니저의 시장 해석</div>")
-        detail_html = detail_html.replace('[주식 투자 실전 활용법]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:45px; margin-bottom:15px;'>주식 투자 실전 활용법</div>")
-        detail_html = detail_html.replace('[미래 전략 제안]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:45px; margin-bottom:15px;'>미래 전략 제안</div>")
+        detail_html = detail_raw.replace('[지표의 숨은 의미]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:10px; margin-bottom:10px;'>지표의 숨은 의미</div>")
+        detail_html = detail_html.replace('[펀드매니저의 시장 해석]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>펀드매니저의 시장 해석</div>")
+        detail_html = detail_html.replace('[주식 투자 실전 활용법]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>주식 투자 실전 활용법</div>")
+        detail_html = detail_html.replace('[미래 전략 제안]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>미래 전략 제안</div>")
         
         st.markdown(f"""
-        <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:40px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+        <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:25px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
             <h3 style='color:#14532d; font-size:24px; font-weight:900; margin-top:0; margin-bottom:25px; border-bottom:2px solid #bbf7d0; padding-bottom:15px;'>{t_text} (상세)</h3>
-            <div style='font-size:18px; line-height:2.0; color:#14532d; word-break:keep-all;'>{detail_html}</div>
+            <div style='font-size:20px; line-height:1.7; color:#14532d; word-break:keep-all;'>{detail_html}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -545,6 +545,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
