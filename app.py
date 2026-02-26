@@ -10,6 +10,34 @@ import time
 from datetime import datetime, date, timedelta
 import urllib.parse
 from streamlit_gsheets import GSheetsConnection # 💡 구글 시트 연결용
+import extra_streamlit_components as stx
+
+# 1. 쿠키 매니저 설정
+cookie_manager = stx.CookieManager()
+
+# 2. 새로고침 방어 로직 (쿠키가 있으면 강제 로그인 유지 및 DB 정보 복구)
+cookies = cookie_manager.get_all()
+if "user_email" in cookies and not st.session_state.get('logged_in', False):
+    saved_email = cookies["user_email"]
+    
+    # 💡 새로고침 시 구글 시트에서 유저의 '이름'과 '남은 횟수'를 다시 몰래 가져옵니다!
+    try:
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df = conn.read(worksheet="Users", ttl=0)
+        
+        if not df.empty and 'Email' in df.columns and saved_email in df['Email'].values:
+            user_idx = df.index[df['Email'] == saved_email].tolist()[0]
+            
+            # 세션 메모리 완벽 복구
+            st.session_state.logged_in = True
+            st.session_state.user_email = saved_email
+            st.session_state.user_name = df.at[user_idx, 'Name']
+            st.session_state.remaining_calls = int(df.at[user_idx, 'Remaining_Calls'])
+            st.session_state.plan = df.at[user_idx, 'Plan']
+        else:
+            cookie_manager.delete("user_email") # DB에 없으면 잘못된 쿠키이므로 삭제
+    except Exception as e:
+        pass # 시트 연결 실패 시 그냥 넘어감 (다시 로그인하도록 유도)
 
 # -----------------------------------------------------------------------------
 # 0. 구글 OAuth 설정 & 세션 초기화
@@ -80,14 +108,21 @@ if "code" in query_params and not st.session_state.logged_in:
         access_token = res.json().get("access_token")
         user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
         user_res = requests.get(user_info_url, headers={"Authorization": f"Bearer {access_token}"})
-        
+
         if user_res.status_code == 200:
             user_info = user_res.json()
-            st.session_state.logged_in = True
+    
+            # 정보 가져오기
             user_email = user_info.get("email")
             user_name = user_info.get("name")
+    
+            # 세션에 저장
+            st.session_state.logged_in = True
             st.session_state.user_email = user_email
             st.session_state.user_name = user_name
+    
+            # 💡 브라우저에 쿠키(방문증) 저장! (이 한 줄이 핵심입니다)
+            cookie_manager.set("user_email", user_email, max_age=30*24*60*60)
             
             # ---------------------------------------------------------
             # 💡 구글 시트 DB 연결 및 '매일 1회 무료' 로직 시작
@@ -546,6 +581,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
