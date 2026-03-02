@@ -611,34 +611,60 @@ elif menu == "주요 일정":
             with st.container(border=True): st.write(f"**{n}**\n\n{d}")
                 
 elif menu == "🔒 VIP 포트폴리오":
-    st.title("🔒 VIP 시크릿 포트폴리오")
+    st.title("🔒 VIP 시크릿 매크로 리포트")
     
     # 💡 Pro 회원에게만 진짜 내용을 보여줍니다.
     if st.session_state.get('plan', 'Free') == 'Pro':
-        st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 주도주를 확인하세요.")
+        st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
         
-        st.markdown("<div class='section-header'>🚀 이번 주 주도주 스크리닝 (Stage 2 돌파 국면)</div>", unsafe_allow_html=True)
-        st.info("추세 추종 전략(Trend Template)과 VCP(변동성 축소 패턴) 기반으로 선별된 돌파 임박 종목입니다.")
+        st.markdown("<div class='section-header'>🌎 글로벌 매크로 & 탑다운 투자 전략</div>", unsafe_allow_html=True)
+        st.info("현재 시장의 주요 경제 지표를 종합하여 시장의 현 단계(Stage)와 전반적인 투자 방향을 제시합니다.")
         
-        # (예시 데이터입니다. 나중에 선생님의 실제 분석으로 내용을 채워주시면 됩니다!)
         st.markdown("""
         <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-            <h3 style='color:#111827; margin-top:0;'>1. 엔비디아 (NVDA) - AI 인프라 대장주</h3>
+            <h3 style='color:#111827; margin-top:0;'>1. 핵심 매크로 지표 점검 및 시장 단계 (Market Stage)</h3>
             <ul style='color:#374151; font-size:16px; line-height:1.6;'>
-                <li>기술적 분석: 10주 및 30주 이동평균선 우상향 (2단계 상승 국면). 최근 3주간 거래량 감소하며 매물 소화 (VCP 패턴 완성 임박).</li>
-                <li>기본적 분석: 다음 분기 EPS 120% 성장 예상. 강력한 기관 스폰서십.</li>
-                <li>매매 전략: 저항선 135달러 돌파 시 적극 매수. 손절가는 50일 이평선 하향 이탈 시.</li>
+                <li><b>금리 및 외환 동향:</b> 미국 10년물 금리의 향방과 강달러 기조 등 외환 시장의 변동성이 글로벌 유동성 흐름을 좌우하는 핵심 축으로 작용하고 있습니다.</li>
+                <li><b>지정학적 리스크 (전쟁/분쟁):</b> 글로벌 분쟁 국면이 장기화되며 공급망 재편 및 인플레이션 압력 등 거시 경제에 지속적인 부담을 주고 있습니다.</li>
+                <li><b>시장 추세 평가:</b> 주요 지수들이 30주 이동평균선 위에서 2단계(상승 국면)를 유지하고 있으나, 매크로 불확실성으로 인해 강한 변동성 장세가 연출되고 있습니다.</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
         
         st.markdown("""
         <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-            <h3 style='color:#111827; margin-top:0;'>2. 팔란티어 (PLTR) - B2B AI 소프트웨어 주도주</h3>
+            <h3 style='color:#111827; margin-top:0;'>2. 투자 방향성 및 리스크 관리 전략</h3>
             <ul style='color:#374151; font-size:16px; line-height:1.6;'>
-                <li>기술적 분석: 52주 신고가 근처에서 얕은 베이스(Base) 형성 중. 상대강도(RS) 95 이상.</li>
-                <li>매매 전략: 25달러 안착 확인 시 비중 확대.</li>
+                <li><b>포트폴리오 비중 조절:</b> 추세적 상승(트렌드 템플릿)을 만족하는 주도 섹터로 압축하고, 추세가 꺾인 4단계 하락 국면의 자산은 철저히 배제해야 합니다.</li>
+                <li><b>신규 진입 전략:</b> 무리한 추격 매수를 자제하고, 변동성 축소(VCP)가 확인되며 시장의 베이스(Base)가 탄탄하게 다져진 종목에 한하여 선별적으로 접근해야 합니다.</li>
+                <li><b>리스크 방어(Risk & Counter-argument):</b> 인플레이션 재점화 및 지정학적 위기 고조 가능성을 고려하여, 하락장 도래 시 유연하게 대응할 수 있도록 일정 수준의 현금 비중을 확보하는 등 포트폴리오의 탄력성을 높여야 합니다.</li>
             </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    else:
+        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면
+        st.markdown("<div class='section-header'>🌎 글로벌 매크로 & 탑다운 투자 전략</div>", unsafe_allow_html=True)
+        
+        # 글씨가 흐릿하게 보이게 하는 특수 효과(filter: blur) 적용
+        st.markdown("""
+        <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:center; filter: blur(5px); user-select: none;'>
+            <h3 style='color:#111827;'>1. 핵심 매크로 지표 점검 및 시장 단계 (Market Stage)</h3>
+            <p style='color:#374151;'>금리 및 외환 동향: 미국 10년물 금리의 향방과 강달러 기조 등 외환 시장의 변동성이...</p>
+            <p style='color:#374151;'>지정학적 리스크 (전쟁/분쟁): 글로벌 분쟁 국면이 장기화되며 공급망 재편 및...</p>
+            <p style='color:#374151;'>시장 추세 평가: 주요 지수들이 30주 이동평균선 위에서 2단계(상승 국면)를...</p>
+            <h3 style='color:#111827; margin-top:20px;'>2. 투자 방향성 및 리스크 관리 전략</h3>
+            <p style='color:#374151;'>포트폴리오 비중 조절: 추세적 상승(트렌드 템플릿)을 만족하는 주도 섹터로...</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 블러 처리된 화면 위에 띄우는 안내문
+        st.markdown("""
+        <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-200px; position:relative; z-index:10;'>
+            <div style='font-size:40px; margin-bottom:10px;'>🔒</div>
+            <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 콘텐츠입니다</h3>
+            <p style='color:#92400e; font-size:16px;'>금리, 외환, 전쟁 등 매크로 지표를 종합한 탑다운 투자 방향과 리스크 관리 전략을 확인하세요.</p>
+            <p style='color:#9ca3af; font-size:14px; margin-top:15px;'>👉 왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -673,6 +699,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
