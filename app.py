@@ -618,53 +618,93 @@ elif menu == "🔒 VIP 포트폴리오":
     if st.session_state.get('plan', 'Free') == 'Pro':
         st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
         
-        st.markdown("<div class='section-header'>🌎 글로벌 매크로 & 탑다운 투자 전략</div>", unsafe_allow_html=True)
-        st.info("현재 시장의 주요 경제 지표를 종합하여 시장의 현 단계(Stage)와 전반적인 투자 방향을 제시합니다.")
+        # 1. 📊 상단: 투자 기상도 대시보드 (직관적인 요약)
+        st.markdown("<div class='section-header'>🧭 이번 주 투자 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("<div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px; color:#166534;'>현재 시장 단계</div><div style='font-size:20px; font-weight:800; color:#14532d; margin-top:5px;'>Stage 2 (상승 국면)</div></div>", unsafe_allow_html=True)
+        with c2:
+            st.markdown("<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:20px; font-weight:800; color:#1e3a8a; margin-top:5px;'>30% 이상 확보</div></div>", unsafe_allow_html=True)
+        with c3:
+            st.markdown("<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px; color:#854d0e;'>핵심 모니터링 리스크</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px;'>금리 & 글로벌 분쟁</div></div>", unsafe_allow_html=True)
         
-        st.markdown("""
-        <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-            <h3 style='color:#111827; margin-top:0;'>1. 핵심 매크로 지표 점검 및 시장 단계 (Market Stage)</h3>
-            <ul style='color:#374151; font-size:16px; line-height:1.6;'>
-                <li><b>금리 및 외환 동향:</b> 미국 10년물 금리의 향방과 강달러 기조 등 외환 시장의 변동성이 글로벌 유동성 흐름을 좌우하는 핵심 축으로 작용하고 있습니다.</li>
-                <li><b>지정학적 리스크 (전쟁/분쟁):</b> 글로벌 분쟁 국면이 장기화되며 공급망 재편 및 인플레이션 압력 등 거시 경제에 지속적인 부담을 주고 있습니다.</li>
-                <li><b>시장 추세 평가:</b> 주요 지수들이 30주 이동평균선 위에서 2단계(상승 국면)를 유지하고 있으나, 매크로 불확실성으로 인해 강한 변동성 장세가 연출되고 있습니다.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        st.markdown("""
-        <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-            <h3 style='color:#111827; margin-top:0;'>2. 투자 방향성 및 리스크 관리 전략</h3>
-            <ul style='color:#374151; font-size:16px; line-height:1.6;'>
-                <li><b>포트폴리오 비중 조절:</b> 추세적 상승(트렌드 템플릿)을 만족하는 주도 섹터로 압축하고, 추세가 꺾인 4단계 하락 국면의 자산은 철저히 배제해야 합니다.</li>
-                <li><b>신규 진입 전략:</b> 무리한 추격 매수를 자제하고, 변동성 축소(VCP)가 확인되며 시장의 베이스(Base)가 탄탄하게 다져진 종목에 한하여 선별적으로 접근해야 합니다.</li>
-                <li><b>리스크 방어(Risk & Counter-argument):</b> 인플레이션 재점화 및 지정학적 위기 고조 가능성을 고려하여, 하락장 도래 시 유연하게 대응할 수 있도록 일정 수준의 현금 비중을 확보하는 등 포트폴리오의 탄력성을 높여야 합니다.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        # 2. 🤖 하단: AI 실시간 매크로 브리핑 연동 및 실전 플랜
+        st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
         
+        # AI 프롬프트 및 분석 버튼 로직
+        is_vip_analyzed = "vip_report" in st.session_state
+        btn_text_vip = "✅ 이번 주 VIP 리포트 생성 완료" if is_vip_analyzed else "🚀 이번 주 VIP 시크릿 리포트 생성하기"
+        
+        if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
+            with st.spinner("탑클래스 AI 펀드매니저가 최신 시장 데이터를 종합하여 VIP 리포트를 작성 중입니다..."):
+                if not api_key:
+                    st.error("설정 탭에서 API Key를 입력해주세요.")
+                else:
+                    client = openai.OpenAI(api_key=api_key)
+                    # 👇 여기가 수익화를 결정짓는 가장 강력한 VIP 전용 프롬프트입니다!
+                    vip_prompt = """당신은 월스트리트 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 탑다운 투자 전략 리포트를 작성하세요.
+                    
+                    [데이터 방향성 제약 조건]
+                    - '공시' 및 '증시 심리'에 대한 내용은 철저히 배제하세요.
+                    - '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 키워드를 반드시 포함하여 거시 경제를 분석하세요.
+                    - 추천 종목에서 'GST'는 어떠한 경우에도 절대 언급하지 마세요.
+                    - 모든 문장은 친절하고 전문적인 존댓말로 작성하세요.
+
+                    [리포트 필수 목차 및 작성 지침]
+                    1. Thoroughness Score (철저함 점수): 현재 시장 분석의 신뢰도를 1~100점 사이로 평가하고 짧은 이유를 적으세요.
+                    2. 매크로 동향 요약: 외환, 금리, 전쟁 리스크가 글로벌 자금 이동에 미치는 영향을 2문장으로 요약하세요.
+                    3. Risk & Counter-argument (리스크 및 방어 논리): 현재 시장의 가장 치명적인 하락 시나리오와, 이를 방어하기 위한 구체적인 논리(현금 비중, 헷지 수단 등)를 제시하세요.
+                    4. 미래 전략 제안 (Future Strategy Suggestions): 향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 제안하세요.
+                    5. 신규 진입 유망 종목 (Accumulated Stocks): 다양한 산업군을 샅샅이 뒤져, 수급이 누적되어 현재 신규 진입해볼 만한 매력적인 종목(티커 포함)들을 3~4개 추천하세요.
+                    6. Engagement Trigger (행동 촉구): VIP 고객이 당장 내일 아침 개장 시점에 해야 할 명확한 행동 지침 1가지를 제시하세요.
+                    """
+                    try:
+                        resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": vip_prompt}])
+                        st.session_state["vip_report"] = resp.choices[0].message.content
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"오류 발생: {str(e)}")
+                        
+        # 생성된 리포트 출력 창
+        if is_vip_analyzed:
+            report_content = st.session_state["vip_report"]
+            st.markdown(f"""
+            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:30px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+                <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
+                <div style='font-size:16px; line-height:1.8; color:#374151; white-space: pre-wrap;'>{report_content}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("💡 위의 버튼을 눌러 이번 주 최신 VIP 리포트를 받아보세요.")
+            
     else:
-        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면
-        st.markdown("<div class='section-header'>🌎 글로벌 매크로 & 탑다운 투자 전략</div>", unsafe_allow_html=True)
-        
-        # 글씨가 흐릿하게 보이게 하는 특수 효과(filter: blur) 적용
+        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면 (대시보드 + 리포트)
+        st.markdown("<div class='section-header'>🧭 이번 주 투자 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         st.markdown("""
-        <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:center; filter: blur(5px); user-select: none;'>
-            <h3 style='color:#111827;'>1. 핵심 매크로 지표 점검 및 시장 단계 (Market Stage)</h3>
-            <p style='color:#374151;'>금리 및 외환 동향: 미국 10년물 금리의 향방과 강달러 기조 등 외환 시장의 변동성이...</p>
-            <p style='color:#374151;'>지정학적 리스크 (전쟁/분쟁): 글로벌 분쟁 국면이 장기화되며 공급망 재편 및...</p>
-            <p style='color:#374151;'>시장 추세 평가: 주요 지수들이 30주 이동평균선 위에서 2단계(상승 국면)를...</p>
-            <h3 style='color:#111827; margin-top:20px;'>2. 투자 방향성 및 리스크 관리 전략</h3>
-            <p style='color:#374151;'>포트폴리오 비중 조절: 추세적 상승(트렌드 템플릿)을 만족하는 주도 섹터로...</p>
+        <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
+            <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px;'>현재 시장 단계</div><div style='font-size:20px; font-weight:800; margin-top:5px;'>Stage 2 (상승 국면)</div></div>
+            <div style='flex:1; background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px;'>권장 현금 비중</div><div style='font-size:20px; font-weight:800; margin-top:5px;'>30% 이상 확보</div></div>
+            <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px;'>핵심 모니터링 리스크</div><div style='font-size:20px; font-weight:800; margin-top:5px;'>금리 & 글로벌 분쟁</div></div>
         </div>
         """, unsafe_allow_html=True)
         
-        # 블러 처리된 화면 위에 띄우는 안내문
+        st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
         st.markdown("""
-        <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-200px; position:relative; z-index:10;'>
+        <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:left; filter: blur(5px); user-select: none;'>
+            <h3 style='color:#111827;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
+            <p style='color:#374151;'><b>Thoroughness Score:</b> 95점 - 글로벌 유동성 흐름의 핵심 지표가 명확히 포착되었습니다.</p>
+            <p style='color:#374151;'><b>Risk & Counter-argument:</b> 현재 시장의 가장 치명적인 하락 시나리오는 인플레이션 재점화로 인한...</p>
+            <p style='color:#374151;'><b>신규 진입 유망 종목:</b> 다양한 산업군에서 수급이 누적된 압도적 주도주 3가지는...</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-250px; position:relative; z-index:10;'>
             <div style='font-size:40px; margin-bottom:10px;'>🔒</div>
-            <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 콘텐츠입니다</h3>
-            <p style='color:#92400e; font-size:16px;'>금리, 외환, 전쟁 등 매크로 지표를 종합한 탑다운 투자 방향과 리스크 방어(Risk & Counter-argument) 시나리오를 확인하세요.</p>
+            <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 프리미엄 리포트</h3>
+            <p style='color:#92400e; font-size:16px;'>실시간 거시 경제(외환/금리/전쟁) 기반의 탑다운 전략과 리스크 방어, 그리고 다양한 산업군에서 발굴한 신규 진입 유망 종목을 확인하세요.</p>
             <p style='color:#9ca3af; font-size:14px; margin-top:15px;'>👉 왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -677,6 +717,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
