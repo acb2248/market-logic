@@ -196,10 +196,11 @@ with st.sidebar:
             </div>
             """, unsafe_allow_html=True)
             
-            # 카카오페이/토스 송금 링크 버튼 (추후 본인의 송금 QR 링크로 변경)
-            st.link_button("💸 간편 송금하기 (카카오/토스)", "https://qr.kakaopay.com/...", use_container_width=True)
-            # 입금 확인 구글 폼 버튼
-            st.link_button("📝 송금 후 1초 승인 요청", "https://forms.google.com", type="primary", use_container_width=True)
+            # 카카오페이/토스 송금 링크 버튼 
+            st.link_button("💸 간편 송금하기 (카카오)", "https://qr.kakaopay.com/Ej7mwSX0V135606469", use_container_width=True)
+            
+            # 💡 무통장 입금 계좌는 폼 안에 적혀있음을 안내하는 버튼!
+            st.link_button("📝 무통장 입금 확인 및 승인 요청", "https://forms.google.com", type="primary", use_container_width=True)
             
         else:
             # Pro 회원에게 보여줄 자부심 넘치는 메시지!
@@ -676,6 +677,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
