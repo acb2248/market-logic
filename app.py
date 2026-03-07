@@ -622,7 +622,23 @@ elif menu == "🔒 VIP 포트폴리오":
         st.markdown("<div class='section-header'>🧭 이번 주 투자 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown("<div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px; color:#166534;'>현재 시장 단계</div><div style='font-size:20px; font-weight:800; color:#14532d; margin-top:5px;'>Stage 2 (상승 국면)</div></div>", unsafe_allow_html=True)
+            # 👇 미국과 한국을 좌우로 예쁘게 나눈 코드로 교체!
+            st.markdown("""
+            <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center;'>
+                <div style='font-size:14px; color:#166534; margin-bottom:5px;'>현재 시장 단계</div>
+                <div style='display:flex; justify-content:space-evenly; align-items:center;'>
+                    <div>
+                        <div style='font-size:12px; color:#15803d;'>🇺🇸 미국</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>Stage 2</div>
+                    </div>
+                    <div style='width:1px; height:35px; background-color:#bbf7d0;'></div>
+                    <div>
+                        <div style='font-size:12px; color:#15803d;'>🇰🇷 한국</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>Stage 1</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         with c2:
             st.markdown("<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:20px; font-weight:800; color:#1e3a8a; margin-top:5px;'>30% 이상 확보</div></div>", unsafe_allow_html=True)
         with c3:
@@ -644,20 +660,22 @@ elif menu == "🔒 VIP 포트폴리오":
                 else:
                     client = openai.OpenAI(api_key=api_key)
                     # 👇 여기가 수익화를 결정짓는 가장 강력한 VIP 전용 프롬프트입니다!
+                    # 👇 수정된 VIP 프롬프트 (목차명 고정 및 영어/군더더기 완벽 제거)
                     vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 투자 철학과 탑다운(Top-down) 전략을 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 심층 투자 전략 리포트를 작성하세요.
                     
                     [데이터 및 방향성 제약 조건]
                     - '공시' 및 '증시 심리'에 대한 내용은 철저히 배제하세요.
                     - '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 거시 경제 키워드를 반드시 포함하여 시장을 분석하세요.
                     - 개별 특정 종목(티커)은 어떠한 경우에도 절대 언급하지 마세요. (특히 GST 등)
-                    - AI가 기계적으로 쓴 티가 나는 점수 매기기(Score)나 어색한 영어 목차는 절대 사용하지 마세요. 
+                    - 영어나 한자 혼용을 최소화하고, 모든 목차에서 영어(예: Macro View 등)를 완벽히 제거하세요.
+                    - AI가 기계적으로 쓴 티가 나는 인사말, 맺음말은 절대 쓰지 말고 본론만 출력하세요.
                     - 모든 문장은 VIP를 대하는 품격 있고 확신에 찬 펀드매니저의 존댓말로 작성하세요.
 
-                    [리포트 필수 구성]
-                    1. 버나드 바루크의 시장 통찰 (Macro View): 현재의 외환, 금리, 글로벌 분쟁 리스크를 바탕으로 글로벌 자금 흐름과 시장의 현 단계(Stage)를 통찰력 있게 분석하세요.
-                    2. 리스크 방어 전략 (Risk & Counter-argument): 가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법(현금 비중 조절 등)을 구체적으로 제시하세요.
-                    3. 미래 전략 제안 (Future Strategy Suggestions): 향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 명확하게 제안하세요.
-                    4. 신규 진입 유망 섹터 (Promising Sectors): 현 시점에서 수급이 탄탄하게 누적되어 신규 진입하기 좋은 매력적인 산업군이나 섹터를 2~3개 추천하고, 왜 해당 섹터가 현재 매크로 환경에 부합하는지 논리적으로 설명하세요.
+                    [리포트 필수 구성 및 목차 이름] (아래 4가지 목차 이름을 정확히 그대로 사용하세요)
+                    1. 거시경제 분석: 현재의 외환, 금리, 글로벌 분쟁 리스크를 바탕으로 글로벌 자금 흐름과 시장의 현 단계를 분석하세요.
+                    2. 리스크 방어 전략: 가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법(현금 비중 조절 등)을 구체적으로 제시하세요.
+                    3. 투자 전략 제언: 향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 명확하게 제안하세요.
+                    4. 신규 진입 유망 섹터: 현 시점에서 수급이 탄탄하게 누적되어 신규 진입하기 좋은 산업군이나 섹터를 2~3개 추천하고 논리적으로 설명하세요. (각 섹터는 글머리 기호 '-'를 사용하여 간결하게 나열하세요.)
                     """
                     try:
                         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": vip_prompt}])
@@ -672,7 +690,9 @@ elif menu == "🔒 VIP 포트폴리오":
             st.markdown(f"""
             <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:30px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
                 <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-                <div style='font-size:16px; line-height:1.8; color:#374151; white-space: pre-wrap;'>{report_content}</div>
+                <div style='font-size:16px; line-height:1.8; color:#374151;'>
+                    {report_content}
+                </div>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -683,7 +703,14 @@ elif menu == "🔒 VIP 포트폴리오":
         st.markdown("<div class='section-header'>🧭 이번 주 투자 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         st.markdown("""
         <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
-            <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px;'>현재 시장 단계</div><div style='font-size:20px; font-weight:800; margin-top:5px;'>Stage 2 (상승 국면)</div></div>
+            <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center;'>
+                <div style='font-size:14px; margin-bottom:5px;'>현재 시장 단계</div>
+                <div style='display:flex; justify-content:space-evenly; align-items:center;'>
+                    <div><div style='font-size:12px;'>🇺🇸 미국</div><div style='font-size:18px; font-weight:800;'>Stage 2</div></div>
+                    <div style='width:1px; height:35px; background-color:#bbf7d0;'></div>
+                    <div><div style='font-size:12px;'>🇰🇷 한국</div><div style='font-size:18px; font-weight:800;'>Stage 1</div></div>
+                </div>
+            </div>
             <div style='flex:1; background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px;'>권장 현금 비중</div><div style='font-size:20px; font-weight:800; margin-top:5px;'>30% 이상 확보</div></div>
             <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center;'><div style='font-size:14px;'>핵심 모니터링 리스크</div><div style='font-size:20px; font-weight:800; margin-top:5px;'>금리 & 글로벌 분쟁</div></div>
         </div>
@@ -716,6 +743,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
