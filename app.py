@@ -630,45 +630,13 @@ elif menu == "주요 일정":
 elif menu == "🔒 VIP 포트폴리오":
     st.title("🔒 VIP 시크릿 매크로 리포트")
     
-    # 💡 Pro 회원에게만 진짜 내용을 보여줍니다.
+   # 💡 Pro 회원에게만 진짜 내용을 보여줍니다.
     if st.session_state.get('plan', 'Free') == 'Pro':
         st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
         
-        # --- 🤖 AI가 분석한 대시보드 데이터 불러오기 (분석 전이면 대기 상태 표시) ---
-        dash_us = st.session_state.get("dash_us", "대기 중")
-        dash_kr = st.session_state.get("dash_kr", "대기 중")
-        dash_cash = st.session_state.get("dash_cash", "-")
-        dash_risk = st.session_state.get("dash_risk", "데이터 수집 중")
-        
-        # 1. 📊 상단: AI 자동화 매크로 대시보드
-        st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown(f"""
-            <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
-                <div style='font-size:14px; color:#166534; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
-                <div style='display:flex; justify-content:space-evenly; align-items:center;'>
-                    <div>
-                        <div style='font-size:12px; color:#15803d;'>🇺🇸 미국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_us}</div>
-                    </div>
-                    <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
-                    <div>
-                        <div style='font-size:12px; color:#15803d;'>🇰🇷 한국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_kr}</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>{dash_cash}</div></div>", unsafe_allow_html=True)
-        with c3:
-            st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>주간 핵심 모니터링 지표</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px; word-break:keep-all;'>{dash_risk}</div></div>", unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # 2. 🤖 하단: AI 실시간 리포트 로직
-        st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
+        # =========================================================
+        # 1. 🚀 리포트 생성 버튼 (화면 맨 위로 끌어올림!)
+        # =========================================================
         is_vip_analyzed = "vip_report" in st.session_state
         btn_text_vip = "✅ 이번 주 VIP 리포트 생성 완료" if is_vip_analyzed else "🚀 이번 주 VIP 시크릿 리포트 생성하기"
         
@@ -679,7 +647,7 @@ elif menu == "🔒 VIP 포트폴리오":
                 else:
                     client = openai.OpenAI(api_key=api_key)
                     
-                    # 👇 대시보드 데이터까지 완벽하게 추출하도록 개조된 최종 프롬프트!
+                    # (기존과 동일한 완벽한 프롬프트 유지)
                     vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 심층 투자 전략 리포트를 작성하세요.
                     
                     [데이터 및 방향성 제약 조건]
@@ -715,7 +683,6 @@ elif menu == "🔒 VIP 포트폴리오":
                         )
                         raw_content = resp.choices[0].message.content.strip()
                         
-                        # 💡 AI가 준 결과물에서 첫 줄(대시보드 데이터)과 본문을 분리하는 마법의 파이썬 코드!
                         lines = raw_content.split('\n')
                         first_line = lines[0]
                         
@@ -727,39 +694,68 @@ elif menu == "🔒 VIP 포트폴리오":
                                 st.session_state["dash_kr"] = parsed[1]
                                 st.session_state["dash_cash"] = parsed[2]
                                 st.session_state["dash_risk"] = parsed[3]
-                                # 대시보드용 첫 줄을 뺀 나머지만 리포트 본문으로 저장
                                 st.session_state["vip_report"] = '\n'.join(lines[1:]).strip()
                             else:
                                 st.session_state["vip_report"] = raw_content
                         else:
                             st.session_state["vip_report"] = raw_content
                             
-                        st.rerun() # 새로고침하여 대시보드에 즉시 데이터 반영!
+                        st.rerun() 
                     except Exception as e:
                         st.error(f"오류 발생: {str(e)}")
-                        
-        # 생성된 리포트 출력 창
+        
+        st.markdown("<br>", unsafe_allow_html=True) # 여백
+        
+        # =========================================================
+        # 2. 📊 중간: AI 대시보드 (버튼 아래에 위치)
+        # =========================================================
+        dash_us = st.session_state.get("dash_us", "대기 중")
+        dash_kr = st.session_state.get("dash_kr", "대기 중")
+        dash_cash = st.session_state.get("dash_cash", "-")
+        dash_risk = st.session_state.get("dash_risk", "버튼을 눌러주세요")
+        
+        st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"""
+            <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
+                <div style='font-size:14px; color:#166534; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
+                <div style='display:flex; justify-content:space-evenly; align-items:center;'>
+                    <div>
+                        <div style='font-size:12px; color:#15803d;'>🇺🇸 미국</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_us}</div>
+                    </div>
+                    <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
+                    <div>
+                        <div style='font-size:12px; color:#15803d;'>🇰🇷 한국</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_kr}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>{dash_cash}</div></div>", unsafe_allow_html=True)
+        with c3:
+            st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>주간 핵심 모니터링 지표</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px; word-break:keep-all;'>{dash_risk}</div></div>", unsafe_allow_html=True)
+        
+        # =========================================================
+        # 3. 🤖 하단: 생성된 리포트 출력 창
+        # =========================================================
         if is_vip_analyzed:
             report_content = st.session_state["vip_report"]
             
             import re
-            # 1. 쓸데없이 3줄 이상 띄워진 곳을 2줄로 압축
             report_content = re.sub(r'\n{3,}', '\n\n', report_content)
             
-            # 2. 💡 핵심! 소제목 바로 뒤에 붙은 숨겨진 엔터키(\n)를 통째로 흡수해서 덮어쓰기! (소제목과 첫 문장 사이 여백을 반으로 확 줄였습니다)
             html_content = report_content.replace('[1. 거시경제 분석]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>1. 거시경제 분석</div>")
             html_content = html_content.replace('[1. 거시경제 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>1. 거시경제 분석</div>")
-            
             html_content = html_content.replace('[2. 리스크 방어 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 전략</div>")
             html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 전략</div>")
-            
             html_content = html_content.replace('[3. 투자 전략 제언]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 투자 전략 제언</div>")
             html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 투자 전략 제언</div>")
-            
             html_content = html_content.replace('[4. 신규 진입 유망 섹터]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 신규 진입 유망 섹터</div>")
             html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 신규 진입 유망 섹터</div>")
             
-            # 3. 💡 문단 간격(엔터 2번)과 줄바꿈(엔터 1번) 미세 조정 (줄간격을 조금 더 쫀쫀하게)
             html_content = html_content.replace('\n\n', "<div style='height:12px;'></div>") 
             html_content = html_content.replace('\n', '<br>')
             
@@ -771,8 +767,6 @@ elif menu == "🔒 VIP 포트폴리오":
                 </div>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.info("💡 위의 버튼을 눌러 이번 주 최신 매크로 대시보드와 VIP 리포트를 받아보세요.")
             
     else:
         # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면 (Free 등급용 떡밥)
@@ -825,6 +819,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
