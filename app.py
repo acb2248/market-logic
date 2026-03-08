@@ -620,24 +620,24 @@ elif menu == "🔒 VIP 포트폴리오":
     if st.session_state.get('plan', 'Free') == 'Pro':
         st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
         
-        # 1. 📊 상단: 투자 기상도 대시보드 (직관적인 요약)
-        st.markdown("<div class='section-header'>🧭 이번 주 투자 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        # 1. 📊 상단: 투자 기상도 대시보드 (버나드 보물 스타일)
+        st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown("""
             <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
-                <div style='font-size:14px; color:#166534; margin-bottom:10px;'>현재 시장 단계</div>
+                <div style='font-size:14px; color:#166534; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
                 <div style='display:flex; justify-content:space-evenly; align-items:center;'>
                     <div>
                         <div style='font-size:12px; color:#15803d;'>🇺🇸 미국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>Stage 2</div>
-                        <div style='font-size:13px; color:#15803d; margin-top:2px;'>(상승 국면)</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>경기 확장기</div>
+                        <div style='font-size:13px; color:#15803d; margin-top:2px;'>(고용·소비 견조)</div>
                     </div>
                     <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
                     <div>
                         <div style='font-size:12px; color:#15803d;'>🇰🇷 한국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>Stage 1</div>
-                        <div style='font-size:13px; color:#15803d; margin-top:2px;'>(바닥 국면)</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>회복 지연기</div>
+                        <div style='font-size:13px; color:#15803d; margin-top:2px;'>(내수·수출 둔화)</div>
                     </div>
                 </div>
             </div>
@@ -645,7 +645,8 @@ elif menu == "🔒 VIP 포트폴리오":
         with c2:
             st.markdown("<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>30% 이상 확보</div></div>", unsafe_allow_html=True)
         with c3:
-            st.markdown("<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>핵심 모니터링 리스크</div><div style='font-size:22px; font-weight:800; color:#713f12; margin-top:5px;'>금리 & 글로벌 분쟁</div></div>", unsafe_allow_html=True)
+            # 👇 핵심 리스크 대신 '이번 주 핵심 경제 지표'로 변경!
+            st.markdown("<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>주간 핵심 모니터링 지표</div><div style='font-size:22px; font-weight:800; color:#713f12; margin-top:5px;'>CPI & 고용보고서</div></div>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
@@ -727,28 +728,28 @@ elif menu == "🔒 VIP 포트폴리오":
             st.info("💡 위의 버튼을 눌러 이번 주 최신 VIP 리포트를 받아보세요.")
             
     else:
-        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면 (대시보드 + 리포트)
-        st.markdown("<div class='section-header'>🧭 이번 주 투자 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면
+        st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         st.markdown("""
         <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
             <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
-                <div style='font-size:14px; margin-bottom:10px;'>현재 시장 단계</div>
+                <div style='font-size:14px; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
                 <div style='display:flex; justify-content:space-evenly; align-items:center;'>
                     <div>
                         <div style='font-size:12px;'>🇺🇸 미국</div>
-                        <div style='font-size:18px; font-weight:800;'>Stage 2</div>
-                        <div style='font-size:13px; margin-top:2px;'>(상승 국면)</div>
+                        <div style='font-size:18px; font-weight:800;'>경기 확장기</div>
+                        <div style='font-size:13px; margin-top:2px;'>(고용·소비 견조)</div>
                     </div>
                     <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
                     <div>
                         <div style='font-size:12px;'>🇰🇷 한국</div>
-                        <div style='font-size:18px; font-weight:800;'>Stage 1</div>
-                        <div style='font-size:13px; margin-top:2px;'>(바닥 국면)</div>
+                        <div style='font-size:18px; font-weight:800;'>회복 지연기</div>
+                        <div style='font-size:13px; margin-top:2px;'>(내수·수출 둔화)</div>
                     </div>
                 </div>
             </div>
             <div style='flex:1; background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>30% 이상 확보</div></div>
-            <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>핵심 모니터링 리스크</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>금리 & 글로벌 분쟁</div></div>
+            <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>주간 핵심 모니터링 지표</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>CPI & 고용보고서</div></div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -779,6 +780,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
