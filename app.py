@@ -620,86 +620,107 @@ elif menu == "🔒 VIP 포트폴리오":
     if st.session_state.get('plan', 'Free') == 'Pro':
         st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
         
-        # 1. 📊 상단: 투자 기상도 대시보드 (버나드 보물 스타일)
+        # --- 🤖 AI가 분석한 대시보드 데이터 불러오기 (분석 전이면 대기 상태 표시) ---
+        dash_us = st.session_state.get("dash_us", "분석 대기 중")
+        dash_kr = st.session_state.get("dash_kr", "분석 대기 중")
+        dash_cash = st.session_state.get("dash_cash", "분석 버튼을")
+        dash_risk = st.session_state.get("dash_risk", "눌러주세요")
+        
+        # 1. 📊 상단: AI 자동화 매크로 대시보드
         st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown("""
+            st.markdown(f"""
             <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
                 <div style='font-size:14px; color:#166534; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
                 <div style='display:flex; justify-content:space-evenly; align-items:center;'>
                     <div>
                         <div style='font-size:12px; color:#15803d;'>🇺🇸 미국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>경기 확장기</div>
-                        <div style='font-size:13px; color:#15803d; margin-top:2px;'>(고용·소비 견조)</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_us}</div>
                     </div>
                     <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
                     <div>
                         <div style='font-size:12px; color:#15803d;'>🇰🇷 한국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>회복 지연기</div>
-                        <div style='font-size:13px; color:#15803d; margin-top:2px;'>(내수·수출 둔화)</div>
+                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_kr}</div>
                     </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
         with c2:
-            st.markdown("<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>30% 이상 확보</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>{dash_cash}</div></div>", unsafe_allow_html=True)
         with c3:
-            # 👇 핵심 리스크 대신 '이번 주 핵심 경제 지표'로 변경!
-            st.markdown("<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>주간 핵심 모니터링 지표</div><div style='font-size:22px; font-weight:800; color:#713f12; margin-top:5px;'>CPI & 고용보고서</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>주간 핵심 모니터링 지표</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px; word-break:keep-all;'>{dash_risk}</div></div>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # 2. 🤖 하단: AI 실시간 매크로 브리핑 연동 및 실전 플랜
+        # 2. 🤖 하단: AI 실시간 리포트 로직
         st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
-        
-        # AI 프롬프트 및 분석 버튼 로직
         is_vip_analyzed = "vip_report" in st.session_state
         btn_text_vip = "✅ 이번 주 VIP 리포트 생성 완료" if is_vip_analyzed else "🚀 이번 주 VIP 시크릿 리포트 생성하기"
         
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
-            with st.spinner("탑클래스 AI 펀드매니저가 최신 시장 데이터를 종합하여 VIP 리포트를 작성 중입니다..."):
+            with st.spinner("AI 펀드매니저가 거시경제 지표를 분석하여 대시보드와 리포트를 생성 중입니다..."):
                 if not api_key:
                     st.error("설정 탭에서 API Key를 입력해주세요.")
                 else:
                     client = openai.OpenAI(api_key=api_key)
-                    # 👇 여기가 수익화를 결정짓는 가장 강력한 VIP 전용 프롬프트입니다!
-                    # 👇 수정된 VIP 프롬프트 (목차명 고정 및 영어/군더더기 완벽 제거)
-                    # 👇 가시성과 일관성을 극대화한 최종 VIP 프롬프트
-                    # 👇 가시성 및 디자인을 완벽하게 통제하는 최종 프롬프트
-                    vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 투자 철학과 탑다운(Top-down) 전략을 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 심층 투자 전략 리포트를 작성하세요.
+                    
+                    # 👇 대시보드 데이터까지 완벽하게 추출하도록 개조된 최종 프롬프트!
+                    vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 심층 투자 전략 리포트를 작성하세요.
                     
                     [데이터 및 방향성 제약 조건]
                     - '공시' 및 '증시 심리'에 대한 내용은 철저히 배제하세요.
-                    - '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 거시 경제 키워드를 반드시 포함하여 시장을 분석하세요.
+                    - '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 키워드를 반드시 포함하여 시장을 분석하세요.
                     - 개별 특정 종목(티커)은 어떠한 경우에도 절대 언급하지 마세요. (특히 GST 등)
-                    - 영어나 한자 혼용을 최소화하고, 모든 목차에서 영어를 완벽히 제거하세요.
-                    - AI가 기계적으로 쓴 티가 나는 인사말, 맺음말은 절대 쓰지 말고 본론만 출력하세요.
-                    - 모든 문장은 VIP를 대하는 품격 있고 확신에 찬 펀드매니저의 존댓말로 작성하세요.
-                    - 💡 가독성을 위해 **반드시 한 문장이 끝날 때마다 줄바꿈(Enter)을 두 번씩** 하세요. (다닥다닥 붙여 쓰지 마세요)
+                    - 영어나 한자 혼용을 최소화하고, 목차에서 영어를 제거하세요.
+                    - 💡 문장마다 억지로 줄바꿈하지 말고, 의미가 이어지는 문단 단위로만 자연스럽게 줄바꿈하세요.
 
-                    [리포트 필수 구성 및 목차 이름] (아래 대괄호 []를 포함한 4가지 목차 이름을 띄어쓰기까지 정확히 똑같이 출력하세요. 별표(**)는 절대 쓰지 마세요)
+                    [1. 대시보드 데이터 추출 (가장 먼저 작성)]
+                    리포트의 맨 첫 줄은 무조건 아래 괄호 형식에 맞춰 현재 시장 상황을 요약한 데이터를 한 줄로 출력하세요. (파이썬이 인식할 비밀 코드입니다)
+                    형식: [미국국면]|[한국국면]|[권장현금비중]|[핵심모니터링지표]
+                    출력 예시: [경기 확장기]|[회복 지연기]|[30% 이상 확보]|[CPI & 고용보고서]
+
+                    [2. 리포트 본문 구성] (위의 데이터 줄 바로 다음 줄부터 아래 대괄호 [] 목차를 정확히 출력하세요)
                     [1. 거시경제 분석]
-                    현재의 외환, 금리, 글로벌 분쟁 리스크를 바탕으로 글로벌 자금 흐름과 시장의 현 단계를 분석하세요.
+                    현재 글로벌 경기 국면(확장, 둔화, 침체, 회복)을 결정지은 핵심 경제 지표(GDP, 고용, 물가 등)와 글로벌 자금 흐름을 통찰력 있게 분석하세요.
                     
                     [2. 리스크 방어 전략]
-                    가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법을 구체적으로 제시하세요.
+                    가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법을 제시하세요.
                     
                     [3. 투자 전략 제언]
-                    향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 명확하게 제안하세요.
+                    향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 제안하세요.
                     
                     [4. 신규 진입 유망 섹터]
-                    현 시점에서 신규 진입하기 좋은 산업군을 2~3개 추천하고 논리적으로 설명하세요. (각 섹터 이름 양옆에는 <b> 와 </b> 태그를 붙여서 폰트를 굵게 강조하세요. 예: <b>방위산업</b>:)
+                    현 시점에서 수급이 누적되어 신규 진입하기 좋은 산업군을 2~3개 추천하고 논리적으로 설명하세요. (각 섹터 이름 양옆에는 <b> 와 </b> 태그를 붙여서 폰트를 굵게 강조하세요.)
                     """
                     try:
-                        # temperature=0.1 을 유지하여 헛소리를 차단하고 일관성을 높입니다
                         resp = client.chat.completions.create(
                             model="gpt-4o", 
                             messages=[{"role": "user", "content": vip_prompt}],
                             temperature=0.1 
                         )
-                        st.session_state["vip_report"] = resp.choices[0].message.content
-                        st.rerun()
+                        raw_content = resp.choices[0].message.content.strip()
+                        
+                        # 💡 AI가 준 결과물에서 첫 줄(대시보드 데이터)과 본문을 분리하는 마법의 파이썬 코드!
+                        lines = raw_content.split('\n')
+                        first_line = lines[0]
+                        
+                        if '|' in first_line and '[' in first_line:
+                            import re
+                            parsed = re.findall(r'\[(.*?)\]', first_line)
+                            if len(parsed) >= 4:
+                                st.session_state["dash_us"] = parsed[0]
+                                st.session_state["dash_kr"] = parsed[1]
+                                st.session_state["dash_cash"] = parsed[2]
+                                st.session_state["dash_risk"] = parsed[3]
+                                # 대시보드용 첫 줄을 뺀 나머지만 리포트 본문으로 저장
+                                st.session_state["vip_report"] = '\n'.join(lines[1:]).strip()
+                            else:
+                                st.session_state["vip_report"] = raw_content
+                        else:
+                            st.session_state["vip_report"] = raw_content
+                            
+                        st.rerun() # 새로고침하여 대시보드에 즉시 데이터 반영!
                     except Exception as e:
                         st.error(f"오류 발생: {str(e)}")
                         
@@ -707,28 +728,30 @@ elif menu == "🔒 VIP 포트폴리오":
         if is_vip_analyzed:
             report_content = st.session_state["vip_report"]
             
-            # 파이썬 코드로 강제 디자인 입히기 (폰트 확대, 굵기 강화, 위아래 여백 추가)
-            html_content = report_content.replace('[1. 거시경제 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:15px;'>1. 거시경제 분석</div>")
-            html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:55px; margin-bottom:15px;'>2. 리스크 방어 전략</div>")
-            html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:55px; margin-bottom:15px;'>3. 투자 전략 제언</div>")
-            html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:55px; margin-bottom:15px;'>4. 신규 진입 유망 섹터</div>")
+            # 가독성 개선: 소제목 폰트를 적절히 키우고 여백 조절
+            html_content = report_content.replace('[1. 거시경제 분석]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:15px; margin-bottom:10px;'>1. 거시경제 분석</div>")
+            html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:10px;'>2. 리스크 방어 전략</div>")
+            html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:10px;'>3. 투자 전략 제언</div>")
+            html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:10px;'>4. 신규 진입 유망 섹터</div>")
             
-            # 엔터키(줄바꿈)를 완벽한 HTML 줄바꿈으로 변환하여 문장 간격 확실히 띄우기
+            # 💡 너무 넓은 줄 간격 해결: 불필요한 엔터 압축 및 깔끔한 줄 높이(line-height 1.6) 적용
+            import re
+            html_content = re.sub(r'\n{3,}', '\n\n', html_content) 
             html_content = html_content.replace('\n', '<br>')
             
             st.markdown(f"""
-            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:40px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
-                <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px; font-size:28px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-                <div style='font-size:18px; line-height:2.0; color:#374151; word-break:keep-all;'>
+            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:35px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+                <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px; font-size:26px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
+                <div style='font-size:16px; line-height:1.6; color:#374151; word-break:keep-all;'>
                     {html_content}
                 </div>
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.info("💡 위의 버튼을 눌러 이번 주 최신 VIP 리포트를 받아보세요.")
+            st.info("💡 위의 버튼을 눌러 이번 주 최신 매크로 대시보드와 VIP 리포트를 받아보세요.")
             
     else:
-        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면
+        # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면 (Free 등급용 떡밥)
         st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         st.markdown("""
         <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
@@ -738,13 +761,11 @@ elif menu == "🔒 VIP 포트폴리오":
                     <div>
                         <div style='font-size:12px;'>🇺🇸 미국</div>
                         <div style='font-size:18px; font-weight:800;'>경기 확장기</div>
-                        <div style='font-size:13px; margin-top:2px;'>(고용·소비 견조)</div>
                     </div>
                     <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
                     <div>
                         <div style='font-size:12px;'>🇰🇷 한국</div>
                         <div style='font-size:18px; font-weight:800;'>회복 지연기</div>
-                        <div style='font-size:13px; margin-top:2px;'>(내수·수출 둔화)</div>
                     </div>
                 </div>
             </div>
@@ -757,9 +778,9 @@ elif menu == "🔒 VIP 포트폴리오":
         st.markdown("""
         <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:left; filter: blur(5px); user-select: none;'>
             <h3 style='color:#111827;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-            <p style='color:#374151;'><b>Thoroughness Score:</b> 95점 - 글로벌 유동성 흐름의 핵심 지표가 명확히 포착되었습니다.</p>
-            <p style='color:#374151;'><b>Risk & Counter-argument:</b> 현재 시장의 가장 치명적인 하락 시나리오는 인플레이션 재점화로 인한...</p>
-            <p style='color:#374151;'><b>신규 진입 유망 종목:</b> 다양한 산업군에서 수급이 누적된 압도적 주도주 3가지는...</p>
+            <p style='color:#374151;'><b>1. 거시경제 분석:</b> 현재 글로벌 경제 환경은 주요 외환 시장의 변동성과 금리의 등락을 중심으로...</p>
+            <p style='color:#374151;'><b>2. 리스크 방어 전략:</b> 가장 우려되는 하락 시나리오는 인플레이션 재점화로 인한...</p>
+            <p style='color:#374151;'><b>3. 신규 진입 유망 섹터:</b> 다양한 산업군에서 수급이 누적된 압도적 주도주 3가지는...</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -767,7 +788,7 @@ elif menu == "🔒 VIP 포트폴리오":
         <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-250px; position:relative; z-index:10;'>
             <div style='font-size:40px; margin-bottom:10px;'>🔒</div>
             <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 프리미엄 리포트</h3>
-            <p style='color:#92400e; font-size:16px;'>실시간 거시 경제(외환/금리/전쟁) 기반의 탑다운 전략과 리스크 방어, 그리고 다양한 산업군에서 발굴한 신규 진입 유망 종목을 확인하세요.</p>
+            <p style='color:#92400e; font-size:16px;'>실시간 거시 경제(외환/금리/전쟁) 기반의 탑다운 전략과 리스크 방어, 그리고 다양한 산업군에서 발굴한 신규 진입 유망 섹터를 확인하세요.</p>
             <p style='color:#9ca3af; font-size:14px; margin-top:15px;'>👉 왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -780,6 +801,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
