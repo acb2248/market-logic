@@ -621,10 +621,10 @@ elif menu == "🔒 VIP 포트폴리오":
         st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
         
         # --- 🤖 AI가 분석한 대시보드 데이터 불러오기 (분석 전이면 대기 상태 표시) ---
-        dash_us = st.session_state.get("dash_us", "분석 대기 중")
-        dash_kr = st.session_state.get("dash_kr", "분석 대기 중")
-        dash_cash = st.session_state.get("dash_cash", "분석 버튼을")
-        dash_risk = st.session_state.get("dash_risk", "눌러주세요")
+        dash_us = st.session_state.get("dash_us", "대기 중")
+        dash_kr = st.session_state.get("dash_kr", "대기 중")
+        dash_cash = st.session_state.get("dash_cash", "-")
+        dash_risk = st.session_state.get("dash_risk", "데이터 수집 중")
         
         # 1. 📊 상단: AI 자동화 매크로 대시보드
         st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
@@ -728,21 +728,31 @@ elif menu == "🔒 VIP 포트폴리오":
         if is_vip_analyzed:
             report_content = st.session_state["vip_report"]
             
-            # 가독성 개선: 소제목 폰트를 적절히 키우고 여백 조절
-            html_content = report_content.replace('[1. 거시경제 분석]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:15px; margin-bottom:10px;'>1. 거시경제 분석</div>")
-            html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:10px;'>2. 리스크 방어 전략</div>")
-            html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:10px;'>3. 투자 전략 제언</div>")
-            html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:22px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:10px;'>4. 신규 진입 유망 섹터</div>")
-            
-            # 💡 너무 넓은 줄 간격 해결: 불필요한 엔터 압축 및 깔끔한 줄 높이(line-height 1.6) 적용
             import re
-            html_content = re.sub(r'\n{3,}', '\n\n', html_content) 
+            # 1. 쓸데없이 3줄 이상 띄워진 곳을 2줄로 압축
+            report_content = re.sub(r'\n{3,}', '\n\n', report_content)
+            
+            # 2. 💡 핵심! 소제목 바로 뒤에 붙은 숨겨진 엔터키(\n)를 통째로 흡수해서 덮어쓰기! (소제목과 첫 문장 사이 여백을 반으로 확 줄였습니다)
+            html_content = report_content.replace('[1. 거시경제 분석]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>1. 거시경제 분석</div>")
+            html_content = html_content.replace('[1. 거시경제 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>1. 거시경제 분석</div>")
+            
+            html_content = html_content.replace('[2. 리스크 방어 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 전략</div>")
+            html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 전략</div>")
+            
+            html_content = html_content.replace('[3. 투자 전략 제언]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 투자 전략 제언</div>")
+            html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 투자 전략 제언</div>")
+            
+            html_content = html_content.replace('[4. 신규 진입 유망 섹터]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 신규 진입 유망 섹터</div>")
+            html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 신규 진입 유망 섹터</div>")
+            
+            # 3. 💡 문단 간격(엔터 2번)과 줄바꿈(엔터 1번) 미세 조정 (줄간격을 조금 더 쫀쫀하게)
+            html_content = html_content.replace('\n\n', "<div style='height:12px;'></div>") 
             html_content = html_content.replace('\n', '<br>')
             
             st.markdown(f"""
             <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:35px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
                 <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px; font-size:26px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-                <div style='font-size:16px; line-height:1.6; color:#374151; word-break:keep-all;'>
+                <div style='font-size:18px; line-height:1.5; color:#374151; word-break:keep-all;'>
                     {html_content}
                 </div>
             </div>
@@ -801,6 +811,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
