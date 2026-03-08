@@ -185,13 +185,22 @@ with st.sidebar:
         rem_calls = st.session_state.get('remaining_calls', 0)
         
         st.markdown(f"👤 **{user_name}** 님")
-        st.info(f"⚡ 잔여 분석 횟수: **{rem_calls} / 100회**")
+        
+        # 👇 잔여 횟수 무제한(Pro) 표기 스마트 로직!
+        user_plan = st.session_state.get('plan', 'Free')
+        if user_plan == 'Pro' or int(rem_calls) > 100:
+            st.info("⚡ 잔여 분석 횟수: **♾️ 무제한 (Pro)**")
+        else:
+            st.info(f"⚡ 잔여 분석 횟수: **{rem_calls} / 100회**")
+            
         if st.button("로그아웃", use_container_width=True):
             cookie_manager.delete("user_email") # 💡 브라우저 쿠키 삭제
             st.session_state.clear()
+            import time # time 라이브러리가 없다면 에러가 날 수 있어 추가합니다
             time.sleep(0.5) # 💡 쿠키가 지워질 수 있도록 0.5초 틈을 줍니다
             st.rerun()
-            # 👇 여기서부터 결제 유도 시스템 시작!
+        
+        # 👇 여기서부터 결제 유도 시스템 시작!
         st.markdown("---")
         
        # 유저 등급이 'Free'일 때만 결제 안내 박스를 보여줍니다.
@@ -478,10 +487,16 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                 else:
                     summary = content[:100] + "..."
                 
-                st.markdown(f"""
-                <div style='background-color:#eff6ff; padding:20px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height:232px; display:flex; flex-direction:column; justify-content:center;'>
-                    <div style='font-size:18px; color:#1d4ed8; font-weight:800; margin-bottom:15px;'>펀드매니저 핵심 요약</div>
-                    <div style='font-size:20px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div>
+               st.markdown(f"""
+                <div style='background-color:#eff6ff; padding:25px 30px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height:232px; display:flex; flex-direction:column; justify-content:space-between;'>
+                    <div>
+                        <div style='font-size:18px; color:#1d4ed8; font-weight:800; margin-bottom:15px;'>펀드매니저 핵심 요약</div>
+                        <div style='font-size:17px; font-weight:700; color:#1e3a8a; line-height:1.7; word-break:keep-all;'>{summary}</div>
+                    </div>
+                    
+                    <div style='margin-top:20px; padding-top:15px; border-top:1px dashed #bfdbfe; font-size:14px; color:#1e40af; text-align:center; font-weight:700;'>
+                        👉 변동성 장세에서 수급이 폭발할 유망 섹터는? <span style='color:#ea580c;'>[🔒 VIP 포트폴리오]</span>에서 확인하세요!
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -517,6 +532,12 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
 # -----------------------------------------------------------------------------
 if menu == "주가 지수":
     st.title("글로벌 시장 지수")
+    
+    # 👇 제목 바로 아래에 데이터 기준 시간을 예쁘게 박아줍니다!
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
+    st.caption(f"⏱️ 실시간 데이터 업데이트: **{current_time}**")
+    
     with st.spinner("데이터 로딩 중..."):
         dow_v, dow_c, dow_p, dow_d = get_yahoo_data("^DJI")
         sp_v, sp_c, sp_p, sp_d = get_yahoo_data("^GSPC")
@@ -589,20 +610,70 @@ elif menu == "시장 심리":
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
+    
+    # ⏱️ 1. 실시간 업데이트 시간 추가
+    from datetime import datetime, date
+    current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
+    st.caption(f"⏱️ 실시간 데이터 업데이트: **{current_time}**")
+    
     today_str = date.today().strftime('%Y-%m-%d')
     st.markdown(f'<div class="info-box">S&P 500 주요 섹터별 등락률 ({today_str})</div>', unsafe_allow_html=True)
+    
     sectors = {'XLK': '기술', 'XLV': '헬스케어', 'XLF': '금융', 'XLY': '임의소비재', 'XLP': '필수소비재', 'XLE': '에너지', 'XLI': '산업재', 'XLU': '유틸리티', 'XLRE': '부동산', 'XLB': '소재', 'XLC': '통신'}
     rows = []
+    
+    # 데이터 수집 (기존과 동일)
     for t, n in sectors.items():
-        d = yf.Ticker(t).history(period="5d")
-        if len(d) >= 2:
-            c = (d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2] * 100
-            rows.append({'Sector': n, 'Change': c})
+        try:
+            d = yf.Ticker(t).history(period="5d")
+            if len(d) >= 2:
+                c = (d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2] * 100
+                rows.append({'Sector': n, 'Change': c})
+        except Exception as e:
+            pass
+            
     if rows:
-        df_sector = pd.DataFrame(rows).sort_values('Change', ascending=False)
-        df_sector['Color'] = df_sector['Change'].apply(lambda x: '#ef4444' if x > 0 else '#3b82f6')
-        chart = alt.Chart(df_sector).mark_bar().encode(x='Change', y=alt.Y('Sector', sort='-x'), color=alt.Color('Color', scale=None), tooltip=['Sector', alt.Tooltip('Change', format='.2f')]).properties(height=450)
-        st.altair_chart(chart, use_container_width=True)
+        import plotly.express as px
+        import pandas as pd
+        
+        df_sector = pd.DataFrame(rows)
+        
+        # 💡 2. 펀드매니저용 트리맵(히트맵)을 위한 데이터 가공
+        df_sector['Root'] = '미국 S&P 500 섹터 맵' # 트리맵 최상단 이름
+        # 박스 크기를 정하기 위해 변동률의 절대값 생성 (변동폭이 큰 섹터가 더 큰 네모로 표시됨)
+        # 만약 변동성과 무관하게 똑같은 크기로 하려면 df_sector['Size'] = 1 로 두고 아래 values='Size'로 바꾸시면 됩니다.
+        df_sector['Absolute_Change'] = df_sector['Change'].abs() 
+        # 화면에 예쁘게 표시될 텍스트 라벨 (+1.23%, -0.54% 형태)
+        df_sector['Label'] = df_sector['Change'].apply(lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%")
+        
+        # 💡 3. 대망의 트리맵 그리기
+        fig = px.treemap(
+            df_sector, 
+            path=['Root', 'Sector'], # 그룹 구조
+            values='Absolute_Change', # 네모 블록의 크기
+            color='Change', # 색상 기준
+            color_continuous_scale='RdYlGn', # 🇺🇸 미국식 컬러: 하락(빨강/Red) -> 0(노랑/Yellow) -> 상승(초록/Green)
+            color_continuous_midpoint=0, # 0을 기준으로 색상 반전
+            custom_data=['Label'] # 추가 텍스트 데이터
+        )
+        
+        # 폰트 및 텍스트 위치 디자인
+        fig.update_traces(
+            textposition="middle center",
+            textinfo="label+text",
+            texttemplate="<b>%{label}</b><br><br><span style='font-size:18px;'>%{customdata[0]}</span>",
+            marker=dict(line=dict(width=2, color='white')) # 네모 칸 사이에 하얀색 예쁜 틈(선) 주기
+        )
+        
+        # 여백 및 전체 크기 조절
+        fig.update_layout(
+            margin=dict(t=30, l=10, r=10, b=10),
+            paper_bgcolor="rgba(0,0,0,0)", # 배경을 사이트 색상에 맞게 투명하게
+            height=600 # 맵을 시원시원하게 크게!
+        )
+        
+        # 완성된 Plotly 차트 출력
+        st.plotly_chart(fig, use_container_width=True)
 
 elif menu == "주요 일정":
     st.title("주요 일정 (Key Schedule)")
@@ -630,15 +701,15 @@ elif menu == "주요 일정":
 elif menu == "🔒 VIP 포트폴리오":
     st.title("🔒 VIP 시크릿 매크로 리포트")
     
-   # 💡 Pro 회원에게만 진짜 내용을 보여줍니다.
+  # 💡 Pro 회원에게만 진짜 내용을 보여줍니다.
     if st.session_state.get('plan', 'Free') == 'Pro':
-        st.success("👑 VIP 멤버십 인증 완료! 이번 주 핵심 투자 전략을 확인하세요.")
+        st.success("👑 VIP 멤버십 인증 완료! 실시간 핵심 투자 전략을 확인하세요.")
         
         # =========================================================
         # 1. 🚀 리포트 생성 버튼 (화면 맨 위로 끌어올림!)
         # =========================================================
         is_vip_analyzed = "vip_report" in st.session_state
-        btn_text_vip = "✅ 이번 주 VIP 리포트 생성 완료" if is_vip_analyzed else "🚀 이번 주 VIP 시크릿 리포트 생성하기"
+        btn_text_vip = "✅ 실시간 VIP 리포트 생성 완료" if is_vip_analyzed else "🚀 실시간 VIP 시크릿 리포트 생성하기"
         
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
             with st.spinner("AI 펀드매니저가 거시경제 지표를 분석하여 대시보드와 리포트를 생성 중입니다..."):
@@ -647,8 +718,8 @@ elif menu == "🔒 VIP 포트폴리오":
                 else:
                     client = openai.OpenAI(api_key=api_key)
                     
-                    # (기존과 동일한 완벽한 프롬프트 유지)
-                    vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 심층 투자 전략 리포트를 작성하세요.
+                    # (기존과 동일한 완벽한 프롬프트 유지하되 '실시간' 강조)
+                    vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 현재 시점의 실시간 심층 투자 전략 리포트를 작성하세요.
                     
                     [데이터 및 방향성 제약 조건]
                     - '공시' 및 '증시 심리'에 대한 내용은 철저히 배제하세요.
@@ -714,7 +785,7 @@ elif menu == "🔒 VIP 포트폴리오":
         dash_cash = st.session_state.get("dash_cash", "-")
         dash_risk = st.session_state.get("dash_risk", "버튼을 눌러주세요")
         
-        st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>🧭 실시간 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown(f"""
@@ -736,7 +807,7 @@ elif menu == "🔒 VIP 포트폴리오":
         with c2:
             st.markdown(f"<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>{dash_cash}</div></div>", unsafe_allow_html=True)
         with c3:
-            st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>주간 핵심 모니터링 지표</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px; word-break:keep-all;'>{dash_risk}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>실시간 핵심 모니터링 지표</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px; word-break:keep-all;'>{dash_risk}</div></div>", unsafe_allow_html=True)
         
         # =========================================================
         # 3. 🤖 하단: 생성된 리포트 출력 창
@@ -759,10 +830,16 @@ elif menu == "🔒 VIP 포트폴리오":
             html_content = html_content.replace('\n\n', "<div style='height:12px;'></div>") 
             html_content = html_content.replace('\n', '<br>')
             
+            from datetime import datetime
+            current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
+
             st.markdown(f"""
-            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:35px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
-                <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px; font-size:26px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-                <div style='font-size:18px; line-height:1.5; color:#374151; word-break:keep-all;'>
+            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:45px; margin-top:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
+                <div style='display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #e5e7eb; padding-bottom:15px; margin-bottom:25px;'>
+                    <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[실시간 VIP] 매크로 심층 리포트</h3>
+                    <span style='color:#6b7280; font-size:14px; font-weight:600;'>⏱️ {current_time}</span>
+                </div>
+                <div style='font-size:17px; line-height:1.8; color:#374151; word-break:keep-all;'>
                     {html_content}
                 </div>
             </div>
@@ -770,7 +847,7 @@ elif menu == "🔒 VIP 포트폴리오":
             
     else:
         # 💡 일반 유저에게 보여주는 '결제 뽐뿌' 블러(흐림) 처리 화면 (Free 등급용 떡밥)
-        st.markdown("<div class='section-header'>🧭 이번 주 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>🧭 실시간 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         st.markdown("""
         <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
             <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
@@ -788,17 +865,23 @@ elif menu == "🔒 VIP 포트폴리오":
                 </div>
             </div>
             <div style='flex:1; background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>30% 이상 확보</div></div>
-            <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>주간 핵심 모니터링 지표</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>CPI & 고용보고서</div></div>
+            <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>실시간 핵심 모니터링 지표</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>CPI & 고용보고서</div></div>
         </div>
         """, unsafe_allow_html=True)
         
+        from datetime import datetime
+        current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
+
         st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
-        st.markdown("""
+        st.markdown(f"""
         <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:left; filter: blur(5px); user-select: none;'>
-            <h3 style='color:#111827;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-            <p style='color:#374151;'><b>1. 거시경제 분석:</b> 현재 글로벌 경제 환경은 주요 외환 시장의 변동성과 금리의 등락을 중심으로...</p>
-            <p style='color:#374151;'><b>2. 리스크 방어 전략:</b> 가장 우려되는 하락 시나리오는 인플레이션 재점화로 인한...</p>
-            <p style='color:#374151;'><b>3. 신규 진입 유망 섹터:</b> 다양한 산업군에서 수급이 누적된 압도적 주도주 3가지는...</p>
+            <div style='display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #e5e7eb; padding-bottom:15px; margin-bottom:25px;'>
+                <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[실시간 VIP] 매크로 심층 리포트</h3>
+                <span style='color:#6b7280; font-size:14px; font-weight:600;'>⏱️ {current_time}</span>
+            </div>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>1. 거시경제 분석:</b> 현재 글로벌 경제 환경은 주요 외환 시장의 변동성과 금리의 등락을 중심으로...</p>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>2. 리스크 방어 전략:</b> 가장 우려되는 하락 시나리오는 인플레이션 재점화로 인한...</p>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>3. 신규 진입 유망 섹터:</b> 다양한 산업군에서 수급이 누적된 압도적 주도주 3가지는...</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -819,6 +902,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
