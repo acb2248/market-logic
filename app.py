@@ -480,14 +480,15 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
             if is_analyzed:
                 t_text, content = st.session_state[f"ai_res_{key_suffix}"]
                 
-                # '[지표의 숨은 의미]'를 기준으로 정확히 분리
+               # '[지표의 숨은 의미]'를 기준으로 정확히 분리
                 if '[지표의 숨은 의미]' in content:
                     summary_part = content.split('[지표의 숨은 의미]')[0]
                     summary = summary_part.replace('[핵심 요약]', '').strip()
                 else:
                     summary = content[:100] + "..."
                 
-               st.markdown(f"<div style='background-color:#eff6ff; padding:15px 20px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'><div style='margin-bottom:10px;'><div style='font-size:16px; color:#1d4ed8; font-weight:800; margin-bottom:8px;'>펀드매니저 핵심 요약</div><div style='font-size:15px; font-weight:700; color:#1e3a8a; line-height:1.5; word-break:keep-all;'>{summary}</div></div><div style='margin-top:10px; padding-top:10px; border-top:1px dashed #bfdbfe; font-size:12px; color:#1e40af; text-align:center; font-weight:700; line-height:1.4;'>👉 변동성 장세에서 수급이 폭발할 유망 섹터는?<br><span style='color:#ea580c; font-size:13px;'>[🔒 VIP 포트폴리오]</span>에서 확인하세요!</div></div>", unsafe_allow_html=True)
+                # 💡 핵심: 아래 st.markdown 줄의 시작 위치가 바로 위 else: 와 수직으로 딱 맞아야 합니다.
+                st.markdown(f"<div style='background-color:#eff6ff; padding:15px 20px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'><div style='margin-bottom:10px;'><div style='font-size:16px; color:#1d4ed8; font-weight:800; margin-bottom:8px;'>펀드매니저 핵심 요약</div><div style='font-size:15px; font-weight:700; color:#1e3a8a; line-height:1.5; word-break:keep-all;'>{summary}</div></div><div style='margin-top:10px; padding-top:10px; border-top:1px dashed #bfdbfe; font-size:12px; color:#1e40af; text-align:center; font-weight:700; line-height:1.4;'>👉 변동성 장세에서 수급이 폭발할 유망 섹터는?<br><span style='color:#ea580c; font-size:13px;'>[🔒 VIP 포트폴리오]</span>에서 확인하세요!</div></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>월스트리트급 AI 펀드매니저 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
             st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
@@ -891,6 +892,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
