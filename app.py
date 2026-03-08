@@ -221,10 +221,17 @@ with st.sidebar:
     else:
         api_key = st.text_input("OpenAI API Key", type="password")
         
-    # 👇 새로 추가할 마법의 버튼 3줄!
+    # 👇 완벽하게 업그레이드된 마법의 리셋 버튼!
     if st.button("🔄 서버 캐시 초기화 (관리자용)"):
-        st.cache_data.clear()
-        st.rerun()
+        st.cache_data.clear() # 기존 데이터 찌꺼기 삭제
+        
+        # 💡 로그인 상태는 유지하면서, VIP 리포트 관련 기억만 콕 집어서 삭제!
+        keys_to_clear = ["vip_report", "dash_us", "dash_kr", "dash_cash", "dash_risk"]
+        for key in keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
+                
+        st.rerun() # 화면 새로고침
 
 # -----------------------------------------------------------------------------
 # 3. 데이터 엔진
@@ -811,6 +818,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
