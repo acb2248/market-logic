@@ -487,7 +487,7 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                 else:
                     summary = content[:100] + "..."
                 
-               st.markdown(f"""
+                st.markdown(f"""
                 <div style='background-color:#eff6ff; padding:25px 30px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height:232px; display:flex; flex-direction:column; justify-content:space-between;'>
                     <div>
                         <div style='font-size:18px; color:#1d4ed8; font-weight:800; margin-bottom:15px;'>펀드매니저 핵심 요약</div>
@@ -902,6 +902,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
