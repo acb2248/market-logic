@@ -664,6 +664,7 @@ elif menu == "🔒 VIP 포트폴리오":
                     # 👇 여기가 수익화를 결정짓는 가장 강력한 VIP 전용 프롬프트입니다!
                     # 👇 수정된 VIP 프롬프트 (목차명 고정 및 영어/군더더기 완벽 제거)
                     # 👇 가시성과 일관성을 극대화한 최종 VIP 프롬프트
+                    # 👇 가시성 및 디자인을 완벽하게 통제하는 최종 프롬프트
                     vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 투자 철학과 탑다운(Top-down) 전략을 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 이번 주 심층 투자 전략 리포트를 작성하세요.
                     
                     [데이터 및 방향성 제약 조건]
@@ -673,18 +674,23 @@ elif menu == "🔒 VIP 포트폴리오":
                     - 영어나 한자 혼용을 최소화하고, 모든 목차에서 영어를 완벽히 제거하세요.
                     - AI가 기계적으로 쓴 티가 나는 인사말, 맺음말은 절대 쓰지 말고 본론만 출력하세요.
                     - 모든 문장은 VIP를 대하는 품격 있고 확신에 찬 펀드매니저의 존댓말로 작성하세요.
+                    - 💡 가독성을 위해 **반드시 한 문장이 끝날 때마다 줄바꿈(Enter)을 두 번씩** 하세요. (다닥다닥 붙여 쓰지 마세요)
 
-                    [리포트 필수 구성 및 디자인 가이드]
-                    - 각 목차의 번호와 제목, 그리고 추천 섹터 이름은 반드시 양쪽에 별표 2개(**)를 붙여 볼드체로 강조하세요. 
-                      (출력 예시: **1. 거시경제 분석**, **재생에너지:**)
+                    [리포트 필수 구성 및 목차 이름] (아래 대괄호 []를 포함한 4가지 목차 이름을 띄어쓰기까지 정확히 똑같이 출력하세요. 별표(**)는 절대 쓰지 마세요)
+                    [1. 거시경제 분석]
+                    현재의 외환, 금리, 글로벌 분쟁 리스크를 바탕으로 글로벌 자금 흐름과 시장의 현 단계를 분석하세요.
                     
-                    **1. 거시경제 분석**: 현재의 외환, 금리, 글로벌 분쟁 리스크를 바탕으로 글로벌 자금 흐름과 시장의 현 단계를 분석하세요.
-                    **2. 리스크 방어 전략**: 가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법을 구체적으로 제시하세요.
-                    **3. 투자 전략 제언**: 향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 명확하게 제안하세요.
-                    **4. 신규 진입 유망 섹터**: 현 시점에서 수급이 탄탄하게 누적되어 신규 진입하기 좋은 산업군이나 섹터를 2~3개 추천하고 논리적으로 설명하세요. (각 섹터는 글머리 기호 '-'를 사용하세요.)
+                    [2. 리스크 방어 전략]
+                    가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법을 구체적으로 제시하세요.
+                    
+                    [3. 투자 전략 제언]
+                    향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 명확하게 제안하세요.
+                    
+                    [4. 신규 진입 유망 섹터]
+                    현 시점에서 신규 진입하기 좋은 산업군을 2~3개 추천하고 논리적으로 설명하세요. (각 섹터 이름 양옆에는 <b> 와 </b> 태그를 붙여서 폰트를 굵게 강조하세요. 예: <b>방위산업</b>:)
                     """
                     try:
-                        # 👇 temperature=0.1 을 추가하여 매번 섹터가 바뀌는 '헛소리/창의성'을 차단하고 일관성을 높입니다!
+                        # temperature=0.1 을 유지하여 헛소리를 차단하고 일관성을 높입니다
                         resp = client.chat.completions.create(
                             model="gpt-4o", 
                             messages=[{"role": "user", "content": vip_prompt}],
@@ -698,11 +704,21 @@ elif menu == "🔒 VIP 포트폴리오":
         # 생성된 리포트 출력 창
         if is_vip_analyzed:
             report_content = st.session_state["vip_report"]
+            
+            # 파이썬 코드로 강제 디자인 입히기 (폰트 확대, 굵기 강화, 위아래 여백 추가)
+            html_content = report_content.replace('[1. 거시경제 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:15px;'>1. 거시경제 분석</div>")
+            html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:55px; margin-bottom:15px;'>2. 리스크 방어 전략</div>")
+            html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:55px; margin-bottom:15px;'>3. 투자 전략 제언</div>")
+            html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:55px; margin-bottom:15px;'>4. 신규 진입 유망 섹터</div>")
+            
+            # 엔터키(줄바꿈)를 완벽한 HTML 줄바꿈으로 변환하여 문장 간격 확실히 띄우기
+            html_content = html_content.replace('\n', '<br>')
+            
             st.markdown(f"""
-            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:30px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
-                <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
-                <div style='font-size:16px; line-height:1.8; color:#374151;'>
-                    {report_content}
+            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:40px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+                <h3 style='color:#111827; margin-top:0; border-bottom:2px solid #e5e7eb; padding-bottom:15px; font-size:28px;'>[Weekly VIP] 펀드매니저 심층 리포트</h3>
+                <div style='font-size:18px; line-height:2.0; color:#374151; word-break:keep-all;'>
+                    {html_content}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -754,6 +770,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
