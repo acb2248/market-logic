@@ -637,17 +637,20 @@ elif menu == "시장 지도":
         
         df_sector['Color'] = df_sector['Change'].apply(lambda x: '#22c55e' if x > 0 else '#ef4444') 
         
-        # 💡 2. y축의 title='섹터'를 None으로 없애버려서 레이아웃이 붕 뜨는 현상 완벽 해결!
+        # 💡 여백(padding)을 추가하여 차트가 하얀 배경에 꽉 끼지 않고 숨을 쉬게 만듭니다!
         bar_chart = alt.Chart(df_sector).mark_bar(cornerRadiusEnd=4).encode(
             x=alt.X('Change', title='등락률 (%)'),
-            y=alt.Y('Sector', sort='-x', title=None), 
+            y=alt.Y('Sector', sort='-x', title=None, axis=alt.Axis(labelPadding=15)), # 💡 왼쪽 섹터 글씨와 막대 사이 여백(15px) 확보
             color=alt.Color('Color', scale=None),
             tooltip=['Sector', alt.Tooltip('Change', format='.2f', title='등락률 (%)')]
-        ).properties(height=350)
+        ).properties(
+            height=380, # 여백이 들어간 만큼 차트가 찌그러지지 않게 전체 높이를 살짝 키움 (350 -> 380)
+            padding={'top': 25, 'bottom': 20, 'left': 10, 'right': 30} # 💡 핵심: 차트 상하좌우에 여백 쿠션 추가
+        )
         
         st.altair_chart(bar_chart, use_container_width=True)
         
-        st.markdown("<br>", unsafe_allow_html=True) 
+        st.markdown("<br>", unsafe_allow_html=True)
         
         # =========================================================
         # 🗺️ 2. 핀비즈 스타일 트리맵 (시인성 200% 극대화)
@@ -657,31 +660,34 @@ elif menu == "시장 지도":
         df_sector['Absolute_Change'] = df_sector['Change'].abs() 
         df_sector['Label'] = df_sector['Change'].apply(lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%")
         
-        # 💡 3. '미국 S&P 500 섹터 맵' 이라는 상단 Root 띠를 아예 제거해서 박스들이 화면을 넓게 꽉 채우도록 변경
+        # 💡 [해결 3] 초록/빨강 색상이 0을 기준으로 완벽히 대칭되도록 최대 변동폭 계산
+        max_change = df_sector['Absolute_Change'].max()
+        
         fig = px.treemap(
             df_sector, 
-            path=['Sector'], # Root 구조 삭제
+            path=['Sector'], 
             values='Absolute_Change', 
             color='Change', 
-            # 💡 4. 하얀 글씨가 눈에 확 띄도록 배경을 Deep한 핀비즈 오리지널 컬러로 변경
-            color_continuous_scale=[[0, '#b91c1c'], [0.5, '#4b5563'], [1, '#15803d']], 
-            color_continuous_midpoint=0, 
+            color_continuous_scale=[[0, '#dc2626'], [0.5, '#4b5563'], [1, '#16a34a']], # 조금 더 선명한 색상으로 교체
+            range_color=[-max_change, max_change], # 💡 색상 밸런스 강제 고정 (탁한 초록색 방지!)
             custom_data=['Label'] 
         )
         
-        # 💡 5. 가시성 폭발: 폰트를 강제로 순백색(white)으로 고정, 섹터명 크기를 24px로 대폭 확대!
         fig.update_traces(
             textposition="middle center",
             textinfo="label+text",
             textfont=dict(color="white"), 
             texttemplate="<span style='font-size:24px; font-weight:900;'>%{label}</span><br><br><span style='font-size:20px; font-weight:700;'>%{customdata[0]}</span>",
+            hovertemplate="<b>%{label}</b><br>등락률: %{customdata[0]}<extra></extra>", # 💡 [해결 1] 우측 상단 지저분한 회색 에러 박스 제거!
             marker=dict(line=dict(width=3, color='#ffffff')), 
-            tiling=dict(pad=3) 
+            tiling=dict(pad=3),
+            root_color="rgba(0,0,0,0)" # 💡 [해결 2] 뒤에 깔리는 칙칙한 진회색 배경을 투명하게 날려버림!
         )
         
         fig.update_layout(
-            margin=dict(t=10, l=10, r=10, b=10), # 상단 여백 축소
-            paper_bgcolor="rgba(0,0,0,0)", 
+            margin=dict(t=0, l=0, r=0, b=0), # 여백을 0으로 줘서 화면에 꽉 차고 시원하게!
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
             height=600 
         )
         
@@ -922,6 +928,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
