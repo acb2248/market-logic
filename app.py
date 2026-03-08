@@ -12,20 +12,23 @@ import urllib.parse
 from streamlit_gsheets import GSheetsConnection # 💡 구글 시트 연결용
 import extra_streamlit_components as stx
 
-# 1. 쿠키 매니저 설정
+# 1. 쿠키 매니저 및 새로고침 방어 로직 (최상단 배치)
 cookie_manager = stx.CookieManager()
 
-# 💡 마법의 0.2초! 브라우저가 파이썬에게 쿠키를 전달할 시간을 벌어줍니다.
-time.sleep(0.2) 
+# 💡 마법의 0.1초 딜레이: 브라우저가 방문증(쿠키)을 꺼낼 시간을 살짝 벌어줍니다.
+import time
+time.sleep(0.1) 
 
-# 2. 새로고침 방어 로직 (쿠키가 있으면 강제 로그인 유지 및 DB 정보 복구)
 saved_email = cookie_manager.get("user_email")
 
+# 로그인 안 된 상태인데, 쿠키(방문증)가 발견되었다면? -> 몰래 로그인 복구!
 if saved_email and not st.session_state.get('logged_in', False):
-    # 💡 새로고침 시 구글 시트에서 유저의 정보를 다시 몰래 가져옵니다!
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(worksheet="Users", ttl=0)
+        
+        # 💡 핵심 1: ttl=0 설정! 
+        # 파이썬의 옛날 기억(캐시)을 무시하고, 무조건 구글 시트에서 최신 상태(Pro 등급)를 실시간으로 읽어오게 강제합니다.
+        df = conn.read(worksheet="Users", ttl=0) 
         
         if not df.empty and 'Email' in df.columns and saved_email in df['Email'].values:
             user_idx = df.index[df['Email'] == saved_email].tolist()[0]
@@ -36,10 +39,14 @@ if saved_email and not st.session_state.get('logged_in', False):
             st.session_state.user_name = df.at[user_idx, 'Name']
             st.session_state.remaining_calls = int(df.at[user_idx, 'Remaining_Calls'])
             st.session_state.plan = df.at[user_idx, 'Plan']
+            
+            # 💡 핵심 2: st.rerun()!
+            # 기억을 복구하자마자 화면을 강제로 1회 새로고침하여, 로그아웃 화면이 뜨기 전에 로그인된 Pro 화면으로 고정해 버립니다.
+            st.rerun()
         else:
-            cookie_manager.delete("user_email") # DB에 없으면 잘못된 쿠키이므로 삭제
+            cookie_manager.delete("user_email") # DB에 없으면 잘못된 쿠키이므로 파기
     except Exception as e:
-        pass # 시트 연결 실패 시 그냥 넘어감 (다시 로그인하도록 유도)
+        pass # 구글 시트 연결 일시 오류 시 조용히 넘어감
 
 # -----------------------------------------------------------------------------
 # 0. 구글 OAuth 설정 & 세션 초기화
@@ -818,6 +825,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
