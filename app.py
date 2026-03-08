@@ -601,7 +601,7 @@ elif menu == "시장 심리":
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
     
-    # ⏱️ 1. 실시간 업데이트 시간 표기 (디테일 추가)
+    # ⏱️ 1. 실시간 업데이트 시간 표기
     from datetime import datetime, date
     import pandas as pd
     import yfinance as yf
@@ -612,14 +612,15 @@ elif menu == "시장 지도":
     st.caption(f"⏱️ 실시간 데이터 업데이트: **{current_time}**")
     
     today_str = date.today().strftime('%Y-%m-%d')
-    sectors = {'XLK': '기술', 'XLV': '헬스케어', 'XLF': '금융', 'XLY': '임의소비재', 'XLP': '필수소비재', 'XLE': 'エネルギー', 'XLI': '산업재', 'XLU': '유틸리티', 'XLRE': '부동산', 'XLB': '소재', 'XLC': '통신'}
+    
+    # 💡 1. 뜬금없는 일본어(エネルギー) 오류 수정 완료!
+    sectors = {'XLK': '기술', 'XLV': '헬스케어', 'XLF': '금융', 'XLY': '임의소비재', 'XLP': '필수소비재', 'XLE': '에너지', 'XLI': '산업재', 'XLU': '유틸리티', 'XLRE': '부동산', 'XLB': '소재', 'XLC': '통신'}
     rows = []
     
-    # 데이터 수집 (기존 로직 유지)
     with st.spinner("섹터별 데이터를 수집 중입니다..."):
         for t, n in sectors.items():
             try:
-                d = yf.Ticker(t).history(period="2d") # 5d 대신 2d로 변경 (속도 향상 및 당일 변동 중심)
+                d = yf.Ticker(t).history(period="2d") 
                 if len(d) >= 2:
                     c = (d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2] * 100
                     rows.append({'Sector': n, 'Change': c})
@@ -630,69 +631,66 @@ elif menu == "시장 지도":
         df_sector = pd.DataFrame(rows)
         
         # =========================================================
-        # 📊 1. 가로 막대그래프 (기존 뷰 유지)
+        # 📊 1. 가로 막대그래프 (여백 및 위치 버그 해결)
         # =========================================================
-        st.markdown(f'<div class="info-box" style="margin-bottom:15px;">막대그래프로 보는 섹터별 등락 순위</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="info-box" style="margin-bottom:15px; font-weight:bold; color:#1e3a8a;">📊 막대그래프로 보는 섹터별 등락 순위</div>', unsafe_allow_html=True)
         
-        # 상승/하락 색상 로직 (미국식 유지: 상승 초록, 하락 빨강)
-        df_sector['Color'] = df_sector['Change'].apply(lambda x: '#22c55e' if x > 0 else '#ef4444') # 더 밝고 예쁜 초록/빨강 사용
+        df_sector['Color'] = df_sector['Change'].apply(lambda x: '#22c55e' if x > 0 else '#ef4444') 
         
-        bar_chart = alt.Chart(df_sector).mark_bar().encode(
+        # 💡 2. y축의 title='섹터'를 None으로 없애버려서 레이아웃이 붕 뜨는 현상 완벽 해결!
+        bar_chart = alt.Chart(df_sector).mark_bar(cornerRadiusEnd=4).encode(
             x=alt.X('Change', title='등락률 (%)'),
-            y=alt.Y('Sector', sort='-x', title='섹터'),
+            y=alt.Y('Sector', sort='-x', title=None), 
             color=alt.Color('Color', scale=None),
             tooltip=['Sector', alt.Tooltip('Change', format='.2f', title='등락률 (%)')]
         ).properties(height=350)
         
         st.altair_chart(bar_chart, use_container_width=True)
         
-        st.markdown("<br><br>", unsafe_allow_html=True) # 여백
+        st.markdown("<br>", unsafe_allow_html=True) 
         
         # =========================================================
-        # 🗺️ 2. 핀비즈 스타일 트리맵 (새로운 압도적 가시성 뷰 추가)
+        # 🗺️ 2. 핀비즈 스타일 트리맵 (시인성 200% 극대화)
         # =========================================================
-        st.markdown(f'<div class="info-box" style="margin-bottom:15px;">한눈에 보는 시장 지도 (핀비즈 스타일 히트맵)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="info-box" style="margin-bottom:15px; font-weight:bold; color:#1e3a8a;">🗺️ 한눈에 보는 시장 지도 (열지도)</div>', unsafe_allow_html=True)
         
-        # 트리맵용 데이터 가공
-        df_sector['Root'] = '미국 S&P 500 섹터 맵' # 트리맵 최상단 이름
-        # 블록 크기를 위해 절대값 생성 (변동성이 클수록 큰 네모)
         df_sector['Absolute_Change'] = df_sector['Change'].abs() 
-        # 화면에 표시될 등락률 라벨 (+1.23%, -0.54%)
         df_sector['Label'] = df_sector['Change'].apply(lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%")
         
-        # 💡 핀비즈 스타일 트리맵 그리기 (가시성 극대화)
+        # 💡 3. '미국 S&P 500 섹터 맵' 이라는 상단 Root 띠를 아예 제거해서 박스들이 화면을 넓게 꽉 채우도록 변경
         fig = px.treemap(
             df_sector, 
-            path=['Root', 'Sector'], # 구조
-            values='Absolute_Change', # 네모 크기
-            color='Change', # 색상 기준
-            # 💡 핵심! 핀비즈 스타일 색상 scale 변경: 하락(빨강) -> 0(회색) -> 상승(초록)
-            color_continuous_scale=[[0, '#ef4444'], [0.5, '#f3f4f6'], [1, '#22c55e']], 
-            color_continuous_midpoint=0, # 0을 기준으로 색상 전환
-            custom_data=['Label'] # 텍스트 데이터
+            path=['Sector'], # Root 구조 삭제
+            values='Absolute_Change', 
+            color='Change', 
+            # 💡 4. 하얀 글씨가 눈에 확 띄도록 배경을 Deep한 핀비즈 오리지널 컬러로 변경
+            color_continuous_scale=[[0, '#b91c1c'], [0.5, '#4b5563'], [1, '#15803d']], 
+            color_continuous_midpoint=0, 
+            custom_data=['Label'] 
         )
         
-        # 💡 가시성 폭발: 텍스트 디자인 (배경을 하얗게, 글자는 검게, 크기는 크게)
+        # 💡 5. 가시성 폭발: 폰트를 강제로 순백색(white)으로 고정, 섹터명 크기를 24px로 대폭 확대!
         fig.update_traces(
             textposition="middle center",
             textinfo="label+text",
-            # 텍스트 템플릿: 섹터 이름은 굵게, 등락률은 크게
-            texttemplate="<b>%{label}</b><br><br><span style='font-size:20px; font-weight:900;'>%{customdata[0]}</span>",
-            marker=dict(line=dict(width=2, color='#ffffff')), # 네모 칸 사이 틈을 하얗게
-            tiling=dict(pad=3) # 네모 블록 간격 미세 조정
+            textfont=dict(color="white"), 
+            texttemplate="<span style='font-size:24px; font-weight:900;'>%{label}</span><br><br><span style='font-size:20px; font-weight:700;'>%{customdata[0]}</span>",
+            marker=dict(line=dict(width=3, color='#ffffff')), 
+            tiling=dict(pad=3) 
         )
         
-        # 여백 및 스타일 디자인 (배경을 투명하게)
         fig.update_layout(
-            margin=dict(t=30, l=10, r=10, b=10),
-            paper_bgcolor="rgba(0,0,0,0)", # 배경 투명
-            height=600 # 맵을 아주 크고 시원하게!
+            margin=dict(t=10, l=10, r=10, b=10), # 상단 여백 축소
+            paper_bgcolor="rgba(0,0,0,0)", 
+            height=600 
         )
         
-        # 색상 바(Colorbar) 제거 (가독성을 위해)
         fig.update_layout(coloraxis_showscale=False)
         
         st.plotly_chart(fig, use_container_width=True)
+        
+        # 💡 6. 하단에 트리맵 박스 크기가 무엇을 의미하는지 친절한 설명 추가
+        st.markdown("<div style='font-size:14.5px; color:#6b7280; text-align:center; margin-top:5px; margin-bottom:20px; word-break:keep-all;'>💡 <b>블록의 크기</b>는 해당 섹터의 <b>변동성(등락폭의 절대값)</b>을 의미하며, 크기가 클수록 시장에서 자금 이동이 활발했던 섹터입니다.</div>", unsafe_allow_html=True)
         
     else:
         st.error("데이터를 수집하지 못했습니다. 잠시 후 다시 시도해 주세요.")
@@ -924,6 +922,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
