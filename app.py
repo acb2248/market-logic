@@ -633,7 +633,7 @@ elif menu == "시장 지도":
         # =========================================================
         # 📊 1. 가로 막대그래프 (여백 및 위치 버그 해결)
         # =========================================================
-        st.markdown(f'<div class="info-box" style="margin-bottom:15px; font-weight:bold; color:#1e3a8a;">📊 막대그래프로 보는 섹터별 등락 순위</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="info-box" style="margin-bottom:15px; font-weight:bold; color:#1e3a8a;">막대그래프로 보는 섹터별 등락 순위</div>', unsafe_allow_html=True)
         
         df_sector['Color'] = df_sector['Change'].apply(lambda x: '#22c55e' if x > 0 else '#ef4444') 
         
@@ -655,7 +655,7 @@ elif menu == "시장 지도":
         # =========================================================
         # 🗺️ 2. 핀비즈 스타일 트리맵 (시인성 200% 극대화)
         # =========================================================
-        st.markdown(f'<div class="info-box" style="margin-bottom:15px; font-weight:bold; color:#1e3a8a;">🗺️ 한눈에 보는 시장 지도 (열지도)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="info-box" style="margin-bottom:15px; font-weight:bold; color:#1e3a8a;">한눈에 보는 시장 지도 </div>', unsafe_allow_html=True)
         
         df_sector['Absolute_Change'] = df_sector['Change'].abs() 
         df_sector['Label'] = df_sector['Change'].apply(lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%")
@@ -928,6 +928,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
