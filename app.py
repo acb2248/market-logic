@@ -392,7 +392,8 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            st.markdown(f"<div style='position: relative; width: 100%; height: 0px; z-index: 99; pointer-events: none;'><div style='position: absolute; top: -10px; right: 0px; text-align: right; font-size: 11px; color: #9ca3af; line-height: 1.3;'>출처: {meta['source']}<br>기준일: {today_str}<br>단위: {meta['unit']}</div></div>", unsafe_allow_html=True)
+            # 💡 <br>을 없애고, white-space: nowrap; 을 추가하여 무조건 가로 한 줄로 강제 고정!
+            st.markdown(f"<div style='position: relative; width: 100%; height: 0px; z-index: 99; pointer-events: none;'><div style='position: absolute; top: -15px; right: 0px; text-align: right; font-size: 11px; color: #9ca3af; white-space: nowrap;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div></div>", unsafe_allow_html=True)
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, period=selected_period, height=180)
 
@@ -952,6 +953,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
