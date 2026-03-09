@@ -315,6 +315,48 @@ def calculate_rsi(data, window=14):
 # -----------------------------------------------------------------------------
 # 4. 시각화 컴포넌트
 # -----------------------------------------------------------------------------
+def get_traffic_light_status(topic, val1, val2=None):
+    try:
+        if topic == "금융 시장": 
+            if val1 >= 4.5 or val2 >= 1400: return "🔴 위험", "#fee2e2", "#dc2626"
+            elif val1 >= 4.0 or val2 >= 1350: return "🟡 경계", "#fefce8", "#ca8a04"
+            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            
+        elif topic == "물가 지표": 
+            if val1 >= 4.0 or val2 >= 4.0: return "🔴 위험", "#fee2e2", "#dc2626"
+            elif val1 >= 3.0 or val2 >= 3.0: return "🟡 경계", "#fefce8", "#ca8a04"
+            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            
+        elif topic == "고용 지표": 
+            if val2 >= 5.0: return "🔴 위험", "#fee2e2", "#dc2626"
+            elif val2 >= 4.0: return "🟡 경계", "#fefce8", "#ca8a04"
+            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            
+        elif topic == "VIX": 
+            if val1 >= 30: return "🔴 위험", "#fee2e2", "#dc2626"
+            elif val1 >= 20: return "🟡 경계", "#fefce8", "#ca8a04"
+            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            
+        elif topic == "RSI": 
+            if val1 >= 70 or val1 <= 30: return "🔴 위험", "#fee2e2", "#dc2626"
+            elif val1 >= 60 or val1 <= 40: return "🟡 경계", "#fefce8", "#ca8a04"
+            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            
+        elif topic == "종합": 
+            if val1 >= 30 or val2 >= 70 or val2 <= 30: return "🔴 위험", "#fee2e2", "#dc2626"
+            elif val1 >= 20 or val2 >= 60 or val2 <= 40: return "🟡 경계", "#fefce8", "#ca8a04"
+            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+    except:
+        pass
+    return "🟢 안정", "#f0fdf4", "#16a34a"
+
+def draw_traffic_light_card(title, status_text, bg_color, text_color):
+    st.markdown(f"""
+    <div style='background-color:{bg_color}; border:1px solid {text_color}40; border-radius:12px; padding:20px; height:100%; min-height:150px; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+        <div style='font-size:15px; color:#4b5563; margin-bottom:12px; font-weight:700;'>{title}</div>
+        <div style='font-size:32px; font-weight:900; color:{text_color};'>{status_text}</div>
+    </div>
+    """, unsafe_allow_html=True)
 indicator_meta = {
     "다우존스": {"source": "Yahoo Finance", "unit": "포인트"},
     "S&P 500": {"source": "Yahoo Finance", "unit": "포인트"},
@@ -515,8 +557,8 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                 # 💡 핵심: 아래 st.markdown 줄의 시작 위치가 바로 위 else: 와 수직으로 딱 맞아야 합니다.
                 st.markdown(f"<div style='background-color:#eff6ff; padding:20px 25px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'><div style='margin-bottom:12px;'><div style='font-size:17px; color:#1d4ed8; font-weight:800; margin-bottom:10px;'>펀드매니저 핵심 요약</div><div style='font-size:16px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div></div><div style='margin-top:12px; padding-top:12px; border-top:1px dashed #bfdbfe; font-size:13px; color:#1e40af; text-align:center; font-weight:700; line-height:1.5;'>시장 국면에 따른 신규 진입 유망 산업 정보는<br><span style='color:#ea580c; font-size:14px;'>[🔒 VIP 포트폴리오]</span>에서 상세히 제공됩니다.</div></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='ai-box' style='background-color:#f8fafc;'><div class='ai-title' style='color:#64748b;'>🔐 멤버십 전용</div><div class='ai-text' style='color:#94a3b8; margin-bottom:15px;'>월스트리트급 AI 펀드매니저 분석은 회원만 이용 가능합니다.</div></div>", unsafe_allow_html=True)
-            st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
+            status, bg_c, text_c = get_traffic_light_status(ai_topic, chart1['v'], chart2['v'] if chart2 else None)
+            draw_traffic_light_card(f"{ai_topic} 신호등", status, bg_c, text_c)
             
     # 💡 [하단 초록 박스] 글씨 크기(18px) 확대, 줄간격(2.0) 확대, 소제목 여백 45px 통일
     if st.session_state.logged_in and f"ai_res_{key_suffix}" in st.session_state:
@@ -620,8 +662,16 @@ elif menu == "시장 심리":
             t_text, content = st.session_state["ai_res_sentiment"]
             st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
     else:
-        st.info("🔐 심리 분석은 로그인 후 이용 가능합니다.")
-        st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
+        t1, t2, t3 = st.columns(3)
+        with t1:
+            s, b, t = get_traffic_light_status("VIX", vix_curr)
+            draw_traffic_light_card("VIX 신호등", s, b, t)
+        with t2:
+            s, b, t = get_traffic_light_status("RSI", rsi_sp)
+            draw_traffic_light_card("S&P 500 RSI 신호등", s, b, t)
+        with t3:
+            s, b, t = get_traffic_light_status("종합", vix_curr, rsi_sp)
+            draw_traffic_light_card("종합 심리 신호등", s, b, t)
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
@@ -953,6 +1003,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
