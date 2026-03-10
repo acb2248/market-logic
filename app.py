@@ -318,43 +318,60 @@ def calculate_rsi(data, window=14):
 def get_traffic_light_status(topic, val1, val2=None):
     try:
         if topic == "금융 시장": 
-            if val1 >= 4.5 or val2 >= 1400: return "🔴 위험", "#fee2e2", "#dc2626"
-            elif val1 >= 4.0 or val2 >= 1350: return "🟡 경계", "#fefce8", "#ca8a04"
-            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            if val1 >= 4.5 or val2 >= 1400: return "위험"
+            elif val1 >= 4.0 or val2 >= 1350: return "경계"
+            else: return "안정"
             
         elif topic == "물가 지표": 
-            if val1 >= 4.0 or val2 >= 4.0: return "🔴 위험", "#fee2e2", "#dc2626"
-            elif val1 >= 3.0 or val2 >= 3.0: return "🟡 경계", "#fefce8", "#ca8a04"
-            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            if val1 >= 4.0 or val2 >= 4.0: return "위험"
+            elif val1 >= 3.0 or val2 >= 3.0: return "경계"
+            else: return "안정"
             
         elif topic == "고용 지표": 
-            if val2 >= 5.0: return "🔴 위험", "#fee2e2", "#dc2626"
-            elif val2 >= 4.0: return "🟡 경계", "#fefce8", "#ca8a04"
-            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            if val2 >= 5.0: return "위험"
+            elif val2 >= 4.0: return "경계"
+            else: return "안정"
             
         elif topic == "VIX": 
-            if val1 >= 30: return "🔴 위험", "#fee2e2", "#dc2626"
-            elif val1 >= 20: return "🟡 경계", "#fefce8", "#ca8a04"
-            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            if val1 >= 30: return "위험"
+            elif val1 >= 20: return "경계"
+            else: return "안정"
             
         elif topic == "RSI": 
-            if val1 >= 70 or val1 <= 30: return "🔴 위험", "#fee2e2", "#dc2626"
-            elif val1 >= 60 or val1 <= 40: return "🟡 경계", "#fefce8", "#ca8a04"
-            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            if val1 >= 70 or val1 <= 30: return "위험"
+            elif val1 >= 60 or val1 <= 40: return "경계"
+            else: return "안정"
             
         elif topic == "종합": 
-            if val1 >= 30 or val2 >= 70 or val2 <= 30: return "🔴 위험", "#fee2e2", "#dc2626"
-            elif val1 >= 20 or val2 >= 60 or val2 <= 40: return "🟡 경계", "#fefce8", "#ca8a04"
-            else: return "🟢 안정", "#f0fdf4", "#16a34a"
+            if val1 >= 30 or val2 >= 70 or val2 <= 30: return "위험"
+            elif val1 >= 20 or val2 >= 60 or val2 <= 40: return "경계"
+            else: return "안정"
     except:
         pass
-    return "🟢 안정", "#f0fdf4", "#16a34a"
+    return "안정"
 
-def draw_traffic_light_card(title, status_text, bg_color, text_color):
+def draw_traffic_light_card(title, status):
+    # 플랫 컬러 (그라데이션 X)
+    c_red, c_yel, c_grn = "#ef4444", "#f59e0b", "#22c55e"
+    
+    # 💡 켜진 불은 100% 밝기+글로우 효과, 꺼진 불은 20% 밝기로 진짜 신호등처럼 연출!
+    op_r, glow_r = ("1", f"0 0 10px {c_red}") if status == "위험" else ("0.2", "none")
+    op_y, glow_y = ("1", f"0 0 10px {c_yel}") if status == "경계" else ("0.2", "none")
+    op_g, glow_g = ("1", f"0 0 10px {c_grn}") if status == "안정" else ("0.2", "none")
+    
+    if status == "위험": bg_c, border_c, txt_c = "#fef2f2", "#fca5a5", "#dc2626"
+    elif status == "경계": bg_c, border_c, txt_c = "#fffbeb", "#fcd34d", "#d97706"
+    else: bg_c, border_c, txt_c = "#f0fdf4", "#86efac", "#16a34a"
+    
     st.markdown(f"""
-    <div style='background-color:{bg_color}; border:1px solid {text_color}40; border-radius:12px; padding:20px; height:100%; min-height:150px; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-        <div style='font-size:15px; color:#4b5563; margin-bottom:12px; font-weight:700;'>{title}</div>
-        <div style='font-size:32px; font-weight:900; color:{text_color};'>{status_text}</div>
+    <div style='background-color:{bg_c}; border:1px solid {border_c}; border-radius:12px; padding:12px; margin-bottom:15px; display:flex; flex-direction:column; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+        <div style='font-size:13px; color:#4b5563; margin-bottom:10px; font-weight:700;'>{title}</div>
+        <div style='display:flex; gap:8px; margin-bottom:8px; background-color:#374151; padding:6px 14px; border-radius:30px; border:2px solid #1f2937;'>
+            <div style='width:18px; height:18px; border-radius:50%; background-color:{c_red}; opacity:{op_r}; box-shadow:{glow_r};'></div>
+            <div style='width:18px; height:18px; border-radius:50%; background-color:{c_yel}; opacity:{op_y}; box-shadow:{glow_y};'></div>
+            <div style='width:18px; height:18px; border-radius:50%; background-color:{c_grn}; opacity:{op_g}; box-shadow:{glow_g};'></div>
+        </div>
+        <div style='font-size:14px; font-weight:800; color:{txt_c};'>{status}</div>
     </div>
     """, unsafe_allow_html=True)
 indicator_meta = {
@@ -524,6 +541,70 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
         with c2: draw_chart_unit(chart2['l'], chart2['v'], chart2['c'], chart2['p'], chart2['d'], chart2['col'], chart2['prd'], 0, f"{key_suffix}_2", chart2['uc'], chart2['dc'], chart2['u'], True)
     
     with col_ai:
+        # 🚦 1. 신호등 먼저 깔끔하게 표시 (항상 노출)
+        status = get_traffic_light_status(ai_topic, chart1['v'], chart2['v'] if chart2 else None)
+        draw_traffic_light_card(f"{ai_topic} 신호등", status)
+        
+        # 🤖 2. 기존 AI 버튼 및 요약 화면 (신호등 아래에 유지)
+        if st.session_state.logged_in:
+            is_analyzed = f"ai_res_{key_suffix}" in st.session_state
+            btn_text = "✅ 분석 완료" if is_analyzed else f"{ai_topic} 분석"
+            
+            if st.button(btn_text, key=f"btn_{key_suffix}", type="primary", disabled=is_analyzed, use_container_width=True):
+                if st.session_state.remaining_calls > 0:
+                    with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."):
+                        t_text, content = analyze_market_ai(ai_topic, ai_data)
+                        for emoji in ['💡', '🔍', '🎯', '🚀', '📌', '👔', '✅']:
+                            content = content.replace(emoji, '')
+                        st.session_state.remaining_calls -= 1
+                        deduct_user_call()
+                        st.session_state[f"ai_res_{key_suffix}"] = (t_text, content)
+                    st.rerun() 
+                else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
+            
+            # 요약 박스 노출
+            if is_analyzed:
+                t_text, content = st.session_state[f"ai_res_{key_suffix}"]
+                if '[지표의 숨은 의미]' in content:
+                    summary_part = content.split('[지표의 숨은 의미]')[0]
+                    summary = summary_part.replace('[핵심 요약]', '').strip()
+                else:
+                    summary = content[:100] + "..."
+                
+                st.markdown(f"<div style='background-color:#eff6ff; padding:20px 25px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'><div style='margin-bottom:12px;'><div style='font-size:17px; color:#1d4ed8; font-weight:800; margin-bottom:10px;'>펀드매니저 핵심 요약</div><div style='font-size:16px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div></div><div style='margin-top:12px; padding-top:12px; border-top:1px dashed #bfdbfe; font-size:13px; color:#1e40af; text-align:center; font-weight:700; line-height:1.5;'>시장 국면에 따른 신규 진입 유망 산업 정보는<br><span style='color:#ea580c; font-size:14px;'>[🔒 VIP 포트폴리오]</span>에서 상세히 제공됩니다.</div></div>", unsafe_allow_html=True)
+        else:
+            # 💡 멤버십 전용 문구를 지우고 아주 콤팩트한 로그인 버튼만 남겼습니다!
+            st.link_button("🔐 AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
+            
+    # 💡 [하단 초록 박스] (기존 로직 유지)
+    if st.session_state.logged_in and f"ai_res_{key_suffix}" in st.session_state:
+        t_text, content = st.session_state[f"ai_res_{key_suffix}"]
+        
+        if '[지표의 숨은 의미]' in content:
+            detail_raw = "[지표의 숨은 의미]" + content.split('[지표의 숨은 의미]')[1]
+        else:
+            detail_raw = content
+            
+        detail_html = detail_raw.replace('[지표의 숨은 의미]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:10px; margin-bottom:10px;'>지표의 숨은 의미</div>")
+        detail_html = detail_html.replace('[펀드매니저의 시장 해석]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>펀드매니저의 시장 해석</div>")
+        detail_html = detail_html.replace('[주식 투자 실전 활용법]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>주식 투자 실전 활용법</div>")
+        detail_html = detail_html.replace('[미래 전략 제안]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>미래 전략 제안</div>")
+        
+        st.markdown(f"""
+        <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:25px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <h3 style='color:#14532d; font-size:24px; font-weight:900; margin-top:0; margin-bottom:25px; border-bottom:2px solid #bbf7d0; padding-bottom:15px;'>{t_text} (상세)</h3>
+            <div style='font-size:20px; line-height:1.7; color:#14532d; word-break:keep-all;'>{detail_html}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    col_main, col_ai = st.columns([3, 1])
+    with col_main:
+        c1, c2 = st.columns(2)
+        with c1: draw_chart_unit(chart1['l'], chart1['v'], chart1['c'], chart1['p'], chart1['d'], chart1['col'], chart1['prd'], 0, f"{key_suffix}_1", chart1['uc'], chart1['dc'], chart1['u'], True)
+        with c2: draw_chart_unit(chart2['l'], chart2['v'], chart2['c'], chart2['p'], chart2['d'], chart2['col'], chart2['prd'], 0, f"{key_suffix}_2", chart2['uc'], chart2['dc'], chart2['u'], True)
+    
+    with col_ai:
         if st.session_state.logged_in:
             is_analyzed = f"ai_res_{key_suffix}" in st.session_state
             btn_text = "✅ 분석 완료" if is_analyzed else f"{ai_topic} 분석"
@@ -635,44 +716,45 @@ elif menu == "시장 심리":
         _, _, _, sp_data = get_yahoo_data("^GSPC", "6mo")
         _, _, _, ks_data = get_yahoo_data("^KS11", "6mo")
         rsi_sp = calculate_rsi(sp_data); rsi_ks = calculate_rsi(ks_data)
+        
+    # 📊 1. 기존 게이지 차트 3개 유지
     g1, g2, g3 = st.columns(3)
     with g1: draw_gauge_chart("공포 지수 (VIX)", vix_curr, 0, 50, [20, 30])
     with g2: draw_gauge_chart("RSI (S&P 500)", rsi_sp, 0, 100, [30, 70])
     with g3: draw_gauge_chart("RSI (코스피)", rsi_ks, 0, 100, [30, 70])
     
+    st.markdown("<br>", unsafe_allow_html=True) # 여백
+    
+    # 🚦 2. 신규 추가된 콤팩트 신호등 3개 (가로 배치)
+    t1, t2, t3 = st.columns(3)
+    with t1: draw_traffic_light_card("VIX 신호등", get_traffic_light_status("VIX", vix_curr))
+    with t2: draw_traffic_light_card("S&P 500 RSI 신호등", get_traffic_light_status("RSI", rsi_sp))
+    with t3: draw_traffic_light_card("종합 심리 신호등", get_traffic_light_status("종합", vix_curr, rsi_sp))
+    
+    st.markdown("<br>", unsafe_allow_html=True) # 여백
+    
+    # 🤖 3. 기존 AI 심리 분석 영역 유지
     st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
     if st.session_state.logged_in:
-        # 💡 분석 완료 여부 확인
         is_analyzed_sentiment = "ai_res_sentiment" in st.session_state
         btn_text_sentiment = "✅ 분석 완료" if is_analyzed_sentiment else "현재 시장 심리 분석"
         
-        # 💡 버튼 강조(primary) 및 완료 시 회색 비활성화(disabled) 적용
         if st.button(btn_text_sentiment, type="primary", disabled=is_analyzed_sentiment, use_container_width=True):
             if st.session_state.remaining_calls > 0:
                 with st.spinner("AI 펀드매니저가 데이터를 분석 중입니다."):
                     t_text, content = analyze_market_ai("현재 시장 심리", f"VIX: {vix_curr}, S&P RSI: {rsi_sp}, 코스피 RSI: {rsi_ks}")
                     st.session_state.remaining_calls -= 1
                     deduct_user_call()
-                    st.session_state["ai_res_sentiment"] = (t_text, content) # 결과 저장
+                    st.session_state["ai_res_sentiment"] = (t_text, content)
                 st.rerun()
             else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다. (오픈 예정)")
         
-        # 💡 저장된 결과 화면에 유지
         if is_analyzed_sentiment:
             t_text, content = st.session_state["ai_res_sentiment"]
             st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
     else:
-        t1, t2, t3 = st.columns(3)
-        with t1:
-            s, b, t = get_traffic_light_status("VIX", vix_curr)
-            draw_traffic_light_card("VIX 신호등", s, b, t)
-        with t2:
-            s, b, t = get_traffic_light_status("RSI", rsi_sp)
-            draw_traffic_light_card("S&P 500 RSI 신호등", s, b, t)
-        with t3:
-            s, b, t = get_traffic_light_status("종합", vix_curr, rsi_sp)
-            draw_traffic_light_card("종합 심리 신호등", s, b, t)
-
+        # 💡 멤버십 안내 텍스트를 지우고 심플한 로그인 버튼만 남겼습니다!
+        st.link_button("🔐 AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
     
@@ -1003,6 +1085,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
