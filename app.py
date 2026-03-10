@@ -17,7 +17,7 @@ cookie_manager = stx.CookieManager()
 
 # 💡 마법의 0.1초 딜레이: 브라우저가 방문증(쿠키)을 꺼낼 시간을 살짝 벌어줍니다.
 import time
-time.sleep(0.1) 
+time.sleep(0.1)
 
 saved_email = cookie_manager.get("user_email")
 
@@ -928,6 +928,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
