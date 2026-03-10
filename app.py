@@ -315,22 +315,6 @@ def calculate_rsi(data, window=14):
 # -----------------------------------------------------------------------------
 # 4. 시각화 컴포넌트
 # -----------------------------------------------------------------------------
-indicator_meta = {
-    "다우존스": {"source": "Yahoo Finance", "unit": "포인트"},
-    "S&P 500": {"source": "Yahoo Finance", "unit": "포인트"},
-    "나스닥 100": {"source": "Yahoo Finance", "unit": "포인트"},
-    "코스피": {"source": "Yahoo Finance", "unit": "포인트"},
-    "코스닥": {"source": "Yahoo Finance", "unit": "포인트"},
-    "미국 10년물 금리": {"source": "FRED", "unit": "%"},
-    "원/달러 환율": {"source": "Yahoo Finance", "unit": "원"},
-    "헤드라인 CPI": {"source": "FRED", "unit": "%"},
-    "근원(Core) CPI": {"source": "FRED", "unit": "%"},
-    "비농업 고용 지수": {"source": "FRED", "unit": "k"},
-    "실업률": {"source": "FRED", "unit": "%"},
-    "공포 지수 (VIX)": {"source": "Yahoo Finance", "unit": "포인트"},
-    "RSI (S&P 500)": {"source": "Yahoo Finance", "unit": "지수"},
-    "RSI (코스피)": {"source": "Yahoo Finance", "unit": "지수"}
-}
 def filter_data_by_period(df, period):
     if df is None or df.empty: return df
     end_date = df['Date'].max()
@@ -389,10 +373,6 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
             selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
-        meta = indicator_meta.get(label) 
-        if meta:
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            st.markdown(f"<div style='position: relative; width: 100%; height: 0px; z-index: 99; pointer-events: none;'><div style='position: absolute; top: -10px; right: 0px; text-align: right; font-size: 11px; color: #9ca3af; line-height: 1.3;'>출처: {meta['source']}<br>기준일: {today_str}<br>단위: {meta['unit']}</div></div>", unsafe_allow_html=True)
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, period=selected_period, height=180)
 
@@ -409,10 +389,6 @@ def draw_gauge_chart(title, value, min_val, max_val, thresholds, inverse=False):
         if value < 30: bar_color = "#16a34a"
         elif value > 70: bar_color = "#dc2626"
         else: bar_color = "#4b5563"
-            meta = indicator_meta.get(title)
-        if meta:
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            st.markdown(f"<div style='position: relative; width: 100%; height: 0px; z-index: 99; pointer-events: none;'><div style='position: absolute; top: 0px; right: 0px; text-align: right; font-size: 11px; color: #9ca3af; line-height: 1.3;'>출처: {meta['source']}<br>기준일: {today_str}<br>단위: {meta['unit']}</div></div>", unsafe_allow_html=True)
     fig = go.Figure(go.Indicator(
         mode = "gauge+number", value = value,
         title = {'text': title, 'font': {'size': 18, 'color': "#374151"}},
@@ -952,3 +928,10 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
+
+
+
+
+
+
