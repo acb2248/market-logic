@@ -378,14 +378,17 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
     if change > 0: color, bg_color, arrow, sign = up_color, f"{up_color}15", "▲", "+"
     elif change < 0: color, bg_color, arrow, sign = down_color, f"{down_color}15", "▼", ""
     else: color, bg_color, arrow, sign = "#6b7280", "#f3f4f6", "-", ""
+    
     st.markdown(f"""
     <div style="display: flex; flex-direction: column;">
         <div style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">{label}</div>
-        <div style="display: flex; align-items: baseline; gap: 8px;">
-            <div style="font-size: 26px; font-weight: 800; color: #111827;">{value:,.2f}<span style="font-size: 16px; color: #9ca3af; margin-left: 2px;">{unit}</span></div>
-            <div style="font-size: 12px; font-weight: 700; color: {color}; background-color: {bg_color}; padding: 3px 6px; border-radius: 4px;">
+        <div style="font-size: 26px; font-weight: 800; color: #111827; white-space: nowrap;">
+            {value:,.2f}<span style="font-size: 16px; color: #9ca3af; margin-left: 2px;">{unit}</span>
+        </div>
+        <div style="margin-top: 6px;">
+            <span style="font-size: 12px; font-weight: 700; color: {color}; background-color: {bg_color}; padding: 3px 6px; border-radius: 4px; display: inline-block;">
                 {arrow} {sign}{change:,.2f} ({sign}{pct_change:.2f}%)
-            </div>
+            </span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -948,3 +951,4 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
