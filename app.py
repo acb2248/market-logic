@@ -395,17 +395,17 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
 
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
     with st.container(border=True):
-        # 💡 1. 차트 박스 여백(padding) & 기간 버튼 1줄 강제 고정 CSS 추가
+        # 💡 마법의 CSS: 차트 여백을 주면서, 동시에 라디오 버튼 글자가 절대 줄바꿈되지 않게(nowrap) 강제합니다!
         st.markdown("""
         <style>
-        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 25px 30px !important; }
-        div[role="radiogroup"] { flex-wrap: nowrap !important; gap: 5px !important; }
+        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 20px 25px !important; }
+        div[role="radiogroup"] { flex-wrap: nowrap !important; gap: 8px !important; }
+        div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
         div[role="radiogroup"] p { font-size: 13px !important; }
         </style>
         """, unsafe_allow_html=True)
 
         if use_columns:
-            # 💡 기존 1.5, 1.5 비율 유지 (절대 건드리지 않음!)
             c1, c2 = st.columns([1.5, 1.5])
             with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
             with c2: 
@@ -416,14 +416,14 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
             selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
-        # 💡 2. 허공에 띄우는 absolute를 빼고, 기간 버튼 바로 밑 & 차트 바로 위에 가로 1줄로 안착!
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            st.markdown(f"<div style='text-align: right; font-size: 11px; color: #9ca3af; margin-top: 10px; margin-bottom: 10px; white-space: nowrap;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
+            # 💡 메타데이터가 기간 버튼 밑, 차트 위로 겹침 없이 한 줄로 쫙 펴집니다!
+            st.markdown(f"<div style='text-align: right; font-size: 11px; color: #9ca3af; margin-top: 15px; margin-bottom: 10px; white-space: nowrap;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
         else:
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
-        
+            
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, period=selected_period, height=180)
 
@@ -960,5 +960,6 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
