@@ -321,40 +321,31 @@ def get_traffic_light_status(topic, val1, val2=None):
             if val1 >= 4.5 or val2 >= 1400: return "위험"
             elif val1 >= 4.0 or val2 >= 1350: return "경계"
             else: return "안정"
-            
         elif topic == "물가 지표": 
             if val1 >= 4.0 or val2 >= 4.0: return "위험"
             elif val1 >= 3.0 or val2 >= 3.0: return "경계"
             else: return "안정"
-            
         elif topic == "고용 지표": 
             if val2 >= 5.0: return "위험"
             elif val2 >= 4.0: return "경계"
             else: return "안정"
-            
         elif topic == "VIX": 
             if val1 >= 30: return "위험"
             elif val1 >= 20: return "경계"
             else: return "안정"
-            
         elif topic == "RSI": 
             if val1 >= 70 or val1 <= 30: return "위험"
             elif val1 >= 60 or val1 <= 40: return "경계"
             else: return "안정"
-            
         elif topic == "종합": 
             if val1 >= 30 or val2 >= 70 or val2 <= 30: return "위험"
             elif val1 >= 20 or val2 >= 60 or val2 <= 40: return "경계"
             else: return "안정"
-    except:
-        pass
+    except: pass
     return "안정"
 
 def draw_traffic_light_card(title, status):
-    # 플랫 컬러 (그라데이션 X)
     c_red, c_yel, c_grn = "#ef4444", "#f59e0b", "#22c55e"
-    
-    # 💡 켜진 불은 100% 밝기+글로우 효과, 꺼진 불은 20% 밝기로 진짜 신호등처럼 연출!
     op_r, glow_r = ("1", f"0 0 10px {c_red}") if status == "위험" else ("0.2", "none")
     op_y, glow_y = ("1", f"0 0 10px {c_yel}") if status == "경계" else ("0.2", "none")
     op_g, glow_g = ("1", f"0 0 10px {c_grn}") if status == "안정" else ("0.2", "none")
@@ -541,11 +532,11 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
         with c2: draw_chart_unit(chart2['l'], chart2['v'], chart2['c'], chart2['p'], chart2['d'], chart2['col'], chart2['prd'], 0, f"{key_suffix}_2", chart2['uc'], chart2['dc'], chart2['u'], True)
     
     with col_ai:
-        # 🚦 1. 신호등 먼저 깔끔하게 표시 (항상 노출)
+        # 🚦 신호등 추가 (맨 위에 고정)
         status = get_traffic_light_status(ai_topic, chart1['v'], chart2['v'] if chart2 else None)
         draw_traffic_light_card(f"{ai_topic} 신호등", status)
-        
-        # 🤖 2. 기존 AI 버튼 및 요약 화면 (신호등 아래에 유지)
+
+        # 🤖 AI 버튼 및 요약창 로직 (기존 그대로 유지)
         if st.session_state.logged_in:
             is_analyzed = f"ai_res_{key_suffix}" in st.session_state
             btn_text = "✅ 분석 완료" if is_analyzed else f"{ai_topic} 분석"
@@ -562,7 +553,6 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                     st.rerun() 
                 else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
             
-            # 요약 박스 노출
             if is_analyzed:
                 t_text, content = st.session_state[f"ai_res_{key_suffix}"]
                 if '[지표의 숨은 의미]' in content:
@@ -573,7 +563,7 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                 
                 st.markdown(f"<div style='background-color:#eff6ff; padding:20px 25px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'><div style='margin-bottom:12px;'><div style='font-size:17px; color:#1d4ed8; font-weight:800; margin-bottom:10px;'>펀드매니저 핵심 요약</div><div style='font-size:16px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div></div><div style='margin-top:12px; padding-top:12px; border-top:1px dashed #bfdbfe; font-size:13px; color:#1e40af; text-align:center; font-weight:700; line-height:1.5;'>시장 국면에 따른 신규 진입 유망 산업 정보는<br><span style='color:#ea580c; font-size:14px;'>[🔒 VIP 포트폴리오]</span>에서 상세히 제공됩니다.</div></div>", unsafe_allow_html=True)
         else:
-            # 💡 멤버십 전용 문구를 지우고 아주 콤팩트한 로그인 버튼만 남겼습니다!
+            # 멤버십 전용 텍스트 제거하고 심플하게 버튼만!
             st.link_button("🔐 AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
             
     # 💡 [하단 초록 박스] (기존 로직 유지)
@@ -1085,6 +1075,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
