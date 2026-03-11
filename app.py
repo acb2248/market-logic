@@ -659,7 +659,7 @@ elif menu == "시장 심리":
             st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
     else:
         # 멤버십 안내 지우고 로그인 버튼만 유지
-        st.link_button("🔐 AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
+        st.link_button("AI 펀드매니저 연결", get_google_login_url(), type="primary", use_container_width=True)
 
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
@@ -968,6 +968,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
