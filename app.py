@@ -400,8 +400,8 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         <style>
         div[data-testid="stVerticalBlockBorderWrapper"] { padding: 20px 25px !important; }
         div[role="radiogroup"] { 
-            flex-wrap: nowrap !important; 
-            gap: 8px !important; 
+            flex-wrap: wrap !important; /* 💡 nowrap을 wrap으로 변경하여 좁을 때 줄바꿈 허용! */
+            gap: 5px 8px !important; /* 💡 줄이 바뀌었을 때 위아래 간격(5px)을 추가로 줌 */
             justify-content: flex-end !important; /* 버튼 우측 밀기 */
             padding-right: 8px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
         }
@@ -968,6 +968,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
