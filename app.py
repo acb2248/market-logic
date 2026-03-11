@@ -403,7 +403,7 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
             flex-wrap: nowrap !important; 
             gap: 8px !important; 
             justify-content: flex-end !important; /* 버튼 우측 밀기 */
-            padding-right: 15px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
+            padding-right: 10px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
         }
         div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
         div[role="radiogroup"] p { font-size: 13px !important; }
@@ -968,6 +968,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
