@@ -395,11 +395,16 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
 
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
     with st.container(border=True):
-        # 💡 마법의 CSS: 차트 여백을 주면서, 동시에 라디오 버튼 글자가 절대 줄바꿈되지 않게(nowrap) 강제합니다!
+        # 💡 마법의 CSS: 버튼 줄바꿈 방지 + 버튼 우측 정렬(flex-end) + 맨 끝에서 살짝 띄우기(padding-right)
         st.markdown("""
         <style>
         div[data-testid="stVerticalBlockBorderWrapper"] { padding: 20px 25px !important; }
-        div[role="radiogroup"] { flex-wrap: nowrap !important; gap: 8px !important; }
+        div[role="radiogroup"] { 
+            flex-wrap: nowrap !important; 
+            gap: 8px !important; 
+            justify-content: flex-end !important; /* 버튼 우측 밀기 */
+            padding-right: 15px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
+        }
         div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
         div[role="radiogroup"] p { font-size: 13px !important; }
         </style>
@@ -412,9 +417,12 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
                 st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
                 selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         else:
-            styled_metric(label, val, chg, pct, unit, up_c, down_c)
-            st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
-            selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+            # 💡 미국 3대 지수도 위아래로 쌓지 않고 무조건 가로(좌-우) 1줄 배치로 양식 통일! (비율만 1.2 : 1.8로 맞춰줌)
+            c1, c2 = st.columns([1.2, 1.8])
+            with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
+            with c2: 
+                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
+                selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         meta = indicator_meta.get(label) 
         if meta:
@@ -960,6 +968,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
