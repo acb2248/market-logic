@@ -637,7 +637,7 @@ elif menu == "시장 심리":
     t1, t2, t3 = st.columns(3)
     with t1: draw_traffic_light_card("VIX 신호등", get_traffic_light_status("VIX", vix_curr))
     with t2: draw_traffic_light_card("S&P 500 신호등", get_traffic_light_status("RSI", rsi_sp))
-    with t3: draw_traffic_light_card("코스 신호등", get_traffic_light_status("종합", vix_curr, rsi_sp))
+    with t3: draw_traffic_light_card("코스피 신호등", get_traffic_light_status("종합", vix_curr, rsi_sp))
     
     st.markdown("<div class='section-header'>AI 심리 분석</div>", unsafe_allow_html=True)
     if st.session_state.logged_in:
@@ -968,6 +968,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
