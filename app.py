@@ -214,7 +214,7 @@ with st.sidebar:
 # -----------------------------------------------------------------------------
 # 3. 데이터 엔진
 # -----------------------------------------------------------------------------
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def get_yahoo_data(ticker, period="10y"):
     try:
         data = yf.Ticker(ticker).history(period=period) 
@@ -232,8 +232,8 @@ def get_yahoo_data(ticker, period="10y"):
     except: pass
     return None, None, None, None
 
-# 💡 1. 로딩 속도 20초 -> 1초로 단축하는 마법 (1시간 동안 데이터 기억)
-@st.cache_data(ttl=3600)
+# 💡 이 줄을 추가하세요! (86400초 = 24시간 동안 안 바뀜)
+@st.cache_data(ttl=86400) 
 def get_fred_data(series_id, calculation_type='raw'):
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
     
@@ -285,6 +285,8 @@ def get_fred_data(series_id, calculation_type='raw'):
     st.cache_data.clear() 
     return None, None, None, None
 
+# 💡 이 줄을 추가하세요! (금리도 하루에 한 번만 갱신)
+@st.cache_data(ttl=86400) 
 def get_interest_rate_hybrid():
     res = get_yahoo_data("^TNX")
     if res[0] is not None: return res
@@ -996,6 +998,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
