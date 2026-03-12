@@ -232,7 +232,7 @@ def get_yahoo_data(ticker, period="10y"):
     except: pass
     return None, None, None, None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600) # 💡 마법의 1줄: 한 번 불러온 데이터는 1시간 동안 기억해서 0.1초 만에 띄웁니다!
 def get_fred_data(series_id, calculation_type='raw'):
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -240,21 +240,39 @@ def get_fred_data(series_id, calculation_type='raw'):
         try:
             r = requests.get(url, headers=headers, timeout=5)
             if r.status_code == 200 and not r.text.strip().startswith("<"):
-                df = pd.read_csv(StringIO(r.text))
+                # 💡 마침표('.')를 결측치로 인식하게 만들어서 문자열 에러를 원천 차단합니다.
+                df = pd.read_csv(StringIO(r.text), na_values='.')
+                
                 date_col = next((c for c in df.columns if 'date' in c.lower()), None)
                 if not date_col: continue
+                
                 df = df.rename(columns={date_col: 'Date'})
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
-                if calculation_type == 'yoy': df['Value'] = df.iloc[:, 0].pct_change(12) * 100
-                elif calculation_type == 'diff': df['Value'] = df.iloc[:, 0].diff()
-                else: df['Value'] = df.iloc[:, 0]
-                df = df.dropna()
+                
+                # 💡 핵심: 첫 번째 데이터 열을 무조건 '숫자'로 강제 변환 (에러 나면 NaN 처리)
+                val_col = df.columns[0]
+                df[val_col] = pd.to_numeric(df[val_col], errors='coerce')
+                df = df.dropna() # 결측치 날리기
+                
+                if calculation_type == 'yoy': 
+                    df['Value'] = df[val_col].pct_change(12) * 100
+                elif calculation_type == 'diff': 
+                    df['Value'] = df[val_col].diff()
+                else: 
+                    df['Value'] = df[val_col]
+                    
+                df = df.dropna() # YoY나 Diff 계산 후 생긴 앞부분의 결측치 날리기
+                
+                if len(df) < 2: continue # 데이터가 2개 미만이면 패스
+                
                 curr = df['Value'].iloc[-1]
                 prev = df['Value'].iloc[-2]
                 change = curr - prev
                 return curr, change, 0, df.reset_index()
-        except: time.sleep(1); continue
+        except: 
+            time.sleep(1)
+            continue
     return None, None, None, None
 
 def get_interest_rate_hybrid():
@@ -968,6 +986,7 @@ st.markdown("""
     <strong>[면책 조항]</strong> 본 웹사이트에서 제공하는 데이터 및 AI 분석 정보는 투자 참고용이며 최종 판단과 책임은 투자자 본인에게 있습니다.
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
