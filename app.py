@@ -511,30 +511,30 @@ def analyze_market_ai(topic, data_summary):
     if not api_key: return "API Key 필요", "설정 탭에서 API Key를 입력해주세요."
     client = openai.OpenAI(api_key=api_key)
     
-    prompt = f"""당신은 월스트리트 탑클래스 펀드매니저입니다.
+    prompt = f"""당신은 전설적인 투자자 '버나드 바루크'의 철학(세계경제지표의 비밀)을 계승한 탑클래스 펀드매니저입니다.
 주제: {topic}
 데이터: {data_summary}
 
 [중요 지침]
 1. 이모지(아이콘)와 볼드체(**)를 절대 사용하지 마세요. 오직 텍스트만 사용하세요.
-2. 각 항목은 정확히 2문장으로만 아주 간결하게 작성하세요.
+2. 각 항목은 정확히 2문장으로만 아주 간결하고 냉철하게 작성하세요.
 3. 아래의 대괄호 '[목차명]'을 반드시 그대로 출력하세요.
-4. 모든 문장은 VIP 고객에게 브리핑하듯 반드시 친절하고 전문적인 존댓말(~입니다, ~습니다 )로 작성하세요.
+4. 모든 문장은 VIP 고객에게 브리핑하듯 정중한 존댓말(~입니다, ~습니다)로 작성하세요.
 
 [핵심 요약]
-전체 상황과 투자자가 취해야 할 포지션을 딱 2문장으로 요약하세요.
+현재 데이터를 바탕으로 시장의 전체적인 국면과 포지션 방향을 2문장으로 요약하세요.
 
-[지표의 숨은 의미]
-이 데이터의 의미를 일상적인 비유(체온계 등)를 들어 2문장으로 설명하세요.
+[시장의 이면]
+이 지표가 숨기고 있는 대중의 심리와 경제의 진짜 상황을 바루크의 관점에서 2문장으로 꿰뚫어보세요.
 
-[펀드매니저의 시장 해석]
-현재 숫자가 주식/금리/환율에 보내는 신호를 2문장으로 분석하세요.
+[자금의 이동 경로]
+현재 지표의 결과로 인해 스마트머니(거대 자본)가 주식, 금리, 환율 중 어디로 어떻게 이동하고 있는지 2문장으로 추적하세요.
 
-[주식 투자 실전 활용법]
-피해야 할 섹터와 유망한 자산을 2문장으로 구체적으로 짚어주세요.
+[리스크와 기회]
+현재 국면에서 가장 취약한 섹터(리스크)와 자금이 몰릴 유망 자산(기회)을 2문장으로 명확히 구분하여 제시하세요.
 
-[미래 전략 제안]
-앞으로 1~3개월 시나리오와 당장 취해야 할 행동을 2문장으로 제안하세요.
+[행동 지침]
+향후 1~3개월 시나리오에 대비해 투자자가 지금 당장 실행해야 할 구체적인 행동을 2문장으로 지시하세요.
 """
     try:
         resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
@@ -556,7 +556,8 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
         
         if st.session_state.logged_in:
             is_analyzed = f"ai_res_{key_suffix}" in st.session_state
-            btn_text = "✅ 분석 완료" if is_analyzed else f"{ai_topic} 분석"
+            # 아이콘 제거 정책에 따라 체크 아이콘 삭제
+            btn_text = "분석 완료" if is_analyzed else f"{ai_topic} 분석"
             
             if st.button(btn_text, key=f"btn_{key_suffix}", type="primary", disabled=is_analyzed, use_container_width=True):
                 if st.session_state.remaining_calls > 0:
@@ -571,39 +572,55 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
                         st.session_state[f"ai_res_{key_suffix}"] = (t_text, content)
                     st.rerun() 
                 else: st.error("⚠️ 현재 유료 멤버십 결제 시스템을 준비 중입니다.")
-            
-            if is_analyzed:
-                t_text, content = st.session_state[f"ai_res_{key_suffix}"]
-                if '[지표의 숨은 의미]' in content:
-                    summary_part = content.split('[지표의 숨은 의미]')[0]
-                    summary = summary_part.replace('[핵심 요약]', '').strip()
-                else:
-                    summary = content[:100] + "..."
-                
-                st.markdown(f"<div style='background-color:#eff6ff; padding:20px 25px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'><div style='margin-bottom:12px;'><div style='font-size:17px; color:#1d4ed8; font-weight:800; margin-bottom:10px;'>펀드매니저 핵심 요약</div><div style='font-size:16px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div></div><div style='margin-top:12px; padding-top:12px; border-top:1px dashed #bfdbfe; font-size:13px; color:#1e40af; text-align:center; font-weight:700; line-height:1.5;'>시장 국면에 따른 신규 진입 유망 산업 정보는<br><span style='color:#ea580c; font-size:14px;'>[🔒 VIP 포트폴리오]</span>에서 상세히 제공됩니다.</div></div>", unsafe_allow_html=True)
         else:
-            # 멤버십 안내 지우고 로그인 버튼만 유지
             st.link_button("AI 투자 전략 보기", get_google_login_url(), type="primary", use_container_width=True)
             
+    # --- 분석 완료 후 하단 영역 (가로 요약 + 4분할 카드) ---
     if st.session_state.logged_in and f"ai_res_{key_suffix}" in st.session_state:
         t_text, content = st.session_state[f"ai_res_{key_suffix}"]
         
-        if '[지표의 숨은 의미]' in content:
-            detail_raw = "[지표의 숨은 의미]" + content.split('[지표의 숨은 의미]')[1]
-        else:
-            detail_raw = content
-            
-        detail_html = detail_raw.replace('[지표의 숨은 의미]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:10px; margin-bottom:10px;'>지표의 숨은 의미</div>")
-        detail_html = detail_html.replace('[펀드매니저의 시장 해석]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>펀드매니저의 시장 해석</div>")
-        detail_html = detail_html.replace('[주식 투자 실전 활용법]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>주식 투자 실전 활용법</div>")
-        detail_html = detail_html.replace('[미래 전략 제안]', "<div style='font-size:22px; font-weight:800; color:#065f46; margin-top:25px; margin-bottom:10px;'>미래 전략 제안</div>")
+        # 텍스트 파싱 처리
+        try:
+            summary = content.split('[핵심 요약]')[1].split('[시장의 이면]')[0].strip()
+            part1 = content.split('[시장의 이면]')[1].split('[자금의 이동 경로]')[0].strip()
+            part2 = content.split('[자금의 이동 경로]')[1].split('[리스크와 기회]')[0].strip()
+            part3 = content.split('[리스크와 기회]')[1].split('[행동 지침]')[0].strip()
+            part4 = content.split('[행동 지침]')[1].strip()
+        except:
+            summary = content[:150] + "..."
+            part1, part2, part3, part4 = "", "", "", ""
         
+        # 1. 하단 가로형 풀사이즈 핵심 요약 (파란색)
         st.markdown(f"""
-        <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:25px; margin-top:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-            <h3 style='color:#14532d; font-size:24px; font-weight:900; margin-top:0; margin-bottom:25px; border-bottom:2px solid #bbf7d0; padding-bottom:15px;'>{t_text} (상세)</h3>
-            <div style='font-size:20px; line-height:1.7; color:#14532d; word-break:keep-all;'>{detail_html}</div>
+        <div style='background-color:#eff6ff; padding:20px 25px; border-radius:12px; border-left:5px solid #3b82f6; margin-top:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+            <div style='font-size:17px; color:#1d4ed8; font-weight:800; margin-bottom:10px;'>펀드매니저 핵심 요약</div>
+            <div style='font-size:16px; font-weight:700; color:#1e3a8a; line-height:1.6; word-break:keep-all;'>{summary}</div>
         </div>
         """, unsafe_allow_html=True)
+        
+        # 2. 아이콘 없는 모던하고 정갈한 2x2 카드 그리드
+        st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
+        
+        if part1:
+            # 공통 카드 스타일 설정
+            card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:22px; height:100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+            title_style = "font-size:17px; font-weight:800; color:#111827; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #f3f4f6;"
+            text_style = "font-size:15px; line-height:1.7; color:#4b5563; word-break:keep-all;"
+            
+            row1_col1, row1_col2 = st.columns(2)
+            with row1_col1:
+                st.markdown(f"<div style='{card_style}'><div style='{title_style}'>시장의 이면</div><div style='{text_style}'>{part1}</div></div>", unsafe_allow_html=True)
+            with row1_col2:
+                st.markdown(f"<div style='{card_style}'><div style='{title_style}'>자금의 이동 경로</div><div style='{text_style}'>{part2}</div></div>", unsafe_allow_html=True)
+                
+            st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+            
+            row2_col1, row2_col2 = st.columns(2)
+            with row2_col1:
+                st.markdown(f"<div style='{card_style}'><div style='{title_style}'>리스크와 기회</div><div style='{text_style}'>{part3}</div></div>", unsafe_allow_html=True)
+            with row2_col2:
+                # 행동 지침만 살짝 톤을 다르게 주어 무게감을 줍니다 (배경색 미세 조절)
+                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:22px; height:100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'><div style='font-size:17px; font-weight:800; color:#0f172a; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;'>행동 지침</div><div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all; font-weight:600;'>{part4}</div></div>", unsafe_allow_html=True)
 
     st.markdown("<hr>", unsafe_allow_html=True)
     
