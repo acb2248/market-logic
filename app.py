@@ -256,21 +256,27 @@ def get_fred_data(series_id, calculation_type='raw'):
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
                 
-                # 오류 방지를 위해 'Value' 컬럼만 지정해서 처리
+                # 💡 핵심 수정 파트: FRED API의 미세한 찌꺼기를 완벽히 걸러내고 순수 숫자만 추출!
+                # 1. 값이 '.' 이거나 빈칸인 것을 진짜 NaN(결측치)으로 바꿉니다.
+                df['Value'] = df['Value'].replace('.', pd.NA) 
+                df = df.dropna(subset=['Value']) # 빈칸 날리기
+                # 2. 안전하게 숫자로 변환합니다.
                 df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
-                df = df.dropna(subset=['Value']) 
+                df = df.dropna(subset=['Value']) # 변환 실패한 찌꺼기 한 번 더 날리기
+                
+                if df.empty: continue # 남은 데이터가 없으면 패스
                 
                 if calculation_type == 'yoy': 
                     df['Value'] = df['Value'].pct_change(12) * 100
                 elif calculation_type == 'diff': 
                     df['Value'] = df['Value'].diff()
                     
-                df = df.dropna(subset=['Value']) 
+                df = df.dropna(subset=['Value']) # 계산 후 생긴 앞쪽 빈칸 날리기
                 
                 if len(df) < 2: continue 
                 
-                curr = df['Value'].iloc[-1]
-                prev = df['Value'].iloc[-2]
+                curr = float(df['Value'].iloc[-1]) # 💡 확실하게 소수점 숫자로 못 박기
+                prev = float(df['Value'].iloc[-2])
                 change = curr - prev
                 return curr, change, 0, df.reset_index()
         except: 
