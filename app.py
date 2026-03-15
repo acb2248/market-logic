@@ -236,44 +236,36 @@ def get_yahoo_data(ticker, period="10y"):
 # 💡 이 줄을 추가하세요! (86400초 = 24시간 동안 안 바뀜)
 @st.cache_data(ttl=86400) 
 def get_fred_data(series_id, calculation_type='raw'):
-    # 💡 1. 정식 API 키를 금고(Secrets)에서 꺼내옵니다.
-    try:
-        api_key = st.secrets["FRED_API_KEY"]
-    except:
-        st.error("FRED API 키가 설정되지 않았습니다. Secrets를 확인해주세요!")
+    # 금고에서 키를 꺼낼 수 없는 상황이면 에러 없이 안전하게 종료
+    if "FRED_API_KEY" not in st.secrets:
         return None, None, None, None
 
-    # 💡 2. API 전용 URL로 변경 (json 포맷) - 봇 차단이 없으므로 User-Agent 위장이 필요 없습니다!
+    api_key = st.secrets["FRED_API_KEY"]
     url = f"https://api.stlouisfed.org/fred/series/observations?series_id={series_id}&api_key={api_key}&file_type=json"
     
     for _ in range(3):
         try:
-            r = requests.get(url, timeout=10)
+            r = requests.get(url, timeout=5)
             if r.status_code == 200:
                 data = r.json()
                 observations = data.get('observations', [])
                 if not observations: continue
                 
-                # --- [선생님의 데이터 처리 로직 그대로 유지 (건드리지 않음!)] ---
                 df = pd.DataFrame(observations)
-                
-                # JSON은 소문자 'date', 'value'로 들어오므로 선생님 코드에 맞게 대문자로 맞춰줍니다.
                 df = df.rename(columns={'date': 'Date', 'value': 'Value'})
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
                 
-                val_col = 'Value' # 데이터 컬럼 이름 고정
-                df[val_col] = pd.to_numeric(df[val_col], errors='coerce')
-                df = df.dropna() 
+                # 오류 방지를 위해 'Value' 컬럼만 지정해서 처리
+                df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
+                df = df.dropna(subset=['Value']) 
                 
                 if calculation_type == 'yoy': 
-                    df['Value'] = df[val_col].pct_change(12) * 100
+                    df['Value'] = df['Value'].pct_change(12) * 100
                 elif calculation_type == 'diff': 
-                    df['Value'] = df[val_col].diff()
-                else: 
-                    df['Value'] = df[val_col]
+                    df['Value'] = df['Value'].diff()
                     
-                df = df.dropna() 
+                df = df.dropna(subset=['Value']) 
                 
                 if len(df) < 2: continue 
                 
@@ -281,14 +273,10 @@ def get_fred_data(series_id, calculation_type='raw'):
                 prev = df['Value'].iloc[-2]
                 change = curr - prev
                 return curr, change, 0, df.reset_index()
-                # -----------------------------------------------------------
-                
         except: 
-            time.sleep(1)
+            time.sleep(0.5)
             continue
             
-    # 에러 나서 데이터 못 가져왔을 때, 캐시에 빈칸 저장되지 않도록 방어
-    st.cache_data.clear() 
     return None, None, None, None
 
 # 💡 이 줄을 추가하세요! (금리도 하루에 한 번만 갱신)
@@ -643,24 +631,19 @@ if menu == "주가 지수":
 
 elif menu == "투자 지표":
     st.title("투자 지표 (Economic Indicators)")
-    with st.spinner('로딩 중... (병렬 처리로 초고속 호출!)'):
-        
-        # 💡 6개의 지표를 순서대로 기다리지 않고 동시에(병렬로) 요청합니다!
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            f_rate = executor.submit(get_interest_rate_hybrid)
-            f_exch = executor.submit(get_yahoo_data, "KRW=X", "10y")
-            f_cpi = executor.submit(get_fred_data, "CPIAUCSL", "yoy")
-            f_core = executor.submit(get_fred_data, "CPILFESL", "yoy")
-            f_job = executor.submit(get_fred_data, "PAYEMS", "diff")
-            f_unemp = executor.submit(get_fred_data, "UNRATE", "raw")
+    
+    # 🚨 선생님의 로컬(VSC) 환경에서 키가 없는지 친절하게 알려주는 경고창 추가
+    if "FRED_API_KEY" not in st.secrets:
+        st.error("🚨 API 키 오류: Streamlit 웹사이트(Secrets) 또는 로컬의 .streamlit/secrets.toml에 키가 없습니다!")
 
-            # 선생님이 기존에 쓰시던 변수명 그대로, 완료된 결과물을 한 번에 싹 받아옵니다.
-            rate_val, rate_chg, rate_pct, rate_data = f_rate.result()
-            exch_val, exch_chg, exch_pct, exch_data = f_exch.result()
-            cpi_val, cpi_chg, cpi_pct, cpi_data = f_cpi.result()
-            core_val, core_chg, core_pct, core_data = f_core.result()
-            job_val, job_chg, job_pct, job_data = f_job.result()
-            unemp_val, unemp_chg, unemp_pct, unemp_data = f_unemp.result()
+    with st.spinner('로딩 중... (API 프리패스 적용 완료!)'):
+        # 동시 출발(병렬) 대신, 0.1초 만에 끝나는 정식 API 순차 호출(직렬)로 안전하게 실행
+        rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
+        exch_val, exch_chg, exch_pct, exch_data = get_yahoo_data("KRW=X", "10y")
+        cpi_val, cpi_chg, cpi_pct, cpi_data = get_fred_data("CPIAUCSL", "yoy")
+        core_val, core_chg, core_pct, core_data = get_fred_data("CPILFESL", "yoy")
+        job_val, job_chg, job_pct, job_data = get_fred_data("PAYEMS", "diff")
+        unemp_val, unemp_chg, unemp_pct, unemp_data = get_fred_data("UNRATE", "raw")
 
     draw_section_with_ai("금융 시장 (금리 & 환율)", {'l': "미국 10년물 금리", 'v': rate_val, 'c': rate_chg, 'p': rate_pct, 'd': rate_data, 'col': "#f59e0b", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#f59e0b", 'dc': "#3b82f6", 'u': "%"}, {'l': "원/달러 환율", 'v': exch_val, 'c': exch_chg, 'p': exch_pct, 'd': exch_data, 'col': "#10b981", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#10b981", 'dc': "#3b82f6", 'u': "원"}, "finance", "금융 시장", f"금리: {rate_val}%, 환율: {exch_val}원")
     draw_section_with_ai("물가 지표 (인플레이션)", {'l': "헤드라인 CPI", 'v': cpi_val, 'c': cpi_chg, 'p': cpi_pct, 'd': cpi_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"}, {'l': "근원(Core) CPI", 'v': core_val, 'c': core_chg, 'p': core_pct, 'd': core_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"}, "inflation", "물가 지표", f"헤드라인CPI: {cpi_val}%, 근원CPI: {core_val}%")
