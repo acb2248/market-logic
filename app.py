@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 import urllib.parse
 from streamlit_gsheets import GSheetsConnection 
 import extra_streamlit_components as stx
+import concurrent.futures
 
 # 1. 쿠키 매니저 및 새로고침 방어 로직 (최상단 배치)
 cookie_manager = stx.CookieManager()
@@ -235,28 +236,33 @@ def get_yahoo_data(ticker, period="10y"):
 # 💡 이 줄을 추가하세요! (86400초 = 24시간 동안 안 바뀜)
 @st.cache_data(ttl=86400) 
 def get_fred_data(series_id, calculation_type='raw'):
-    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
-    
-    # 💡 2. 봇 차단 방지: 진짜 윈도우 크롬 브라우저인 것처럼 신분증 완벽 위장
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
+    # 💡 1. 정식 API 키를 금고(Secrets)에서 꺼내옵니다.
+    try:
+        api_key = st.secrets["FRED_API_KEY"]
+    except:
+        st.error("FRED API 키가 설정되지 않았습니다. Secrets를 확인해주세요!")
+        return None, None, None, None
+
+    # 💡 2. API 전용 URL로 변경 (json 포맷) - 봇 차단이 없으므로 User-Agent 위장이 필요 없습니다!
+    url = f"https://api.stlouisfed.org/fred/series/observations?series_id={series_id}&api_key={api_key}&file_type=json"
     
     for _ in range(3):
         try:
-            # 💡 3. 타임아웃을 5초에서 10초로 늘려 여유 확보
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code == 200 and not r.text.strip().startswith("<"):
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                observations = data.get('observations', [])
+                if not observations: continue
                 
                 # --- [선생님의 데이터 처리 로직 그대로 유지 (건드리지 않음!)] ---
-                df = pd.read_csv(StringIO(r.text), na_values='.')
+                df = pd.DataFrame(observations)
                 
-                date_col = next((c for c in df.columns if 'date' in c.lower()), None)
-                if not date_col: continue
-                
-                df = df.rename(columns={date_col: 'Date'})
+                # JSON은 소문자 'date', 'value'로 들어오므로 선생님 코드에 맞게 대문자로 맞춰줍니다.
+                df = df.rename(columns={'date': 'Date', 'value': 'Value'})
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.set_index('Date').sort_index()
                 
-                val_col = df.columns[0]
+                val_col = 'Value' # 데이터 컬럼 이름 고정
                 df[val_col] = pd.to_numeric(df[val_col], errors='coerce')
                 df = df.dropna() 
                 
@@ -637,13 +643,24 @@ if menu == "주가 지수":
 
 elif menu == "투자 지표":
     st.title("투자 지표 (Economic Indicators)")
-    with st.spinner('로딩 중...'):
-        rate_val, rate_chg, rate_pct, rate_data = get_interest_rate_hybrid()
-        exch_val, exch_chg, exch_pct, exch_data = get_yahoo_data("KRW=X", "10y")
-        cpi_val, cpi_chg, cpi_pct, cpi_data = get_fred_data("CPIAUCSL", "yoy")
-        core_val, core_chg, core_pct, core_data = get_fred_data("CPILFESL", "yoy")
-        job_val, job_chg, job_pct, job_data = get_fred_data("PAYEMS", "diff")
-        unemp_val, unemp_chg, unemp_pct, unemp_data = get_fred_data("UNRATE", "raw")
+    with st.spinner('로딩 중... (병렬 처리로 초고속 호출!)'):
+        
+        # 💡 6개의 지표를 순서대로 기다리지 않고 동시에(병렬로) 요청합니다!
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            f_rate = executor.submit(get_interest_rate_hybrid)
+            f_exch = executor.submit(get_yahoo_data, "KRW=X", "10y")
+            f_cpi = executor.submit(get_fred_data, "CPIAUCSL", "yoy")
+            f_core = executor.submit(get_fred_data, "CPILFESL", "yoy")
+            f_job = executor.submit(get_fred_data, "PAYEMS", "diff")
+            f_unemp = executor.submit(get_fred_data, "UNRATE", "raw")
+
+            # 선생님이 기존에 쓰시던 변수명 그대로, 완료된 결과물을 한 번에 싹 받아옵니다.
+            rate_val, rate_chg, rate_pct, rate_data = f_rate.result()
+            exch_val, exch_chg, exch_pct, exch_data = f_exch.result()
+            cpi_val, cpi_chg, cpi_pct, cpi_data = f_cpi.result()
+            core_val, core_chg, core_pct, core_data = f_core.result()
+            job_val, job_chg, job_pct, job_data = f_job.result()
+            unemp_val, unemp_chg, unemp_pct, unemp_data = f_unemp.result()
 
     draw_section_with_ai("금융 시장 (금리 & 환율)", {'l': "미국 10년물 금리", 'v': rate_val, 'c': rate_chg, 'p': rate_pct, 'd': rate_data, 'col': "#f59e0b", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#f59e0b", 'dc': "#3b82f6", 'u': "%"}, {'l': "원/달러 환율", 'v': exch_val, 'c': exch_chg, 'p': exch_pct, 'd': exch_data, 'col': "#10b981", 'prd': ["1개월", "3개월", "1년"], 'idx': 0, 'uc': "#10b981", 'dc': "#3b82f6", 'u': "원"}, "finance", "금융 시장", f"금리: {rate_val}%, 환율: {exch_val}원")
     draw_section_with_ai("물가 지표 (인플레이션)", {'l': "헤드라인 CPI", 'v': cpi_val, 'c': cpi_chg, 'p': cpi_pct, 'd': cpi_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"}, {'l': "근원(Core) CPI", 'v': core_val, 'c': core_chg, 'p': core_pct, 'd': core_data, 'col': "#ef4444", 'prd': ["6개월", "1년", "3년"], 'idx': 0, 'uc': "#ef4444", 'dc': "#3b82f6", 'u': "%"}, "inflation", "물가 지표", f"헤드라인CPI: {cpi_val}%, 근원CPI: {core_val}%")
