@@ -747,30 +747,47 @@ elif menu == "시장 심리":
 elif menu == "시장 지도":
     st.title("시장 지도 (Market Map)")
     
-    from datetime import datetime, date
+    from datetime import datetime, timedelta, timezone, date
     import pandas as pd
     import yfinance as yf
     import plotly.express as px
     import altair as alt
     
-    current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
-    st.caption(f"⏱️ 실시간 데이터 업데이트: **{current_time}**")
+    # 💡 1. 서버 위치 상관없이 무조건 한국 시간(KST)으로 기준을 잡습니다.
+    kst = timezone(timedelta(hours=9))
+    now_kst = datetime.now(kst)
     
-    today_str = date.today().strftime('%Y-%m-%d')
+    # 💡 2. 매일 아침 '6시 40분'을 마감 동결 시점으로 세팅합니다.
+    target_time = now_kst.replace(hour=6, minute=40, second=0, microsecond=0)
     
-    sectors = {'XLK': '기술', 'XLV': '헬스케어', 'XLF': '금융', 'XLY': '임의소비재', 'XLP': '필수소비재', 'XLE': '에너지', 'XLI': '산업재', 'XLU': '유틸리티', 'XLRE': '부동산', 'XLB': '소재', 'XLC': '통신'}
-    rows = []
+    # 💡 3. 현재 시간이 6시 40분 전이면 '어제 6:40' 꼬리표를, 지났으면 '오늘 6:40' 꼬리표를 붙입니다.
+    # 이 꼬리표(cache_key)가 안 바뀌면 하루 종일 야후에 안 가고 금고에서 0.1초 만에 꺼내옵니다.
+    if now_kst < target_time:
+        cache_key = (target_time - timedelta(days=1)).strftime("%Y년 %m월 %d일 %H:%M")
+    else:
+        cache_key = target_time.strftime("%Y년 %m월 %d일 %H:%M")
+
+    st.caption(f"⏱️ 미국장 최종 마감 데이터 동결 기준: **{cache_key} (KST)**")
     
-    with st.spinner("섹터별 데이터를 수집 중입니다..."):
+    # 💡 4. 데이터를 묶어두는 마법의 금고 함수
+    @st.cache_data(ttl=86400, show_spinner=False)
+    def get_frozen_market_map(key):
+        sectors = {'XLK': '기술', 'XLV': '헬스케어', 'XLF': '금융', 'XLY': '임의소비재', 'XLP': '필수소비재', 'XLE': '에너지', 'XLI': '산업재', 'XLU': '유틸리티', 'XLRE': '부동산', 'XLB': '소재', 'XLC': '통신'}
+        res = []
         for t, n in sectors.items():
             try:
-                d = yf.Ticker(t).history(period="2d") 
+                # 안전하게 5일 치를 가져와서 가장 마지막 거래일 2개를 비교 (휴장일/주말 방어)
+                d = yf.Ticker(t).history(period="5d") 
                 if len(d) >= 2:
                     c = (d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2] * 100
-                    rows.append({'Sector': n, 'Change': c})
-            except Exception as e:
+                    res.append({'Sector': n, 'Change': c})
+            except:
                 pass
-            
+        return res
+
+    with st.spinner("섹터별 마감 데이터를 분석 중입니다... (최초 1회 수집 후 하루 종일 0.1초 렌더링!)"):
+        rows = get_frozen_market_map(cache_key)
+        
     if rows:
         df_sector = pd.DataFrame(rows)
         
