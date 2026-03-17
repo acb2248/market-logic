@@ -394,20 +394,33 @@ def filter_data_by_period(df, period):
 
 def create_chart(data, color, period="1년", height=180):
     if data is None or data.empty: return st.error("데이터 없음")
+    
+    # 원본 데이터를 보호하기 위해 복사본을 만듭니다.
+    chart_data = data.copy()
+    
+    # 💡 노이즈 제거: 데이터가 많으면 주간/월간 단위로 압축하여 선을 깔끔하게 만듭니다.
+    if len(chart_data) > 200:
+        # 데이터가 200개 이상(약 1년치 이상)이면 월간(M) 마지막 영업일 기준으로 압축
+        chart_data = chart_data.set_index('Date').resample('M').last().dropna().reset_index()
+    elif len(chart_data) > 60:
+        # 데이터가 60개 이상(약 3~6개월치)이면 주간(W) 마지막 영업일 기준으로 압축
+        chart_data = chart_data.set_index('Date').resample('W').last().dropna().reset_index()
+
+    # (선생님이 기존에 설정하신 x축 포맷 그대로 유지)
     if period in ["1개월", "3개월", "6개월"]:
         x_format = '%m/%d'; tick_cnt = 5
     else:
         x_format = '%y.%m'; tick_cnt = 6
         
-    chart = alt.Chart(data).mark_line(
+    chart = alt.Chart(chart_data).mark_line(
         color=color, 
         strokeWidth=2,
-        # 💡 추가 1: 꺾은선에 동그란 점을 만들어서 마우스가 근처만 가도 인식되게 (자석 효과) 만듭니다.
-        point=alt.OverlayMarkDef(color=color, size=50) 
+        # 💡 점 크기도 압축된 데이터 개수에 맞춰 자동으로 조절되게 세팅 (적으면 50, 많으면 15)
+        point=alt.OverlayMarkDef(color=color, size=50 if len(chart_data) <= 30 else 15) 
     ).encode(
         x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False, tickCount=tick_cnt)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
-        # 💡 추가 2: 기존 영어(Date, Value)로 나오던 말풍선을 깔끔한 한글로 바꿨습니다.
+        # (선생님이 기존에 설정하신 한글 툴팁 그대로 유지)
         tooltip=[
             alt.Tooltip('Date:T', title='날짜', format='%Y-%m-%d'), 
             alt.Tooltip('Value:Q', title='값', format=',.2f')
