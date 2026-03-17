@@ -879,53 +879,93 @@ elif menu == "주요 일정":
 elif menu == "🔒 VIP 포트폴리오":
     st.title("🔒 VIP 시크릿 매크로 리포트")
     
+    from datetime import datetime, timedelta, timezone
+    
+    # 💡 6:40 AM KST 데일리 동결 로직 (시장 지도와 동일)
+    kst = timezone(timedelta(hours=9))
+    now_kst = datetime.now(kst)
+    target_time = now_kst.replace(hour=6, minute=40, second=0, microsecond=0)
+    
+    if now_kst < target_time:
+        cache_key = (target_time - timedelta(days=1)).strftime("%Y년 %m월 %d일 %H:%M")
+    else:
+        cache_key = target_time.strftime("%Y년 %m월 %d일 %H:%M")
+        
+    # 💡 데일리 캐시 함수: 하루에 딱 1번만 AI가 분석하고, 이후 접속자는 0.1초 만에 캐시된 리포트를 봅니다.
+    @st.cache_data(ttl=86400, show_spinner=False)
+    def get_daily_vip_report(key, api_key_val):
+        client = openai.OpenAI(api_key=api_key_val)
+        
+        # 💡 선생님의 기획 1번: 실제 지표 데이터를 끌어옵니다!
+        rate_val, _, _, _ = get_interest_rate_hybrid()
+        exch_val, _, _, _ = get_yahoo_data("KRW=X", "10y")
+        vix_val, _, _, _ = get_yahoo_data("^VIX")
+        _, _, _, sp_data = get_yahoo_data("^GSPC", "6mo")
+        rsi_val = calculate_rsi(sp_data)
+        
+        # 데이터가 없을 경우를 대비한 안전 장치
+        rate_str = f"{rate_val:.2f}%" if rate_val else "데이터 없음"
+        exch_str = f"{exch_val:,.2f}원" if exch_val else "데이터 없음"
+        vix_str = f"{vix_val:.2f}" if vix_val else "데이터 없음"
+        rsi_str = f"{rsi_val:.2f}" if rsi_val else "데이터 없음"
+        
+        live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
+        
+        vip_prompt = f"""당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 탑클래스 펀드매니저입니다.
+현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 VIP 고객을 위한 '데일리 모닝 브리핑' 리포트를 작성하세요.
+
+[데이터 및 방향성 제약 조건]
+- '공시' 및 '증시 심리'에 대한 내용은 철저히 배제하세요.
+- '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 키워드를 반드시 포함하여 시장을 분석하세요.
+- 개별 특정 종목(티커)은 어떠한 경우에도 절대 언급하지 마세요.
+- 영어나 한자 혼용을 최소화하고, 목차에서 영어를 제거하세요.
+- 문장마다 억지로 줄바꿈하지 말고, 의미가 이어지는 문단 단위로만 자연스럽게 줄바꿈하세요.
+
+[1. 대시보드 데이터 추출 (가장 먼저 작성)]
+리포트의 맨 첫 줄은 무조건 아래 괄호 형식에 맞춰 현재 시장 상황을 요약한 데이터를 한 줄로 출력하세요. (파이썬이 인식할 비밀 코드입니다)
+형식: [미국국면]|[한국국면]|[권장현금비중]|[핵심모니터링지표]
+출력 예시: [경기 확장기]|[회복 지연기]|[30% 이상 확보]|[CPI & 고용보고서]
+
+[2. 리포트 본문 구성] (위의 데이터 줄 바로 다음 줄부터 아래 대괄호 [] 목차를 정확히 출력하세요)
+[0. 핵심 매크로 지표 요약]
+제공된 실시간 데이터(금리, 환율, VIX, RSI)를 문장으로 요약하고, 이를 바탕으로 현재 시장의 종합적인 상태를 2~3줄로 브리핑하세요.
+
+[1. 글로벌 거시경제 및 국면 분석]
+현재 글로벌 경기 국면을 분석하되, 앞서 1번에서 판정한 '미국 국면'과 '한국 국면'이 왜 그런 상태인지 논리적인 이유를 반드시 포함하여 3~4줄로 설명하세요.
+
+[2. 리스크 방어 및 현금 비중 전략]
+가장 우려되는 하락 시나리오를 제시하고, 앞서 1번에서 권장한 '현금 비중'을 왜 그만큼 유지해야 하는지 금리/지정학 리스크 등과 연결하여 3~4줄로 설명하세요.
+
+[3. 지표 기반 실전 투자 전략]
+현재의 데이터(금리, 환율, VIX 등)가 주식 시장과 수급에 미치는 영향을 분석하고, 당장 취해야 할 포지션을 3~4줄로 제안하세요.
+
+[4. 마이크로 테마 유망 섹터]
+현 시점에서 신규 진입하기 좋은 산업군을 일반적인 대분류(예: IT, 헬스케어)가 아닌 딥다이브된 구체적인 '마이크로 테마'(예: AI 전력망 인프라, 비만치료제 등) 단위로 3가지 추천하고 논리적으로 설명하세요. (각 테마 이름 양옆에는 <b> 와 </b> 태그를 붙여 강조하세요.)
+"""
+        resp = client.chat.completions.create(
+            model="gpt-4o", 
+            messages=[{"role": "user", "content": vip_prompt}],
+            temperature=0.1 
+        )
+        return resp.choices[0].message.content.strip()
+
     if st.session_state.get('plan', 'Free') == 'Pro':
         st.success("👑 VIP 멤버십 인증 완료! 실시간 핵심 투자 전략을 확인하세요.")
         
+        # 💡 선생님 기획 6번: 버튼 위 안내 문구 추가
+        st.markdown(f'<div class="info-box">현재 집계된 최신 매크로 지표(금리, 환율, VIX 등)를 기반으로 AI가 실시간 투자 전략을 생성합니다. <br>⏱️ <b>오늘의 브리핑 기준: {cache_key}</b></div>', unsafe_allow_html=True)
+        
         is_vip_analyzed = "vip_report" in st.session_state
-        btn_text_vip = "✅ 실시간 VIP 리포트 생성 완료" if is_vip_analyzed else "🚀 실시간 VIP 시크릿 리포트 생성하기"
+        btn_text_vip = "✅ 오늘의 VIP 모닝 브리핑 로딩 완료" if is_vip_analyzed else "🚀 오늘의 VIP 시크릿 리포트 보기"
         
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
-            with st.spinner("AI 펀드매니저가 거시경제 지표를 분석하여 대시보드와 리포트를 생성 중입니다..."):
+            with st.spinner("AI 펀드매니저가 오늘의 실시간 지표를 분석하여 대시보드를 렌더링 중입니다..."):
                 if not api_key:
                     st.error("설정 탭에서 API Key를 입력해주세요.")
                 else:
-                    client = openai.OpenAI(api_key=api_key)
-                    
-                    vip_prompt = """당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 탑클래스 펀드매니저입니다. VIP 고객을 위한 현재 시점의 실시간 심층 투자 전략 리포트를 작성하세요.
-                    
-                    [데이터 및 방향성 제약 조건]
-                    - '공시' 및 '증시 심리'에 대한 내용은 철저히 배제하세요.
-                    - '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 키워드를 반드시 포함하여 시장을 분석하세요.
-                    - 개별 특정 종목(티커)은 어떠한 경우에도 절대 언급하지 마세요. (특히 GST 등)
-                    - 영어나 한자 혼용을 최소화하고, 목차에서 영어를 제거하세요.
-                    - 💡 문장마다 억지로 줄바꿈하지 말고, 의미가 이어지는 문단 단위로만 자연스럽게 줄바꿈하세요.
-
-                    [1. 대시보드 데이터 추출 (가장 먼저 작성)]
-                    리포트의 맨 첫 줄은 무조건 아래 괄호 형식에 맞춰 현재 시장 상황을 요약한 데이터를 한 줄로 출력하세요. (파이썬이 인식할 비밀 코드입니다)
-                    형식: [미국국면]|[한국국면]|[권장현금비중]|[핵심모니터링지표]
-                    출력 예시: [경기 확장기]|[회복 지연기]|[30% 이상 확보]|[CPI & 고용보고서]
-
-                    [2. 리포트 본문 구성] (위의 데이터 줄 바로 다음 줄부터 아래 대괄호 [] 목차를 정확히 출력하세요)
-                    [1. 거시경제 분석]
-                    현재 글로벌 경기 국면(확장, 둔화, 침체, 회복)을 결정지은 핵심 경제 지표(GDP, 고용, 물가 등)와 글로벌 자금 흐름을 통찰력 있게 분석하세요.
-                    
-                    [2. 리스크 방어 전략]
-                    가장 우려되는 하락 시나리오와 이를 방어하기 위한 포트폴리오 관리법을 제시하세요.
-                    
-                    [3. 투자 전략 제언]
-                    향후 1~3개월의 거시적 시나리오와 당장 취해야 할 포지션을 제안하세요.
-                    
-                    [4. 신규 진입 유망 섹터]
-                    현 시점에서 수급이 누적되어 신규 진입하기 좋은 산업군을 2~3개 추천하고 논리적으로 설명하세요. (각 섹터 이름 양옆에는 <b> 와 </b> 태그를 붙여서 폰트를 굵게 강조하세요.)
-                    """
                     try:
-                        resp = client.chat.completions.create(
-                            model="gpt-4o", 
-                            messages=[{"role": "user", "content": vip_prompt}],
-                            temperature=0.1 
-                        )
-                        raw_content = resp.choices[0].message.content.strip()
+                        # 💡 캐시 함수 호출 (하루에 한 번만 진짜로 분석하고, 이후엔 캐시에서 즉시 불러옴)
+                        raw_content = get_daily_vip_report(cache_key, api_key)
                         
                         lines = raw_content.split('\n')
                         first_line = lines[0]
@@ -985,25 +1025,27 @@ elif menu == "🔒 VIP 포트폴리오":
             import re
             report_content = re.sub(r'\n{3,}', '\n\n', report_content)
             
-            html_content = report_content.replace('[1. 거시경제 분석]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>1. 거시경제 분석</div>")
-            html_content = html_content.replace('[1. 거시경제 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>1. 거시경제 분석</div>")
-            html_content = html_content.replace('[2. 리스크 방어 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 전략</div>")
-            html_content = html_content.replace('[2. 리스크 방어 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 전략</div>")
-            html_content = html_content.replace('[3. 투자 전략 제언]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 투자 전략 제언</div>")
-            html_content = html_content.replace('[3. 투자 전략 제언]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 투자 전략 제언</div>")
-            html_content = html_content.replace('[4. 신규 진입 유망 섹터]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 신규 진입 유망 섹터</div>")
-            html_content = html_content.replace('[4. 신규 진입 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 신규 진입 유망 섹터</div>")
+            # 💡 목차 치환 로직 (새로운 5개 목차에 맞게 수정)
+            html_content = report_content.replace('[0. 핵심 매크로 지표 요약]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>0. 핵심 매크로 지표 요약</div>")
+            html_content = html_content.replace('[0. 핵심 매크로 지표 요약]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>0. 핵심 매크로 지표 요약</div>")
+            html_content = html_content.replace('[1. 글로벌 거시경제 및 국면 분석]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>1. 글로벌 거시경제 및 국면 분석</div>")
+            html_content = html_content.replace('[1. 글로벌 거시경제 및 국면 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>1. 글로벌 거시경제 및 국면 분석</div>")
+            html_content = html_content.replace('[2. 리스크 방어 및 현금 비중 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 및 현금 비중 전략</div>")
+            html_content = html_content.replace('[2. 리스크 방어 및 현금 비중 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 및 현금 비중 전략</div>")
+            html_content = html_content.replace('[3. 지표 기반 실전 투자 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 지표 기반 실전 투자 전략</div>")
+            html_content = html_content.replace('[3. 지표 기반 실전 투자 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 지표 기반 실전 투자 전략</div>")
+            html_content = html_content.replace('[4. 마이크로 테마 유망 섹터]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 마이크로 테마 유망 섹터</div>")
+            html_content = html_content.replace('[4. 마이크로 테마 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 마이크로 테마 유망 섹터</div>")
             
             html_content = html_content.replace('\n\n', "<div style='height:12px;'></div>") 
             html_content = html_content.replace('\n', '<br>')
             
-            from datetime import datetime
             current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
 
             st.markdown(f"""
             <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:45px; margin-top:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
                 <div style='display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #e5e7eb; padding-bottom:15px; margin-bottom:25px;'>
-                    <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[실시간 VIP] 매크로 심층 리포트</h3>
+                    <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[데일리 VIP] 매크로 심층 리포트</h3>
                     <span style='color:#6b7280; font-size:14px; font-weight:600;'>⏱️ {current_time}</span>
                 </div>
                 <div style='font-size:17px; line-height:1.8; color:#374151; word-break:keep-all;'>
@@ -1013,7 +1055,7 @@ elif menu == "🔒 VIP 포트폴리오":
             """, unsafe_allow_html=True)
             
     else:
-        st.markdown("<div class='section-header'>🧭 실시간 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>🧭 데일리 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
         st.markdown("""
         <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
             <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
@@ -1035,19 +1077,19 @@ elif menu == "🔒 VIP 포트폴리오":
         </div>
         """, unsafe_allow_html=True)
         
-        from datetime import datetime
         current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
 
         st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
         st.markdown(f"""
         <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:left; filter: blur(5px); user-select: none;'>
             <div style='display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #e5e7eb; padding-bottom:15px; margin-bottom:25px;'>
-                <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[실시간 VIP] 매크로 심층 리포트</h3>
+                <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[데일리 VIP] 매크로 심층 리포트</h3>
                 <span style='color:#6b7280; font-size:14px; font-weight:600;'>⏱️ {current_time}</span>
             </div>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>1. 거시경제 분석:</b> 현재 글로벌 경제 환경은 주요 외환 시장의 변동성과 금리의 등락을 중심으로...</p>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>2. 리스크 방어 전략:</b> 가장 우려되는 하락 시나리오는 인플레이션 재점화로 인한...</p>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>3. 신규 진입 유망 섹터:</b> 다양한 산업군에서 수급이 누적된 압도적 주도주 3가지는...</p>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>0. 핵심 매크로 지표 요약:</b> 현재 미국 10년물 금리는 4.28%로 상승 압력을 받고 있으며...</p>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>1. 글로벌 거시경제 및 국면 분석:</b> 미국은 견조한 고용 데이터를 바탕으로 경기 확장기를...</p>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>2. 리스크 방어 전략:</b> 환율 상승 및 VIX 경계 구간 진입으로 인해 현금 비중을...</p>
+            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>4. 마이크로 테마 유망 섹터:</b> AI 데이터센터 전력망 및 방산 인프라 등...</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1055,7 +1097,7 @@ elif menu == "🔒 VIP 포트폴리오":
         <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-250px; position:relative; z-index:10;'>
             <div style='font-size:40px; margin-bottom:10px;'>🔒</div>
             <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 프리미엄 리포트</h3>
-            <p style='color:#92400e; font-size:16px;'>실시간 거시 경제(외환/금리/전쟁) 기반의 탑다운 전략과 리스크 방어, 그리고 다양한 산업군에서 발굴한 신규 진입 유망 섹터를 확인하세요.</p>
+            <p style='color:#92400e; font-size:16px;'>실시간 거시 경제 데이터(금리/환율/VIX) 기반의 탑다운 전략과 리스크 방어, 그리고 딥다이브된 마이크로 테마 유망 섹터를 매일 아침 확인하세요.</p>
             <p style='color:#9ca3af; font-size:14px; margin-top:15px;'>👉 왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
