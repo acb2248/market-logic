@@ -671,14 +671,16 @@ if menu == "주가 지수":
 
     st.markdown("<div class='section-header'>미국 3대 지수 (US Market)</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: draw_chart_unit("다우존스", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "dow", "#10b981", "#ef4444", "", False)
-    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "sp500", "#10b981", "#ef4444", "", False)
-    with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "전체"], 0, "nasdaq", "#10b981", "#ef4444", "", False)
+    # 💡 4개 버튼을 ["1개월", "3개월", "1년", "3년"]으로 통일했습니다.
+    with c1: draw_chart_unit("다우존스", dow_v, dow_c, dow_p, dow_d, "#10b981", ["1개월", "3개월", "1년", "3년"], 0, "dow", "#10b981", "#ef4444", "", False)
+    with c2: draw_chart_unit("S&P 500", sp_v, sp_c, sp_p, sp_d, "#10b981", ["1개월", "3개월", "1년", "3년"], 0, "sp500", "#10b981", "#ef4444", "", False)
+    with c3: draw_chart_unit("나스닥 100", nas_v, nas_c, nas_p, nas_d, "#10b981", ["1개월", "3개월", "1년", "3년"], 0, "nasdaq", "#10b981", "#ef4444", "", False)
     
     st.markdown("<div class='section-header'>국내 증시 (KR Market)</div>", unsafe_allow_html=True)
     c4, c5 = st.columns(2)
-    with c4: draw_chart_unit("코스피", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 0, "kospi", "#ef4444", "#3b82f6", "", True)
-    with c5: draw_chart_unit("코스닥", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "6개월", "1년"], 0, "kosdaq", "#ef4444", "#3b82f6", "", True)
+    # 💡 4개 버튼을 ["1개월", "3개월", "1년", "3년"]으로 통일했습니다.
+    with c4: draw_chart_unit("코스피", kospi_v, kospi_c, kospi_p, kospi_d, "#ef4444", ["1개월", "3개월", "1년", "3년"], 0, "kospi", "#ef4444", "#3b82f6", "", True)
+    with c5: draw_chart_unit("코스닥", kosdaq_v, kosdaq_c, kosdaq_p, kosdaq_d, "#ef4444", ["1개월", "3개월", "1년", "3년"], 0, "kosdaq", "#ef4444", "#3b82f6", "", True)
 
 elif menu == "투자 지표":
     st.title("투자 지표 (Economic Indicators)")
