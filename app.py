@@ -278,7 +278,11 @@ def get_fred_data(series_id, calculation_type='raw'):
                 curr = float(df['Value'].iloc[-1]) # 💡 확실하게 소수점 숫자로 못 박기
                 prev = float(df['Value'].iloc[-2])
                 change = curr - prev
-                return curr, change, 0, df.reset_index()
+                
+                # 💡 0으로 고정되어 있던 부분에 정확한 퍼센트(%) 계산식을 추가했습니다!
+                pct_change = (change / prev) * 100 if prev != 0 else 0
+                
+                return curr, change, pct_change, df.reset_index()
         except: 
             time.sleep(0.5)
             continue
