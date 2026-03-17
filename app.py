@@ -398,11 +398,22 @@ def create_chart(data, color, period="1년", height=180):
         x_format = '%m/%d'; tick_cnt = 5
     else:
         x_format = '%y.%m'; tick_cnt = 6
-    chart = alt.Chart(data).mark_line(color=color, strokeWidth=2).encode(
+        
+    chart = alt.Chart(data).mark_line(
+        color=color, 
+        strokeWidth=2,
+        # 💡 추가 1: 꺾은선에 동그란 점을 만들어서 마우스가 근처만 가도 인식되게 (자석 효과) 만듭니다.
+        point=alt.OverlayMarkDef(color=color, size=50) 
+    ).encode(
         x=alt.X('Date:T', axis=alt.Axis(format=x_format, title=None, grid=False, tickCount=tick_cnt)),
         y=alt.Y('Value:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
-        tooltip=['Date:T', alt.Tooltip('Value', format=',.2f')]
+        # 💡 추가 2: 기존 영어(Date, Value)로 나오던 말풍선을 깔끔한 한글로 바꿨습니다.
+        tooltip=[
+            alt.Tooltip('Date:T', title='날짜', format='%Y-%m-%d'), 
+            alt.Tooltip('Value:Q', title='값', format=',.2f')
+        ]
     ).properties(height=height).interactive()
+    
     return st.altair_chart(chart, use_container_width=True)
 
 def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444", down_color="#3b82f6"):
