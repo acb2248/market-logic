@@ -739,7 +739,18 @@ elif menu == "시장 심리":
         
         if is_analyzed_sentiment:
             t_text, content = st.session_state["ai_res_sentiment"]
-            st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{content}</div></div>", unsafe_allow_html=True)
+            
+            # 💡 [대괄호 제목] 위아래 여백과 줄바꿈을 규칙적으로 잡아주는 로직
+            import re
+            formatted_content = content.replace('\n', '<br>')
+            # 모든 [제목]의 앞에는 넉넉한 한 줄 여백(<br><br>)을, 뒤에는 바로 아랫줄(<br>)로 내림
+            formatted_content = re.sub(r'(?:<br>|\s)*(\[.*?\])(?:<br>|\s)*', r'<br><br>\1<br>', formatted_content)
+            
+            # 맨 처음에 불필요하게 들어간 여백을 깔끔하게 제거
+            while formatted_content.startswith('<br>'):
+                formatted_content = formatted_content[4:]
+                
+            st.markdown(f"<div class='ai-box'><div class='ai-title'>👔 {t_text}</div><div class='ai-text'>{formatted_content}</div></div>", unsafe_allow_html=True)
     else:
         # 멤버십 안내 지우고 로그인 버튼만 유지
         st.link_button("AI 투자 전략 보기", get_google_login_url(), type="primary", use_container_width=True)
