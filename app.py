@@ -910,13 +910,13 @@ elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
         
         live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
         
-        # 💡 프롬프트 수정: 유망 '섹터' 변경, 매크로 우선 해석 유동적 추천, 실행형/관찰형 톤 분리 완벽 적용
+        # 💡 프롬프트 수정: 4번 유망 섹터에 '투자 관점' 3줄 포맷 지시 추가
         vip_prompt = f"""당신은 월스트리트 수석 펀드매니저입니다.
 현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 투자 판단을 위한 '데일리 모닝 브리핑'을 작성하세요.
 
 [제약 조건]
 - 공시, 증시 심리, 개별 특정 종목(티커) 언급 절대 금지.
-- 기호(▲, ▼, ->, ↳ 등) 및 이모지 절대 사용 금지. 오직 순수 텍스트와 불릿(•)만 사용.
+- 기호(▲, ▼, ->, ↳ 등) 및 이모지 절대 사용 금지. (단, 투자 관점 줄의 '→' 기호는 허용)
 - 문체: "~로 판단됩니다", "~가능성이 존재합니다", "~압력이 확대되고 있습니다" 등 리서치 톤 유지.
 
 [1. 데이터 추출 (첫 줄)]
@@ -952,13 +952,18 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
 • 변동성 확대 구간 대비 현금 비중 유지 및 단기 대응 전략 병행
 
 [4. 유망 섹터 및 근거]
-특정 섹터(수출주, 방산 등)를 미리 고정해서 반복 추천하지 마세요. 반드시 당일 분석한 '매크로 조건(금리, 환율, 변동성 등)'을 우선적으로 해석한 뒤, '한국 주식시장' 기준으로 그 매크로 환경에서 상대적으로 설명력이 높거나 수혜/방어가 가능한 섹터 3가지를 매일 유동적으로 도출하세요. (예: 환율 상승 시 수출주, 금리 상승 시 고배당/금융주, 지정학 리스크 시 방산 등 매일 지표에 따라 유연하게 선택)
-각 항목은 '섹터명'을 <b>태그로 감싸고, 그 바로 아랫줄에 '왜 이 매크로 환경에서 이 섹터를 봐야 하는지'를 설명하는 관찰형 1문장(예: ~수혜가 예상됩니다, ~기대가 커질 수 있습니다)으로 정확히 줄바꿈하여 출력하세요. 화살표는 절대 쓰지 마세요.
+특정 섹터(수출주, 방산 등)를 미리 고정해서 반복 추천하지 마세요. 반드시 당일 분석한 '매크로 조건(금리, 환율, 변동성 등)'을 우선적으로 해석한 뒤, '한국 주식시장' 기준으로 그 매크로 환경에서 상대적으로 설명력이 높거나 수혜/방어가 가능한 섹터 3가지를 매일 유동적으로 도출하세요. 
+각 항목은 아래와 같이 총 3줄로 정확히 줄바꿈하여 출력하세요.
+첫째 줄: '섹터명'을 <b>태그로 감싸서 출력
+둘째 줄: 왜 이 환경에서 이 섹터를 봐야 하는지 설명하는 관찰형 1문장
+셋째 줄: '→ 투자 관점: '으로 시작하는 행동 지시형 1문장
 예시:
 <b>고배당 및 방어주</b>
 금리 상승 압력이 지속되는 구간에서는 안정적인 현금흐름과 배당 매력이 부각될 가능성이 존재합니다.
+→ 투자 관점: 포트폴리오 내 비중 확대 고려
 <b>조선 및 피팅 업종</b>
 원화 약세 국면이 맞물려 환차익 수혜 및 실적 방어 기대감이 커질 수 있습니다.
+→ 투자 관점: 환율 상승 구간에서 방어적 대안으로 유효
 """
         resp = client.chat.completions.create(
             model="gpt-4o", 
@@ -1023,24 +1028,8 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             status_color = "#dc2626" if "경계" in dash_status or "위험" in dash_status else "#16a34a" if "안정" in dash_status else "#475569"
             
-            st.markdown(f"""
-            <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px 25px; margin-bottom:35px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
-                <div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>오늘 시장 상태</div>
-                <div style='display:flex; flex-direction:column; gap:8px; margin-bottom:18px;'>
-                    <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>상태</span> <span style='font-size:15px; font-weight:800; color:{status_color};'>{dash_status}</span></div>
-                    <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>핵심 요인</span> <span style='font-size:14px; color:#334155; font-weight:600; line-height:1.5;'>{dash_factor}</span></div>
-                </div>
-                <div style='background-color:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; padding:15px; display:flex; flex-direction:column; gap:8px;'>
-                    <div style='font-size:13px; color:#334155; font-weight:800; margin-bottom:2px; text-transform:uppercase;'>현재 시장 요약</div>
-                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>경기</span> 미국 {dash_us} <span style='color:#cbd5e1; margin:0 5px;'>|</span> 한국 {dash_kr}</div>
-                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>리스크</span> {dash_factor}</div>
-                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>전략</span> <span style='font-weight:700;'>{dash_cash}</span></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
+            # 💡 1번: 보고서 본문을 먼저 파싱하여 시장 상태 강도(초기/중간/강) 점수를 수식 계산
             report_content = st.session_state["vip_report"]
-            
             sections = re.split(r'\[(핵심 매크로 지표 요약|[1-4]\.\s*[^\]]+)\]', report_content)
             c_dict = {}
             if len(sections) >= 3:
@@ -1050,6 +1039,47 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                     c_dict[title] = body
             else:
                 c_dict['본문'] = report_content
+                
+            intensity_score = 0
+            if "금리 상승" in dash_factor or "고금리" in dash_factor: intensity_score += 1
+            if "환율 상승" in dash_factor or "달러 강세" in dash_factor or "원화 약세" in dash_factor: intensity_score += 1
+            
+            key_0 = next((k for k in c_dict if '요약' in k), None)
+            if key_0: 
+                body_0 = c_dict[key_0]
+                vix_match = re.search(r'VIX:.*?\(([\d\.]+)\)', body_0)
+                if vix_match:
+                    try:
+                        if float(vix_match.group(1)) >= 25.0: intensity_score += 1
+                    except: pass
+                rsi_match = re.search(r'RSI:.*?\(([\d\.]+)\)', body_0)
+                if rsi_match:
+                    try:
+                        if float(rsi_match.group(1)) <= 30.0: intensity_score += 1
+                    except: pass
+            
+            if intensity_score <= 1: dash_intensity = "초기"
+            elif intensity_score == 2: dash_intensity = "중간"
+            else: dash_intensity = "강"
+            
+            dash_status_display = f"{dash_status} ({dash_intensity})"
+            
+            # 💡 2번: 상단 시장 요약 구조(항목: 내용) 통일 및 1번 강도 렌더링
+            st.markdown(f"""
+            <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px 25px; margin-bottom:35px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
+                <div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>오늘 시장 상태</div>
+                <div style='display:flex; flex-direction:column; gap:8px; margin-bottom:18px;'>
+                    <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>상태</span> <span style='font-size:15px; font-weight:800; color:{status_color};'>{dash_status_display}</span></div>
+                    <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>핵심 요인</span> <span style='font-size:14px; color:#334155; font-weight:600; line-height:1.5;'>{dash_factor}</span></div>
+                </div>
+                <div style='background-color:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; padding:15px; display:flex; flex-direction:column; gap:8px;'>
+                    <div style='font-size:13px; color:#334155; font-weight:800; margin-bottom:2px; text-transform:uppercase;'>현재 시장 요약</div>
+                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>경기:</span> 미국 {dash_us} / 한국 {dash_kr}</div>
+                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>리스크:</span> {dash_factor}</div>
+                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>전략:</span> <span style='font-weight:700;'>{dash_cash}</span></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
             st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px; letter-spacing:-0.5px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
             
@@ -1061,10 +1091,9 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                 </div>
                 """
             
-            key_0 = next((k for k in c_dict if '요약' in k), None)
             if key_0: 
-                body_0 = c_dict[key_0].replace('\n', '<br>')
-                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:18px 22px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{body_0}</div></div>", unsafe_allow_html=True)
+                body_0_formatted = c_dict[key_0].replace('\n', '<br>')
+                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:18px 22px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{body_0_formatted}</div></div>", unsafe_allow_html=True)
             
             key_1 = next((k for k in c_dict if '1.' in k), None)
             if key_1:
@@ -1085,8 +1114,7 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                 body_3 = body_3.replace("<br></div>", "</div>").replace("</div><br>", "</div>")
                 st.markdown(render_common_card(key_3, body_3), unsafe_allow_html=True)
             
-            # 💡 4번 섹션 파싱 구조 대수술: 들여쓰기 없는 한 줄 코드 누적으로 카드 파괴 현상 완벽 방어
-            # AI가 출력한 줄바꿈(\n)을 기준으로 안전하게 한 줄씩 읽어서 조립합니다.
+            # 💡 3번: 4번 섹션 파싱 구조 대수술 - '투자 관점' 3단 블록 처리 추가
             key_4 = next((k for k in c_dict if '4.' in k), None)
             if key_4:
                 raw_lines = c_dict[key_4].split('\n')
@@ -1097,22 +1125,18 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                     if not line: continue
                     
                     if "<b>" in line:
-                        # 섹터명 파싱 (진하게)
+                        if safe_body_4 != "":
+                            safe_body_4 += "</div>" # 이전 블록 닫기
                         clean_sector = line.replace("<b>", "").replace("</b>", "").strip()
-                        safe_body_4 += f"<div style='margin-bottom:12px;'><div style='font-weight:800; color:#0f172a; font-size:15px; margin-bottom:2px;'>{clean_sector}</div>"
+                        safe_body_4 += f"<div style='margin-bottom:16px;'><div style='font-weight:800; color:#0f172a; font-size:15px; margin-bottom:4px;'>{clean_sector}</div>"
+                    elif line.startswith("→") or "투자 관점" in line:
+                        # 💡 행동 중심 문장(투자 관점) 특별 스타일 지정
+                        safe_body_4 += f"<div style='color:#0f172a; font-size:14.5px; font-weight:700; margin-top:6px;'>{line}</div>"
                     else:
-                        # 설명문 파싱 (보조 텍스트 톤 적용 및 블록 닫기)
-                        # 만약 <b> 태그 없이 연속된 설명문이라면, 이전 div 구조에 맞게 안전하게 출력
-                        if "<div style='margin-bottom:12px;'>" in safe_body_4 and not safe_body_4.endswith("</div>"):
-                             safe_body_4 += f"<div style='color:#475569; font-size:14px; line-height:1.6;'>{line}</div></div>"
-                        else:
-                             safe_body_4 += f"<div style='color:#475569; font-size:14px; line-height:1.6; margin-bottom:12px;'>{line}</div>"
+                        safe_body_4 += f"<div style='color:#475569; font-size:14px; line-height:1.6;'>{line}</div>"
                 
-                # 혹시나 열려있는 <div>가 있다면 닫아주기 위한 안전장치
-                open_divs = safe_body_4.count("<div") - safe_body_4.count("</div")
-                safe_body_4 += "</div>" * open_divs
-
-                if safe_body_4:
+                if safe_body_4 != "":
+                    safe_body_4 += "</div>" # 마지막 블록 닫기
                     st.markdown(render_common_card(key_4, safe_body_4), unsafe_allow_html=True)
                 else:
                     st.markdown(render_common_card(key_4, c_dict[key_4].replace('\n', '<br>')), unsafe_allow_html=True)
@@ -1127,8 +1151,14 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
         <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px 25px; margin-bottom:35px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); filter: blur(6px); user-select: none;'>
             <div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>오늘 시장 상태</div>
             <div style='display:flex; flex-direction:column; gap:8px; margin-bottom:18px;'>
-                <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>상태</span> <span style='font-size:15px; font-weight:800; color:#dc2626;'>경계</span></div>
+                <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>상태</span> <span style='font-size:15px; font-weight:800; color:#dc2626;'>경계 (중간)</span></div>
                 <div style='display:flex; align-items:baseline;'><span style='font-size:14px; color:#64748b; font-weight:600; width:65px; flex-shrink:0;'>핵심 요인</span> <span style='font-size:14px; color:#334155; font-weight:600;'>금리 상승, 환율 상승, 변동성 확대</span></div>
+            </div>
+            <div style='background-color:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; padding:15px; display:flex; flex-direction:column; gap:8px;'>
+                <div style='font-size:13px; color:#334155; font-weight:800; margin-bottom:2px; text-transform:uppercase;'>현재 시장 요약</div>
+                <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>경기:</span> 미국 둔화 / 한국 회복 지연</div>
+                <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>리스크:</span> 금리 상승, 환율 상승</div>
+                <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>전략:</span> <span style='font-weight:700;'>현금 40% 이상 확보</span></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1148,6 +1178,9 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             <p style='color:#94a3b8; font-size:13px; margin-top:20px;'>왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
+        
+    # 💡 본문 폭 제한 래퍼 종료
+    st.markdown("</div>", unsafe_allow_html=True)
         
     # 💡 본문 폭 제한 래퍼 종료
     st.markdown("</div>", unsafe_allow_html=True)
