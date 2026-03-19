@@ -910,7 +910,7 @@ elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
         
         live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
         
-        # 💡 프롬프트 수정: 섹터 유동적 도출 지시, 제목 "유망 섹터 및 근거" 변경, 3/4번 톤 분리
+        # 💡 프롬프트 수정: 유망 '섹터' 변경, 매크로 우선 해석 유동적 추천, 실행형/관찰형 톤 분리 완벽 적용
         vip_prompt = f"""당신은 월스트리트 수석 펀드매니저입니다.
 현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 투자 판단을 위한 '데일리 모닝 브리핑'을 작성하세요.
 
@@ -946,19 +946,19 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
 (이하 설명 문단...)
 
 [3. 지표 기반 투자 전략]
-실제 데이터 흐름과 연결된 구체적이고 짧은 실행형 전략(비중 축소 권고, 비중 확대 검토 등 행동 지시형 문장)을 불릿(•) 3개로 제시하세요. 특수문자 화살표는 쓰지 마세요.
+실제 데이터 흐름과 연결된 구체적이고 짧은 실행형 전략(예: 비중 축소 권고, 비중 확대 검토 등 행동 지시형 문장)을 불릿(•) 3개로 제시하세요. 특수문자 화살표는 쓰지 마세요.
 예시:
 • 고금리 환경 지속 국면, 성장주 비중 축소 권고
 • 변동성 확대 구간 대비 현금 비중 유지 및 단기 대응 전략 병행
 
 [4. 유망 섹터 및 근거]
-특정 섹터(수출주, 방산 등)를 미리 고정해서 반복 추천하지 마세요. 반드시 오늘 분석한 '당일 매크로 조건(금리, 환율, 변동성 등)'을 우선 해석하고, 그 환경에서 '한국 주식시장' 기준으로 상대적으로 설명력이 높거나 수혜/방어가 가능한 섹터 3가지를 매일 유동적으로 도출하세요. (예: 금융, 정유, 반도체, 조선, 배당주 등 상황에 맞게 유연하게 선택)
-각 항목은 '섹터명'을 <b>태그로 감싸고, 그 바로 아랫줄에 '왜 이 환경에서 이 섹터를 봐야 하는지'를 설명하는 관찰형 1문장(예: ~가능성이 존재합니다, ~기대가 커질 수 있습니다)으로 정확히 줄바꿈하여 출력하세요. 화살표는 절대 쓰지 마세요.
+특정 섹터(수출주, 방산 등)를 미리 고정해서 반복 추천하지 마세요. 반드시 당일 분석한 '매크로 조건(금리, 환율, 변동성 등)'을 우선적으로 해석한 뒤, '한국 주식시장' 기준으로 그 매크로 환경에서 상대적으로 설명력이 높거나 수혜/방어가 가능한 섹터 3가지를 매일 유동적으로 도출하세요. (예: 환율 상승 시 수출주, 금리 상승 시 고배당/금융주, 지정학 리스크 시 방산 등 매일 지표에 따라 유연하게 선택)
+각 항목은 '섹터명'을 <b>태그로 감싸고, 그 바로 아랫줄에 '왜 이 매크로 환경에서 이 섹터를 봐야 하는지'를 설명하는 관찰형 1문장(예: ~수혜가 예상됩니다, ~기대가 커질 수 있습니다)으로 정확히 줄바꿈하여 출력하세요. 화살표는 절대 쓰지 마세요.
 예시:
-<b>고배당 및 금융주</b>
-금리 상승 압력이 지속되는 구간에서는 이자 이익 개선 기대와 함께 배당 매력이 부각될 가능성이 존재합니다.
+<b>고배당 및 방어주</b>
+금리 상승 압력이 지속되는 구간에서는 안정적인 현금흐름과 배당 매력이 부각될 가능성이 존재합니다.
 <b>조선 및 피팅 업종</b>
-글로벌 에너지 인프라 투자 확대와 원화 약세 국면이 맞물려 실적 방어 및 수급 유입 기대가 커질 수 있습니다.
+원화 약세 국면이 맞물려 환차익 수혜 및 실적 방어 기대감이 커질 수 있습니다.
 """
         resp = client.chat.completions.create(
             model="gpt-4o", 
@@ -1046,10 +1046,10 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             if len(sections) >= 3:
                 for i in range(1, len(sections), 2):
                     title = sections[i].strip()
-                    body = sections[i+1].strip().replace('\n', '<br>')
+                    body = sections[i+1].strip()
                     c_dict[title] = body
             else:
-                c_dict['본문'] = report_content.replace('\n', '<br>')
+                c_dict['본문'] = report_content
             
             st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px; letter-spacing:-0.5px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
             
@@ -1063,54 +1063,62 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             key_0 = next((k for k in c_dict if '요약' in k), None)
             if key_0: 
-                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:18px 22px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
+                body_0 = c_dict[key_0].replace('\n', '<br>')
+                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:18px 22px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{body_0}</div></div>", unsafe_allow_html=True)
             
             key_1 = next((k for k in c_dict if '1.' in k), None)
             if key_1:
-                st.markdown(render_common_card(key_1, c_dict[key_1]), unsafe_allow_html=True)
+                body_1 = c_dict[key_1].replace('\n', '<br>')
+                st.markdown(render_common_card(key_1, body_1), unsafe_allow_html=True)
             
             key_2 = next((k for k in c_dict if '2.' in k), None)
             if key_2: 
-                body_2 = c_dict[key_2].replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:4px; font-size:14.5px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:8px;'></div>")
+                body_2 = c_dict[key_2].replace('\n', '<br>')
+                body_2 = body_2.replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:4px; font-size:14.5px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:8px;'></div>")
                 st.markdown(render_common_card(key_2, body_2), unsafe_allow_html=True)
             
             key_3 = next((k for k in c_dict if '3.' in k), None)
             if key_3: 
-                body_3 = c_dict[key_3].replace("•", "</div><div style='margin-bottom:6px; padding-left:12px; text-indent:-12px;'><span style='color:#0f172a; font-weight:900; margin-right:4px;'>•</span><span style='color:#1e293b; font-weight:600;'>")
+                body_3 = c_dict[key_3].replace('\n', '<br>')
+                body_3 = body_3.replace("•", "</div><div style='margin-bottom:6px; padding-left:12px; text-indent:-12px;'><span style='color:#0f172a; font-weight:900; margin-right:4px;'>•</span><span style='color:#1e293b; font-weight:600;'>")
                 if body_3.startswith("</div>"): body_3 = body_3[6:] + "</span></div>"
                 body_3 = body_3.replace("<br></div>", "</div>").replace("</div><br>", "</div>")
                 st.markdown(render_common_card(key_3, body_3), unsafe_allow_html=True)
             
-            # 💡 4번 섹션 레이아웃 붕괴 완벽 방지: 문자열 분리(Split) 기반의 안전한 파서 도입
+            # 💡 4번 섹션 파싱 구조 대수술: 들여쓰기 없는 한 줄 코드 누적으로 카드 파괴 현상 완벽 방어
+            # AI가 출력한 줄바꿈(\n)을 기준으로 안전하게 한 줄씩 읽어서 조립합니다.
             key_4 = next((k for k in c_dict if '4.' in k), None)
             if key_4:
-                # <b>를 기준으로 텍스트를 나눈 뒤 완벽하게 닫힌 <div>로 래핑
-                parts_4 = c_dict[key_4].split("<b>")
+                raw_lines = c_dict[key_4].split('\n')
                 safe_body_4 = ""
-                for p in parts_4:
-                    if "</b>" in p:
-                        # </b> 기준으로 섹터명과 설명문 분리
-                        sector_part, desc_part = p.split("</b>", 1)
-                        sector_name = sector_part.strip()
-                        # 설명문에서 불필요한 <br> 제거
-                        desc = desc_part.replace("<br>", "").strip()
-                        
-                        # 💡 열고 닫기가 완벽한 단일 블록 구성 (절대 탈출 불가)
-                        safe_body_4 += f"""
-                        <div style='margin-bottom:16px;'>
-                            <div style='font-weight:800; color:#0f172a; font-size:15px; margin-bottom:4px;'>{sector_name}</div>
-                            <div style='color:#475569; font-size:14px; line-height:1.6;'>{desc}</div>
-                        </div>
-                        """
                 
-                # 만약 파싱된 내용이 있다면 공통 카드 렌더링, 없다면 원본 출력
+                for line in raw_lines:
+                    line = line.strip()
+                    if not line: continue
+                    
+                    if "<b>" in line:
+                        # 섹터명 파싱 (진하게)
+                        clean_sector = line.replace("<b>", "").replace("</b>", "").strip()
+                        safe_body_4 += f"<div style='margin-bottom:12px;'><div style='font-weight:800; color:#0f172a; font-size:15px; margin-bottom:2px;'>{clean_sector}</div>"
+                    else:
+                        # 설명문 파싱 (보조 텍스트 톤 적용 및 블록 닫기)
+                        # 만약 <b> 태그 없이 연속된 설명문이라면, 이전 div 구조에 맞게 안전하게 출력
+                        if "<div style='margin-bottom:12px;'>" in safe_body_4 and not safe_body_4.endswith("</div>"):
+                             safe_body_4 += f"<div style='color:#475569; font-size:14px; line-height:1.6;'>{line}</div></div>"
+                        else:
+                             safe_body_4 += f"<div style='color:#475569; font-size:14px; line-height:1.6; margin-bottom:12px;'>{line}</div>"
+                
+                # 혹시나 열려있는 <div>가 있다면 닫아주기 위한 안전장치
+                open_divs = safe_body_4.count("<div") - safe_body_4.count("</div")
+                safe_body_4 += "</div>" * open_divs
+
                 if safe_body_4:
                     st.markdown(render_common_card(key_4, safe_body_4), unsafe_allow_html=True)
                 else:
-                    st.markdown(render_common_card(key_4, c_dict[key_4].replace("<br>", " ")), unsafe_allow_html=True)
+                    st.markdown(render_common_card(key_4, c_dict[key_4].replace('\n', '<br>')), unsafe_allow_html=True)
             
             if '본문' in c_dict:
-                st.markdown(f"<div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict['본문']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict['본문'].replace(chr(10), '<br>')}</div>", unsafe_allow_html=True)
 
     else:
         st.markdown(f"<div style='font-size:14px; font-weight:700; color:#64748b; margin-top:10px; margin-bottom:20px; text-transform:uppercase; letter-spacing:1px;'>Update: {cache_key}</div>", unsafe_allow_html=True)
