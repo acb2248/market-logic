@@ -629,9 +629,12 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
         # 2. 아이콘 없는 모던하고 정갈한 2x2 카드 그리드
         st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
         
+       # 2. 아이콘 없는 모던하고 정갈한 2x2 카드 그리드
+        st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
+        
         if part1:
-            # 공통 카드 스타일 설정
-            card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:22px; height:100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+            # 💡 공통 카드 스타일 설정 (기존 높이와 비슷한 180px로 고정 + 길면 스크롤)
+            card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:22px; height:180px; overflow-y:auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
             title_style = "font-size:17px; font-weight:800; color:#111827; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #f3f4f6;"
             text_style = "font-size:15px; line-height:1.7; color:#4b5563; word-break:keep-all;"
             
@@ -647,8 +650,8 @@ def draw_section_with_ai(title, chart1, chart2, key_suffix, ai_topic, ai_data):
             with row2_col1:
                 st.markdown(f"<div style='{card_style}'><div style='{title_style}'>리스크와 기회</div><div style='{text_style}'>{part3}</div></div>", unsafe_allow_html=True)
             with row2_col2:
-                # 행동 지침만 살짝 톤을 다르게 주어 무게감을 줍니다 (배경색 미세 조절)
-                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:22px; height:100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'><div style='font-size:17px; font-weight:800; color:#0f172a; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;'>행동 지침</div><div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all; font-weight:600;'>{part4}</div></div>", unsafe_allow_html=True)
+                # 💡 행동 지침 박스도 동일하게 180px 고정 + 스크롤 추가
+                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:22px; height:180px; overflow-y:auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'><div style='font-size:17px; font-weight:800; color:#0f172a; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;'>행동 지침</div><div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all; font-weight:600;'>{part4}</div></div>", unsafe_allow_html=True)
 
     st.markdown("<hr>", unsafe_allow_html=True)
     
