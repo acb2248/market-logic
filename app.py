@@ -910,12 +910,13 @@ elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
         
         live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
         
+        # 💡 프롬프트 재정비: 한국 증시 기반 섹터 제안, 0번 목차 숫자 제거, 화살표 배제
         vip_prompt = f"""당신은 월스트리트 수석 펀드매니저입니다.
 현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 투자 판단을 위한 '데일리 모닝 브리핑'을 작성하세요.
 
 [제약 조건]
 - 공시, 증시 심리, 개별 특정 종목(티커) 언급 절대 금지.
-- 기호(▲, ▼ 등) 및 이모지 절대 사용 금지. 오직 텍스트만 사용.
+- 기호(▲, ▼, ->, ↳ 등) 및 이모지 절대 사용 금지. 오직 순수 텍스트와 불릿(•)만 사용.
 - 문체: "~로 판단됩니다", "~가능성이 존재합니다", "~압력이 확대되고 있습니다" 등 리서치 톤 유지.
 
 [1. 데이터 추출 (첫 줄)]
@@ -925,7 +926,7 @@ elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
 
 [2. 본문 구성] (위 줄 바로 다음부터 아래 목차 대괄호 []를 정확히 출력하세요)
 
-[0. 핵심 매크로 지표 요약]
+[핵심 매크로 지표 요약]
 숫자보다 해석을 앞세워 아래 구조로 작성하세요. 상승/위험 관련 해석은 <span style="color:#dc2626; font-weight:bold;">, 하락/안전은 <span style="color:#16a34a; font-weight:bold;">, 중립은 <span style="color:#6b7280; font-weight:bold;"> 태그로 감싸세요.
 금리: <span style="color:#dc2626; font-weight:bold;">상승 압력 유지</span> ({rate_str})
 환율: <span style="color:#dc2626; font-weight:bold;">달러 강세 지속</span> ({exch_str})
@@ -945,17 +946,18 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
 (이하 설명 문단...)
 
 [3. 지표 기반 투자 전략]
-실제 데이터 흐름과 연결된 구체적이고 짧은 행동 지시형 전략을 불릿(•) 3개로 제시하세요.
+실제 데이터 흐름과 연결된 구체적이고 짧은 행동 지시형 전략을 불릿(•) 3개로 제시하세요. 특수문자 화살표는 쓰지 마세요.
 예시:
-• 고금리 환경 지속 -> 성장주 비중 축소
-• 변동성 확대 구간 -> 현금 비중 유지 및 단기 대응 전략 병행
+• 고금리 환경 지속 국면, 성장주 비중 축소 권고
+• 변동성 확대 구간 대비 현금 비중 유지 및 단기 대응 전략 병행
 
-[4. 마이크로 테마 유망 섹터]
-스마트머니 수급이 몰릴 구체적 테마 3가지를 '테마명'과 '선정 이유'로 나누어 아래 형식으로 출력하세요. 테마명 양옆에는 반드시 <b> 와 </b> 태그를 붙이세요.
-<b>사이버 보안</b>
--> 지정학 리스크 확대와 디지털 전환 가속화 영향
-<b>재생에너지 저장</b>
--> 전력 수요 증가 및 정책 수혜 기대
+[4. 유망 테마 및 근거]
+막연한 글로벌 테마가 아닌, 현재 거시환경에서 '한국 주식시장'을 기준으로 상대적으로 실적 방어나 수급 유입이 기대되는 섹터(예: 방산, 수출 대형주, 배당주 등) 3가지를 제안하세요. 각 항목은 '테마명' 아래에 '1문장의 구체적 근거'를 적는 형식으로 출력하세요. 테마명 양옆에는 반드시 <b> 와 </b> 태그를 붙이세요. 화살표는 절대 쓰지 마세요.
+예시:
+<b>방위 산업</b>
+지정학 리스크 확대 국면에서 한국 증시 내 실적 기대와 수급 유입 가능성이 존재합니다.
+<b>수출 대형주</b>
+환율 상승 국면에서는 원화 약세 효과로 수출 비중이 높은 업종의 실적 방어 기대가 커질 수 있습니다.
 """
         resp = client.chat.completions.create(
             model="gpt-4o", 
@@ -974,8 +976,8 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
         is_vip_analyzed = "vip_report" in st.session_state
         btn_text_vip = "오늘의 VIP 모닝 브리핑 로딩 완료" if is_vip_analyzed else "오늘의 VIP 시크릿 리포트 보기"
         
-        # 💡 1. 상단 버튼 영역 개선: 약한 배경색과 보더로 패널 느낌 강화, 여백 조정
-        st.markdown("<div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-bottom:30px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);'>", unsafe_allow_html=True)
+        # 💡 1. 상단 버튼 영역 개선: 여백을 조금 줄여 콤팩트한 패널 느낌으로 마감
+        st.markdown("<div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-bottom:30px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); display:flex; justify-content:center;'>", unsafe_allow_html=True)
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
             with st.spinner("데이터 분석 및 대시보드 렌더링 중..."):
                 if not api_key:
@@ -1040,7 +1042,8 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             report_content = st.session_state["vip_report"]
             
-            sections = re.split(r'\[([0-4]\.\s*[^\]]+)\]', report_content)
+            # 목차 파싱 수정: 0번 목차 숫자 제거 반영
+            sections = re.split(r'\[(핵심 매크로 지표 요약|[1-4]\.\s*[^\]]+)\]', report_content)
             c_dict = {}
             if len(sections) >= 3:
                 for i in range(1, len(sections), 2):
@@ -1052,50 +1055,50 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px; letter-spacing:-0.5px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
             
-            # 💡 4. 카드 내부 여백 미세 조정 (padding 24px -> 20px 축소로 응집감 부여)
+            # 💡 7. 카드 내부 여백 미세 조정 (padding 18px로 밀도 증가)
             def render_common_card(title, content):
                 return f"""
-                <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin-bottom:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'>
+                <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px 22px; margin-bottom:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'>
                     <div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>{title}</div>
-                    <div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all;'>{content}</div>
+                    <div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{content}</div>
                 </div>
                 """
             
-            key_0 = next((k for k in c_dict if '0.' in k), None)
+            # 0번 섹션: 핵심 매크로 지표 요약
+            key_0 = next((k for k in c_dict if '요약' in k), None)
             if key_0: 
-                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:20px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:18px 22px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
             
+            # 1번 섹션
             key_1 = next((k for k in c_dict if '1.' in k), None)
             if key_1:
                 st.markdown(render_common_card(key_1, c_dict[key_1]), unsafe_allow_html=True)
             
+            # 2번 섹션: 현금 비중 확대 근거
             key_2 = next((k for k in c_dict if '2.' in k), None)
             if key_2: 
-                body_2 = c_dict[key_2].replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:6px; font-size:15px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:8px;'></div>")
+                body_2 = c_dict[key_2].replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:4px; font-size:14.5px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:8px;'></div>")
                 st.markdown(render_common_card(key_2, body_2), unsafe_allow_html=True)
             
-            # 💡 2. 3번 섹션 내부 가독성 개선 (리스트 간격 추가 및 불릿 또렷하게)
+            # 💡 3번 섹션: 투자 전략 (가독성 높은 행동 지시형)
             key_3 = next((k for k in c_dict if '3.' in k), None)
             if key_3: 
-                # 각 불릿 항목을 묶는 div를 생성하여 하단 여백 부여
-                body_3 = c_dict[key_3].replace("•", "</div><div style='margin-bottom:8px;'><span style='color:#0f172a; font-weight:900; margin-right:8px;'>•</span><span style='color:#1e293b; font-weight:600;'>")
-                if body_3.startswith("</div>"): body_3 = body_3[6:] + "</span></div>" # 첫 닫는 div 제거 및 마지막 닫기
-                body_3 = body_3.replace("<br></div>", "</div>").replace("</div><br>", "</div>") # 불필요한 줄바꿈 제거
+                body_3 = c_dict[key_3].replace("•", "</div><div style='margin-bottom:6px; padding-left:12px; text-indent:-12px;'><span style='color:#0f172a; font-weight:900; margin-right:4px;'>•</span><span style='color:#1e293b; font-weight:600;'>")
+                if body_3.startswith("</div>"): body_3 = body_3[6:] + "</span></div>"
+                body_3 = body_3.replace("<br></div>", "</div>").replace("</div><br>", "</div>")
                 st.markdown(render_common_card(key_3, body_3), unsafe_allow_html=True)
             
-            # 💡 3. 4번 섹션 위계 강화 (테마명 크기/굵기 확대, 설명은 보조 텍스트 톤 적용)
+            # 💡 4번 섹션: 유망 테마 및 근거 (화살표 제거, 테마명 진하게, 설명은 보조 텍스트 톤)
             key_4 = next((k for k in c_dict if '4.' in k), None)
             if key_4: 
-                body_4 = c_dict[key_4].replace("<b>", "<div style='font-weight:900; color:#0f172a; font-size:15px; margin-top:12px; margin-bottom:2px;'>").replace("</b>", "</div>").replace("->", "<div style='color:#475569; font-size:14px; padding-left:5px;'><span style='color:#94a3b8; font-weight:700; margin-right:6px;'>↳</span>").replace("-&gt;", "<div style='color:#475569; font-size:14px; padding-left:5px;'><span style='color:#94a3b8; font-weight:700; margin-right:6px;'>↳</span>")
-                # 설명 문단 닫기 태그 처리를 위해 약간의 야매 파싱 적용
-                body_4 = body_4.replace("<br><div style='font-weight", "</div><div style='font-weight") 
-                if not body_4.endswith("</div>"): body_4 += "</div>"
-                if body_4.startswith("<div style='height:8px;'></div>"): body_4 = body_4[31:]
-                if body_4.startswith("<div style='height:10px;'></div>"): body_4 = body_4[32:]
-                st.markdown(render_common_card(key_4, body_4), unsafe_allow_html=True)
+                body_4 = c_dict[key_4].replace("<b>", "<div style='font-weight:800; color:#0f172a; font-size:15px; margin-top:12px; margin-bottom:2px;'>").replace("</b>", "</div>").replace("<br>", "</div><div style='color:#475569; font-size:14px; margin-bottom:6px;'>")
+                # 태그 정리를 위한 후처리
+                body_4 = body_4.replace("</div><div style='color:#475569; font-size:14px; margin-bottom:6px;'><div style='font-weight:800;", "</div><div style='font-weight:800;")
+                if body_4.startswith("</div>"): body_4 = body_4[6:]
+                st.markdown(render_common_card(key_4, body_4 + "</div>"), unsafe_allow_html=True)
             
             if '본문' in c_dict:
-                st.markdown(f"<div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict['본문']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict['본문']}</div>", unsafe_allow_html=True)
 
     else:
         st.markdown(f"<div style='font-size:14px; font-weight:700; color:#64748b; margin-top:10px; margin-bottom:20px; text-transform:uppercase; letter-spacing:1px;'>Update: {cache_key}</div>", unsafe_allow_html=True)
@@ -1113,15 +1116,15 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
         st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
         st.markdown(f"""
         <div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; filter: blur(5px); user-select: none;'>
-            <p style='color:#0f172a; font-size:16px; font-weight:800; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>0. 핵심 매크로 지표 요약</p>
-            <p style='color:#334155; font-size:15px; line-height:1.7;'>금리: 상승 압력 유지 (4.28%)<br>환율: 달러 강세 지속 (1,491원)</p>
+            <p style='color:#0f172a; font-size:16px; font-weight:800; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>핵심 매크로 지표 요약</p>
+            <p style='color:#334155; font-size:14.5px; line-height:1.7;'>금리: 상승 압력 유지 (4.28%)<br>환율: 달러 강세 지속 (1,491원)</p>
         </div>
         """, unsafe_allow_html=True)
         
         st.markdown("""
         <div style='background-color:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:30px; text-align:center; margin-top:-140px; position:relative; z-index:10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>
             <h3 style='color:#0f172a; margin-top:0; font-size:18px;'>Pro 멤버십 전용 프리미엄 리포트</h3>
-            <p style='color:#475569; font-size:14px; line-height:1.6;'>실시간 거시 경제 데이터 기반의 탑다운 전략, 리스크 방어 논리, 그리고 행동 중심의 투자 전략을 매일 아침 확인하세요.</p>
+            <p style='color:#475569; font-size:14px; line-height:1.6;'>실시간 거시 경제 데이터 기반의 탑다운 전략, 리스크 방어 논리, 그리고 한국 시장 맞춤형 유망 섹터를 매일 아침 확인하세요.</p>
             <p style='color:#94a3b8; font-size:13px; margin-top:20px;'>왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
