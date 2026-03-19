@@ -1076,7 +1076,7 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                     <div style='font-size:13px; color:#334155; font-weight:800; margin-bottom:2px; text-transform:uppercase;'>현재 시장 요약</div>
                     <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>경기:</span> 미국 {dash_us} / 한국 {dash_kr}</div>
                     <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>리스크:</span> {dash_factor}</div>
-                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>전략:</span> <span style='font-weight:700;'>{dash_cash}</span></div>
+                    <div style='font-size:14px; color:#334155;'><span style='font-weight:600; color:#64748b; width:45px; display:inline-block;'>전략:</span> <span style='font-weight:700;'>현금 {dash_cash}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -1181,9 +1181,7 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
         
     # 💡 본문 폭 제한 래퍼 종료
     st.markdown("</div>", unsafe_allow_html=True)
-        
-    # 💡 본문 폭 제한 래퍼 종료
-    st.markdown("</div>", unsafe_allow_html=True)
+
         
 # -----------------------------------------------------------------------------
 # 7. 공통 푸터 (투자 면책 조항)
