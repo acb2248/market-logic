@@ -876,10 +876,12 @@ elif menu == "주요 일정":
         with h_cols[i]:
             with st.container(border=True): st.write(f"**{n}**\n\n{d}")
                 
-elif menu == "🔒 VIP 포트폴리오":
-    st.title("🔒 VIP 시크릿 매크로 리포트")
+elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
+    # 💡 모든 이모지/아이콘 제거
+    st.title("VIP 시크릿 매크로 리포트")
     
     from datetime import datetime, timedelta, timezone
+    import re
     
     # 💡 6:40 AM KST 데일리 동결 로직 (시장 지도와 동일)
     kst = timezone(timedelta(hours=9))
@@ -887,16 +889,16 @@ elif menu == "🔒 VIP 포트폴리오":
     target_time = now_kst.replace(hour=6, minute=40, second=0, microsecond=0)
     
     if now_kst < target_time:
-        cache_key = (target_time - timedelta(days=1)).strftime("%Y년 %m월 %d일 %H:%M")
+        cache_key = (target_time - timedelta(days=1)).strftime("%Y-%m-%d %H:%M")
     else:
-        cache_key = target_time.strftime("%Y년 %m월 %d일 %H:%M")
+        cache_key = target_time.strftime("%Y-%m-%d %H:%M")
         
- # 💡 데일리 캐시 함수: 하루에 딱 1번만 AI가 분석하고, 이후 접속자는 0.1초 만에 캐시된 리포트를 봅니다.
+    # 💡 데일리 캐시 함수: 하루에 딱 1번만 AI가 분석하고, 이후 접속자는 0.1초 만에 캐시된 리포트를 봅니다.
     @st.cache_data(ttl=86400, show_spinner=False)
     def get_daily_vip_report(key, api_key_val):
         client = openai.OpenAI(api_key=api_key_val)
         
-        # 💡 선생님의 기획 1번: 실제 지표 데이터를 끌어옵니다!
+        # 실제 지표 데이터를 끌어옵니다!
         rate_val, _, _, _ = get_interest_rate_hybrid()
         exch_val, _, _, _ = get_yahoo_data("KRW=X", "10y")
         vix_val, _, _, _ = get_yahoo_data("^VIX")
@@ -911,46 +913,53 @@ elif menu == "🔒 VIP 포트폴리오":
         
         live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
         
-        # 💡 6가지 고도화 요청이 완벽하게 녹아든 마법의 프롬프트입니다!
-        vip_prompt = f"""당신은 월스트리트의 전설적인 투자자 '버나드 바루크(Bernard Baruch)'의 '세계경제지표의 비밀' 논리를 완벽하게 구사하는 수석 펀드매니저입니다.
-현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 VIP 고객을 위한 '데일리 모닝 브리핑' 리포트를 작성하세요.
+        # 💡 11가지 고도화 요청이 완벽하게 녹아든 마법의 프롬프트입니다!
+        vip_prompt = f"""당신은 월스트리트 수석 펀드매니저입니다.
+현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 투자 판단을 위한 '데일리 모닝 브리핑'을 작성하세요.
 
-[데이터 및 문체 제약 조건]
-- '공시' 및 '증시 심리'에 대한 내용은 배제하세요.
-- '외환', '금리', '전쟁(지정학적 리스크)' 이 3가지 키워드를 반드시 포함하여 시장을 분석하세요.
-- 개별 특정 종목(티커)은 어떠한 경우에도 절대 언급하지 마세요. (특히 GST 등)
-- 이모지 절대 사용 금지. 오직 텍스트와 기호만 사용하세요.
-- 문체: 단조로운 "~있습니다"를 지양하고, 실제 증권사 리서치 센터의 전문가처럼 "~로 판단됩니다", "~가능성이 존재합니다", "~압력이 확대되고 있습니다", "~영향을 줄 수 있습니다" 등의 세련된 표현을 적극적으로 사용하세요.
+[제약 조건]
+- 공시, 증시 심리, 개별 특정 종목(티커) 언급 절대 금지.
+- 기호(▲, ▼ 등) 및 이모지 절대 사용 금지. 오직 텍스트만 사용.
+- 문체: "~로 판단됩니다", "~가능성이 존재합니다", "~압력이 확대되고 있습니다" 등 리서치 톤 유지.
 
-[1. 대시보드 데이터 추출 (가장 먼저 작성)]
-리포트의 맨 첫 줄은 무조건 아래 괄호 형식에 맞춰 현재 시장 상황을 요약한 데이터를 한 줄로 출력하세요. (파이썬이 인식할 비밀 코드입니다)
-형식: [미국국면]|[한국국면]|[권장현금비중]|[핵심모니터링지표]
-출력 예시: [경기 둔화기]|[회복 지연기]|[40% 이상 확보]|[금리 & 환율]
+[1. 데이터 추출 (첫 줄)]
+아래 형식으로 현재 시장 상태를 한 줄로 출력하세요. 파이썬 파싱을 위해 대괄호 []와 파이프 | 기호를 반드시 지키세요.
+형식: [시장상태]|[핵심요인]|[미국국면]|[한국국면]|[권장현금비중]
+예시: [경계]|[금리 상승, 환율 상승, 변동성 확대]|[경기 둔화기]|[회복 지연기]|[40% 이상 확보]
 
-[2. 리포트 본문 구성] (위의 데이터 줄 바로 다음 줄부터 아래 대괄호 [] 목차를 정확히 출력하세요)
+[2. 본문 구성] (위 줄 바로 다음부터 아래 목차 대괄호 []를 정확히 출력하세요)
+
 [0. 핵심 매크로 지표 요약]
-시작 문장으로 1번에서 판정한 [핵심모니터링지표]를 언급하며 현재 상황을 진단하세요. (예: "현재 핵심 모니터링 지표인 금리 상승과 환율 급등은 글로벌 유동성 환경이 악화되는 흐름으로 판단됩니다.")
-그 다음, 제공된 실시간 데이터를 반드시 '줄바꿈된 리스트 형태'로 출력하며 괄호 안에 의미를 부여하세요.
-마지막 줄에는 반드시 "→ 종합 판단: [내용]" 형태의 결론을 작성하세요.
-(출력 예시)
-미국 10년물 금리: 4.22% (고금리 장기화 우려)
-원/달러 환율: 1,491원 (원화 약세 심화)
-VIX: 23.5 (변동성 확대 경계 구간)
-S&P500 RSI: 35.5 (과매도 진입 근접)
-→ 종합 판단: 시장은 단기 변동성 확대 가능성이 높은 경계 구간으로 판단됩니다.
+숫자보다 해석을 앞세워 아래 구조로 작성하세요. 상승/위험 관련 해석은 <span style="color:#dc2626; font-weight:bold;">, 하락/안전은 <span style="color:#16a34a; font-weight:bold;">, 중립은 <span style="color:#6b7280; font-weight:bold;"> 태그로 감싸세요.
+금리: <span style="color:#dc2626; font-weight:bold;">상승 압력 유지</span> ({rate_str})
+환율: <span style="color:#dc2626; font-weight:bold;">달러 강세 지속</span> ({exch_str})
+VIX: <span style="color:#6b7280; font-weight:bold;">변동성 확대 경계</span> ({vix_str})
+RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rsi_str})
+종합 판단: 현재 시장은 단기 변동성 확대 가능성이 높은 구간으로 판단됩니다.
 
 [1. 글로벌 거시경제 및 국면 분석]
-미국 국면과 한국 국면 판정 이유를 거시적 근거를 들어 3~4줄의 문단으로 설명하세요.
+미국 국면과 한국 국면 판정 이유를 거시적 근거를 들어 3~4줄 문단으로 설명하세요.
 
 [2. 리스크 방어 및 현금 비중 전략]
-현재 시장의 우려 시나리오를 짚고, 1번에서 권장한 '현금 비중'을 왜 그만큼 확보해야 하는지 그 근거를 반드시 3개의 숫자 번호 매기기(1., 2., 3.)로 명확히 정리하여 출력하세요.
+현금 비중 확대 근거를 아래와 같이 구조화하여 번호 매기기로 출력하고, 그 아래에 설명 문단을 추가하세요.
+현금 비중 확대 근거
+1. 금리 상승 지속
+2. 환율 변동성 확대
+3. 지정학 리스크 증가
+(이하 설명 문단...)
 
-[3. 지표 기반 실전 투자 전략]
-일반적인 조언이 아닌, 현재의 실제 데이터(금리, 환율, VIX 등)의 흐름과 직접적으로 연결된 구체적인 투자 전략을 반드시 불릿 포인트(•) 형태로 3가지 제시하세요.
-(예: • 고금리 환경 지속 → 고밸류 성장주 비중 축소 및 방어 포트폴리오 구축)
+[3. 지표 기반 투자 전략]
+실제 데이터 흐름과 연결된 구체적이고 짧은 행동 지시형 전략을 불릿(•) 3개로 제시하세요.
+예시:
+• 고금리 환경 지속 -> 성장주 비중 축소
+• 변동성 확대 구간 -> 현금 비중 유지 및 단기 대응 전략 병행
 
 [4. 마이크로 테마 유망 섹터]
-일반적인 산업 분류(IT, 헬스케어 등)를 절대 사용하지 말고, 현 시점에서 글로벌 스마트머니의 수급이 몰릴 가능성이 높은 딥다이브된 구체적인 '마이크로 테마'(예: AI 데이터센터 전력 인프라, 차세대 방산 인프라 등) 3가지를 추천하고 이유를 서술하세요. 각 테마 이름 양옆에는 <b> 와 </b> 태그를 붙여 강조하세요.
+스마트머니 수급이 몰릴 구체적 테마 3가지를 '테마명'과 '선정 이유'로 나누어 아래 형식으로 출력하세요.
+사이버 보안
+-> 지정학 리스크 확대와 디지털 전환 가속화 영향
+재생에너지 저장
+-> 전력 수요 증가 및 정책 수혜 기대
 """
         resp = client.chat.completions.create(
             model="gpt-4o", 
@@ -960,155 +969,152 @@ S&P500 RSI: 35.5 (과매도 진입 근접)
         return resp.choices[0].message.content.strip()
 
     if st.session_state.get('plan', 'Free') == 'Pro':
-        st.success("👑 VIP 멤버십 인증 완료! 실시간 핵심 투자 전략을 확인하세요.")
-        
-        # 💡 선생님 기획 6번: 버튼 위 안내 문구 추가
-        st.markdown(f'<div class="info-box">현재 집계된 최신 매크로 지표(금리, 환율, VIX 등)를 기반으로 AI가 실시간 투자 전략을 생성합니다. <br>⏱️ <b>오늘의 브리핑 기준: {cache_key}</b></div>', unsafe_allow_html=True)
+        # 💡 스트림릿 내장 st.success 아이콘 방지를 위해 markdown으로 교체, 10번 시간 강조 적용
+        st.markdown(f"<div style='font-size:18px; font-weight:900; color:#0f172a; margin-bottom:5px;'>업데이트 시각: {cache_key} 기준</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:14px; color:#475569; margin-bottom:15px;'>VIP 멤버십 인증 완료. 현재 집계된 매크로 지표를 기반으로 실시간 투자 전략을 생성합니다.</div>", unsafe_allow_html=True)
         
         is_vip_analyzed = "vip_report" in st.session_state
-        btn_text_vip = "✅ 오늘의 VIP 모닝 브리핑 로딩 완료" if is_vip_analyzed else "🚀 오늘의 VIP 시크릿 리포트 보기"
+        btn_text_vip = "오늘의 VIP 모닝 브리핑 로딩 완료" if is_vip_analyzed else "오늘의 VIP 시크릿 리포트 보기"
         
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
-            with st.spinner("AI 펀드매니저가 오늘의 실시간 지표를 분석하여 대시보드를 렌더링 중입니다..."):
+            with st.spinner("데이터 분석 및 대시보드 렌더링 중..."):
                 if not api_key:
                     st.error("설정 탭에서 API Key를 입력해주세요.")
                 else:
                     try:
-                        # 💡 캐시 함수 호출 (하루에 한 번만 진짜로 분석하고, 이후엔 캐시에서 즉시 불러옴)
                         raw_content = get_daily_vip_report(cache_key, api_key)
                         
                         lines = raw_content.split('\n')
                         first_line = lines[0]
                         
                         if '|' in first_line and '[' in first_line:
-                            import re
                             parsed = re.findall(r'\[(.*?)\]', first_line)
-                            if len(parsed) >= 4:
-                                st.session_state["dash_us"] = parsed[0]
-                                st.session_state["dash_kr"] = parsed[1]
-                                st.session_state["dash_cash"] = parsed[2]
-                                st.session_state["dash_risk"] = parsed[3]
+                            # 💡 파싱 개수 5개로 확장
+                            if len(parsed) >= 5:
+                                st.session_state["dash_status"] = parsed[0]
+                                st.session_state["dash_factor"] = parsed[1]
+                                st.session_state["dash_us"] = parsed[2]
+                                st.session_state["dash_kr"] = parsed[3]
+                                st.session_state["dash_cash"] = parsed[4]
                                 st.session_state["vip_report"] = '\n'.join(lines[1:]).strip()
                             else:
                                 st.session_state["vip_report"] = raw_content
                         else:
                             st.session_state["vip_report"] = raw_content
                             
+                        # 💡 9번 자동 스크롤 트리거 ON
+                        st.session_state["auto_scroll"] = True
                         st.rerun() 
                     except Exception as e:
                         st.error(f"오류 발생: {str(e)}")
         
-        st.markdown("<br>", unsafe_allow_html=True) 
-        
-        dash_us = st.session_state.get("dash_us", "대기 중")
-        dash_kr = st.session_state.get("dash_kr", "대기 중")
-        dash_cash = st.session_state.get("dash_cash", "-")
-        dash_risk = st.session_state.get("dash_risk", "버튼을 눌러주세요")
-        
-        st.markdown("<div class='section-header'>🧭 실시간 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown(f"""
-            <div style='background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
-                <div style='font-size:14px; color:#166534; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
-                <div style='display:flex; justify-content:space-evenly; align-items:center;'>
-                    <div>
-                        <div style='font-size:12px; color:#15803d;'>🇺🇸 미국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_us}</div>
-                    </div>
-                    <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
-                    <div>
-                        <div style='font-size:12px; color:#15803d;'>🇰🇷 한국</div>
-                        <div style='font-size:18px; font-weight:800; color:#14532d;'>{dash_kr}</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"<div style='background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#1e40af;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; color:#1e3a8a; margin-top:5px;'>{dash_cash}</div></div>", unsafe_allow_html=True)
-        with c3:
-            st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px; color:#854d0e;'>실시간 핵심 모니터링 지표</div><div style='font-size:20px; font-weight:800; color:#713f12; margin-top:5px; word-break:keep-all;'>{dash_risk}</div></div>", unsafe_allow_html=True)
+        # 💡 9번 자동 스크롤 앵커 및 실행 스크립트
+        st.markdown("<div id='report_anchor'></div>", unsafe_allow_html=True)
+        if st.session_state.get("auto_scroll"):
+            st.components.v1.html("""<script>const anchor = window.parent.document.getElementById('report_anchor'); if(anchor){anchor.scrollIntoView({behavior: 'smooth'});}</script>""", height=0)
+            st.session_state["auto_scroll"] = False
         
         if is_vip_analyzed:
-            report_content = st.session_state["vip_report"]
+            dash_status = st.session_state.get("dash_status", "대기 중")
+            dash_factor = st.session_state.get("dash_factor", "-")
+            dash_us = st.session_state.get("dash_us", "-")
+            dash_kr = st.session_state.get("dash_kr", "-")
+            dash_cash = st.session_state.get("dash_cash", "-")
             
-            import re
-            report_content = re.sub(r'\n{3,}', '\n\n', report_content)
+            # 💡 1번, 2번: 상단 3개 카드 통합 및 시장 상태 요약 추가
+            status_color = "#dc2626" if "경계" in dash_status or "위험" in dash_status else "#16a34a" if "안정" in dash_status else "#475569"
             
-            # 💡 목차 치환 로직 (새로운 5개 목차에 맞게 수정)
-            html_content = report_content.replace('[0. 핵심 매크로 지표 요약]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>0. 핵심 매크로 지표 요약</div>")
-            html_content = html_content.replace('[0. 핵심 매크로 지표 요약]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:20px; margin-bottom:6px;'>0. 핵심 매크로 지표 요약</div>")
-            html_content = html_content.replace('[1. 글로벌 거시경제 및 국면 분석]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>1. 글로벌 거시경제 및 국면 분석</div>")
-            html_content = html_content.replace('[1. 글로벌 거시경제 및 국면 분석]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>1. 글로벌 거시경제 및 국면 분석</div>")
-            html_content = html_content.replace('[2. 리스크 방어 및 현금 비중 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 및 현금 비중 전략</div>")
-            html_content = html_content.replace('[2. 리스크 방어 및 현금 비중 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>2. 리스크 방어 및 현금 비중 전략</div>")
-            html_content = html_content.replace('[3. 지표 기반 실전 투자 전략]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 지표 기반 실전 투자 전략</div>")
-            html_content = html_content.replace('[3. 지표 기반 실전 투자 전략]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>3. 지표 기반 실전 투자 전략</div>")
-            html_content = html_content.replace('[4. 마이크로 테마 유망 섹터]\n', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 마이크로 테마 유망 섹터</div>")
-            html_content = html_content.replace('[4. 마이크로 테마 유망 섹터]', "<div style='font-size:24px; font-weight:900; color:#111827; margin-top:35px; margin-bottom:6px;'>4. 마이크로 테마 유망 섹터</div>")
-            
-            html_content = html_content.replace('\n\n', "<div style='height:12px;'></div>") 
-            html_content = html_content.replace('\n', '<br>')
-            
-            current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
-
             st.markdown(f"""
-            <div style='background-color:#ffffff; border:2px solid #111827; border-radius:12px; padding:45px; margin-top:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
-                <div style='display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #e5e7eb; padding-bottom:15px; margin-bottom:25px;'>
-                    <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[데일리 VIP] 매크로 심층 리포트</h3>
-                    <span style='color:#6b7280; font-size:14px; font-weight:600;'>⏱️ {current_time}</span>
+            <div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:25px; margin-top:20px; margin-bottom:30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+                <div style='font-size:18px; font-weight:800; color:#0f172a; margin-bottom:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;'>오늘 시장 상태</div>
+                <div style='display:flex; flex-direction:column; gap:12px; margin-bottom:20px;'>
+                    <div><span style='font-size:15px; color:#64748b; font-weight:700; width:70px; display:inline-block;'>상태</span> <span style='font-size:16px; font-weight:900; color:{status_color};'>{dash_status}</span></div>
+                    <div><span style='font-size:15px; color:#64748b; font-weight:700; width:70px; display:inline-block;'>핵심 요인</span> <span style='font-size:15px; color:#334155; font-weight:700;'>{dash_factor}</span></div>
                 </div>
-                <div style='font-size:17px; line-height:1.8; color:#374151; word-break:keep-all;'>
-                    {html_content}
+                <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; display:flex; flex-direction:column; gap:12px;'>
+                    <div style='font-size:14px; color:#334155; font-weight:800; margin-bottom:4px;'>현재 시장 요약</div>
+                    <div style='font-size:15px; color:#334155;'><span style='font-weight:700; color:#64748b; margin-right:8px;'>경기:</span> 미국 {dash_us} / 한국 {dash_kr}</div>
+                    <div style='font-size:15px; color:#334155;'><span style='font-weight:700; color:#64748b; margin-right:8px;'>리스크:</span> {dash_factor}</div>
+                    <div style='font-size:15px; color:#334155;'><span style='font-weight:700; color:#64748b; margin-right:8px;'>전략:</span> {dash_cash}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-    else:
-        st.markdown("<div class='section-header'>🧭 데일리 매크로 기상도 & 비중 가이드</div>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style='display:flex; gap:15px; filter: blur(6px); user-select: none; margin-bottom:30px;'>
-            <div style='flex:1; background-color:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'>
-                <div style='font-size:14px; margin-bottom:10px;'>현재 글로벌 경기 국면</div>
-                <div style='display:flex; justify-content:space-evenly; align-items:center;'>
-                    <div>
-                        <div style='font-size:12px;'>🇺🇸 미국</div>
-                        <div style='font-size:18px; font-weight:800;'>경기 확장기</div>
-                    </div>
-                    <div style='width:1px; height:45px; background-color:#bbf7d0;'></div>
-                    <div>
-                        <div style='font-size:12px;'>🇰🇷 한국</div>
-                        <div style='font-size:18px; font-weight:800;'>회복 지연기</div>
-                    </div>
-                </div>
-            </div>
-            <div style='flex:1; background-color:#eff6ff; border:1px solid #bfdbfe; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>권장 현금 비중</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>30% 이상 확보</div></div>
-            <div style='flex:1; background-color:#fefce8; border:1px solid #fde047; padding:15px; border-radius:10px; text-align:center; height:125px; display:flex; flex-direction:column; justify-content:center;'><div style='font-size:14px;'>실시간 핵심 모니터링 지표</div><div style='font-size:22px; font-weight:800; margin-top:5px;'>CPI & 고용보고서</div></div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M 기준")
+            report_content = st.session_state["vip_report"]
+            
+            # 목차 파싱 (정규식 활용)
+            sections = re.split(r'\[([0-4]\.\s*[^\]]+)\]', report_content)
+            c_dict = {}
+            if len(sections) >= 3:
+                for i in range(1, len(sections), 2):
+                    title = sections[i].strip()
+                    body = sections[i+1].strip().replace('\n', '<br>')
+                    c_dict[title] = body
+            else:
+                c_dict['본문'] = report_content.replace('\n', '<br>')
+            
+            st.markdown("<div style='font-size:22px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #0f172a; padding-bottom:10px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
+            
+            # 💡 8번: 섹션 중요도에 따른 UI 강조 차등 적용
+            key_0 = next((k for k in c_dict if '0.' in k), None)
+            if key_0: # 0번 박스 강조
+                st.markdown(f"<div style='background-color:#fefce8; border:1px solid #fde047; border-radius:8px; padding:22px; margin-bottom:35px;'><div style='font-size:18px; font-weight:800; color:#854d0e; margin-bottom:15px;'>{key_0}</div><div style='font-size:15px; line-height:1.8; color:#3f6212; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
+            
+            key_1 = next((k for k in c_dict if '1.' in k), None)
+            if key_1:
+                st.markdown(f"<div style='margin-bottom:35px;'><div style='font-size:18px; font-weight:800; color:#0f172a; margin-bottom:12px;'>{key_1}</div><div style='font-size:15px; line-height:1.8; color:#334155; word-break:keep-all;'>{c_dict[key_1]}</div></div>", unsafe_allow_html=True)
+            
+            key_2 = next((k for k in c_dict if '2.' in k), None)
+            if key_2: # 2번 중간 강조 (좌측 보더 적용)
+                st.markdown(f"<div style='background-color:#f8fafc; border-left:4px solid #64748b; padding:20px; margin-bottom:35px;'><div style='font-size:18px; font-weight:800; color:#0f172a; margin-bottom:12px;'>{key_2}</div><div style='font-size:15px; line-height:1.8; color:#334155; word-break:keep-all;'>{c_dict[key_2]}</div></div>", unsafe_allow_html=True)
+            
+            key_3 = next((k for k in c_dict if '3.' in k), None)
+            if key_3: # 3번 일반 강조 (폰트 두께 조절)
+                st.markdown(f"<div style='margin-bottom:35px;'><div style='font-size:18px; font-weight:800; color:#0f172a; margin-bottom:12px;'>{key_3}</div><div style='font-size:15px; line-height:1.8; color:#0f172a; font-weight:600; word-break:keep-all;'>{c_dict[key_3]}</div></div>", unsafe_allow_html=True)
+            
+            key_4 = next((k for k in c_dict if '4.' in k), None)
+            if key_4: # 4번 기본 텍스트
+                st.markdown(f"<div style='margin-bottom:35px;'><div style='font-size:18px; font-weight:800; color:#0f172a; margin-bottom:12px;'>{key_4}</div><div style='font-size:15px; line-height:1.8; color:#334155; word-break:keep-all;'>{c_dict[key_4]}</div></div>", unsafe_allow_html=True)
+            
+            if '본문' in c_dict:
+                st.markdown(f"<div style='font-size:15px; line-height:1.8; color:#334155; word-break:keep-all;'>{c_dict['본문']}</div>", unsafe_allow_html=True)
 
-        st.markdown("<div class='section-header'>🌎 실시간 탑다운 전략 리포트</div>", unsafe_allow_html=True)
-        st.markdown(f"""
-        <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:40px; text-align:left; filter: blur(5px); user-select: none;'>
-            <div style='display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #e5e7eb; padding-bottom:15px; margin-bottom:25px;'>
-                <h3 style='color:#111827; margin:0; font-size:28px; font-weight:900;'>[데일리 VIP] 매크로 심층 리포트</h3>
-                <span style='color:#6b7280; font-size:14px; font-weight:600;'>⏱️ {current_time}</span>
+    else:
+        # 💡 비회원 프리뷰 화면 (아이콘 전면 제거 및 통합 UI 적용)
+        st.markdown(f"<div style='font-size:18px; font-weight:900; color:#0f172a; margin-bottom:20px;'>업데이트 시각: {cache_key} 기준</div>", unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:25px; margin-bottom:30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); filter: blur(6px); user-select: none;'>
+            <div style='font-size:18px; font-weight:800; color:#0f172a; margin-bottom:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;'>오늘 시장 상태</div>
+            <div style='display:flex; flex-direction:column; gap:12px; margin-bottom:20px;'>
+                <div><span style='font-size:15px; color:#64748b; font-weight:700; width:70px; display:inline-block;'>상태</span> <span style='font-size:16px; font-weight:900; color:#dc2626;'>경계</span></div>
+                <div><span style='font-size:15px; color:#64748b; font-weight:700; width:70px; display:inline-block;'>핵심 요인</span> <span style='font-size:15px; color:#334155; font-weight:700;'>금리 상승, 환율 상승, 변동성 확대</span></div>
             </div>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>0. 핵심 매크로 지표 요약:</b> 현재 미국 10년물 금리는 4.28%로 상승 압력을 받고 있으며...</p>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>1. 글로벌 거시경제 및 국면 분석:</b> 미국은 견조한 고용 데이터를 바탕으로 경기 확장기를...</p>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>2. 리스크 방어 전략:</b> 환율 상승 및 VIX 경계 구간 진입으로 인해 현금 비중을...</p>
-            <p style='color:#374151; font-size:17px; line-height:1.8;'><b>4. 마이크로 테마 유망 섹터:</b> AI 데이터센터 전력망 및 방산 인프라 등...</p>
+            <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; display:flex; flex-direction:column; gap:12px;'>
+                <div style='font-size:14px; color:#334155; font-weight:800; margin-bottom:4px;'>현재 시장 요약</div>
+                <div style='font-size:15px; color:#334155;'><span style='font-weight:700; color:#64748b; margin-right:8px;'>경기:</span> 미국 둔화 / 한국 회복 지연</div>
+                <div style='font-size:15px; color:#334155;'><span style='font-weight:700; color:#64748b; margin-right:8px;'>리스크:</span> 금리 상승, 달러 강세</div>
+                <div style='font-size:15px; color:#334155;'><span style='font-weight:700; color:#64748b; margin-right:8px;'>전략:</span> 현금 40% 이상 확보</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<div style='font-size:22px; font-weight:900; color:#0f172a; margin-bottom:25px; border-bottom:2px solid #0f172a; padding-bottom:10px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style='background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:30px; filter: blur(5px); user-select: none;'>
+            <p style='color:#374151; font-size:16px; line-height:1.8; font-weight:800; margin-bottom:5px;'>0. 핵심 매크로 지표 요약</p>
+            <p style='color:#374151; font-size:15px; line-height:1.8;'>금리: 상승 압력 유지 (4.28%)<br>환율: 달러 강세 지속 (1,491원)</p>
+            <br>
+            <p style='color:#374151; font-size:16px; line-height:1.8; font-weight:800; margin-bottom:5px;'>1. 글로벌 거시경제 및 국면 분석</p>
+            <p style='color:#374151; font-size:15px; line-height:1.8;'>미국은 견조한 고용 데이터를 바탕으로 경기 확장기를...</p>
         </div>
         """, unsafe_allow_html=True)
         
         st.markdown("""
-        <div style='background-color:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:30px; text-align:center; margin-top:-250px; position:relative; z-index:10;'>
-            <div style='font-size:40px; margin-bottom:10px;'>🔒</div>
-            <h3 style='color:#b45309; margin-top:0;'>Pro 멤버십 전용 프리미엄 리포트</h3>
-            <p style='color:#92400e; font-size:16px;'>실시간 거시 경제 데이터(금리/환율/VIX) 기반의 탑다운 전략과 리스크 방어, 그리고 딥다이브된 마이크로 테마 유망 섹터를 매일 아침 확인하세요.</p>
-            <p style='color:#9ca3af; font-size:14px; margin-top:15px;'>👉 왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
+        <div style='background-color:#f1f5f9; border:2px solid #cbd5e1; border-radius:12px; padding:30px; text-align:center; margin-top:-200px; position:relative; z-index:10;'>
+            <h3 style='color:#0f172a; margin-top:0;'>Pro 멤버십 전용 프리미엄 리포트</h3>
+            <p style='color:#334155; font-size:15px; line-height:1.6;'>실시간 거시 경제 데이터 기반의 탑다운 전략, 리스크 방어 논리, 그리고 행동 중심의 투자 전략을 매일 아침 확인하세요.</p>
+            <p style='color:#64748b; font-size:14px; margin-top:15px;'>왼쪽 사이드바에서 멤버십을 업그레이드할 수 있습니다.</p>
         </div>
         """, unsafe_allow_html=True)
         
