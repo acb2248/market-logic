@@ -910,7 +910,7 @@ elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
         
         live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
         
-        # 💡 프롬프트 재정비: 한국 증시 기반 섹터 제안, 0번 목차 숫자 제거, 화살표 배제
+        # 💡 프롬프트 수정: 고정 추천 배제, 매크로 해석 우선, 한국 증시 섹터 도출, 관찰형 톤 강제
         vip_prompt = f"""당신은 월스트리트 수석 펀드매니저입니다.
 현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 투자 판단을 위한 '데일리 모닝 브리핑'을 작성하세요.
 
@@ -946,17 +946,18 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
 (이하 설명 문단...)
 
 [3. 지표 기반 투자 전략]
-실제 데이터 흐름과 연결된 구체적이고 짧은 행동 지시형 전략을 불릿(•) 3개로 제시하세요. 특수문자 화살표는 쓰지 마세요.
+실제 데이터 흐름과 연결된 구체적이고 짧은 행동 지시형 전략(예: 비중 축소 권고, 방어주 비중 확대 등 실행형 문장)을 불릿(•) 3개로 제시하세요. 특수문자 화살표는 쓰지 마세요.
 예시:
-• 고금리 환경 지속 국면, 성장주 비중 축소 권고
+• 고금리 환경 지속 국면, 고밸류 성장주 비중 축소 권고
 • 변동성 확대 구간 대비 현금 비중 유지 및 단기 대응 전략 병행
 
-[4. 유망 테마 및 근거]
-막연한 글로벌 테마가 아닌, 현재 거시환경에서 '한국 주식시장'을 기준으로 상대적으로 실적 방어나 수급 유입이 기대되는 섹터(예: 방산, 수출 대형주, 배당주 등) 3가지를 제안하세요. 각 항목은 '테마명' 아래에 '1문장의 구체적 근거'를 적는 형식으로 출력하세요. 테마명 양옆에는 반드시 <b> 와 </b> 태그를 붙이세요. 화살표는 절대 쓰지 마세요.
+[4. 유망 섹터 및 근거]
+특정 섹터를 미리 고정해서 추천하지 마세요. 방금 분석한 당일 매크로 조건(금리, 환율, 지정학 리스크 등)을 우선 해석한 뒤, '한국 주식시장'을 기준으로 그 환경에서 상대적으로 설명력이 높거나 수혜/방어가 가능한 섹터를 3가지 도출하세요. (예: 환율 상승 시 수출주, 금리 상승 시 고배당/금융주, 지정학 리스크 시 방산 등 매일 지표에 따라 유동적으로 다르게 제시)
+각 항목은 '섹터명'을 <b>태그로 감싸고, 그 바로 아랫줄에 '왜 이 섹터를 봐야 하는지 관찰형 1문장(예: ~할 가능성이 존재합니다, ~기대가 커질 수 있습니다)'으로 정확히 줄바꿈하여 출력하세요. 화살표는 절대 쓰지 마세요.
 예시:
-<b>방위 산업</b>
+<b>방산</b>
 지정학 리스크 확대 국면에서 한국 증시 내 실적 기대와 수급 유입 가능성이 존재합니다.
-<b>수출 대형주</b>
+<b>수출주</b>
 환율 상승 국면에서는 원화 약세 효과로 수출 비중이 높은 업종의 실적 방어 기대가 커질 수 있습니다.
 """
         resp = client.chat.completions.create(
@@ -976,7 +977,6 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
         is_vip_analyzed = "vip_report" in st.session_state
         btn_text_vip = "오늘의 VIP 모닝 브리핑 로딩 완료" if is_vip_analyzed else "오늘의 VIP 시크릿 리포트 보기"
         
-        # 💡 1. 상단 버튼 영역 개선: 여백을 조금 줄여 콤팩트한 패널 느낌으로 마감
         st.markdown("<div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-bottom:30px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); display:flex; justify-content:center;'>", unsafe_allow_html=True)
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
             with st.spinner("데이터 분석 및 대시보드 렌더링 중..."):
@@ -1009,7 +1009,6 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                         st.error(f"오류 발생: {str(e)}")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # 자동 스크롤 앵커 및 실행
         st.markdown("<div id='report_anchor'></div>", unsafe_allow_html=True)
         if st.session_state.get("auto_scroll"):
             st.components.v1.html("""<script>const anchor = window.parent.document.getElementById('report_anchor'); if(anchor){anchor.scrollIntoView({behavior: 'smooth'});}</script>""", height=0)
@@ -1042,7 +1041,6 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             report_content = st.session_state["vip_report"]
             
-            # 목차 파싱 수정: 0번 목차 숫자 제거 반영
             sections = re.split(r'\[(핵심 매크로 지표 요약|[1-4]\.\s*[^\]]+)\]', report_content)
             c_dict = {}
             if len(sections) >= 3:
@@ -1055,7 +1053,6 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px; letter-spacing:-0.5px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
             
-            # 💡 7. 카드 내부 여백 미세 조정 (padding 18px로 밀도 증가)
             def render_common_card(title, content):
                 return f"""
                 <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px 22px; margin-bottom:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'>
@@ -1064,23 +1061,19 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                 </div>
                 """
             
-            # 0번 섹션: 핵심 매크로 지표 요약
             key_0 = next((k for k in c_dict if '요약' in k), None)
             if key_0: 
                 st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:18px 22px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
             
-            # 1번 섹션
             key_1 = next((k for k in c_dict if '1.' in k), None)
             if key_1:
                 st.markdown(render_common_card(key_1, c_dict[key_1]), unsafe_allow_html=True)
             
-            # 2번 섹션: 현금 비중 확대 근거
             key_2 = next((k for k in c_dict if '2.' in k), None)
             if key_2: 
                 body_2 = c_dict[key_2].replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:4px; font-size:14.5px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:8px;'></div>")
                 st.markdown(render_common_card(key_2, body_2), unsafe_allow_html=True)
             
-            # 💡 3번 섹션: 투자 전략 (가독성 높은 행동 지시형)
             key_3 = next((k for k in c_dict if '3.' in k), None)
             if key_3: 
                 body_3 = c_dict[key_3].replace("•", "</div><div style='margin-bottom:6px; padding-left:12px; text-indent:-12px;'><span style='color:#0f172a; font-weight:900; margin-right:4px;'>•</span><span style='color:#1e293b; font-weight:600;'>")
@@ -1088,14 +1081,27 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
                 body_3 = body_3.replace("<br></div>", "</div>").replace("</div><br>", "</div>")
                 st.markdown(render_common_card(key_3, body_3), unsafe_allow_html=True)
             
-            # 💡 4번 섹션: 유망 테마 및 근거 (화살표 제거, 테마명 진하게, 설명은 보조 텍스트 톤)
+            # 💡 4번 섹션: 레이아웃 깨짐 완벽 방지, 정규식 기반 안전 파싱 로직 적용
             key_4 = next((k for k in c_dict if '4.' in k), None)
-            if key_4: 
-                body_4 = c_dict[key_4].replace("<b>", "<div style='font-weight:800; color:#0f172a; font-size:15px; margin-top:12px; margin-bottom:2px;'>").replace("</b>", "</div>").replace("<br>", "</div><div style='color:#475569; font-size:14px; margin-bottom:6px;'>")
-                # 태그 정리를 위한 후처리
-                body_4 = body_4.replace("</div><div style='color:#475569; font-size:14px; margin-bottom:6px;'><div style='font-weight:800;", "</div><div style='font-weight:800;")
-                if body_4.startswith("</div>"): body_4 = body_4[6:]
-                st.markdown(render_common_card(key_4, body_4 + "</div>"), unsafe_allow_html=True)
+            if key_4:
+                # <b> 태그를 기준으로 섹터명과 설명문을 안전하게 추출
+                matches = re.finditer(r'<b>(.*?)</b>\s*(?:<br>)?\s*(.*?)(?=(?:<b>|$))', c_dict[key_4], re.DOTALL)
+                safe_body_4 = ""
+                for match in matches:
+                    sector_name = match.group(1).strip()
+                    desc = match.group(2).replace('<br>', ' ').strip()
+                    # 💡 섹터명과 설명 위계 정리: 블록을 명확히 닫아주어 밖으로 탈출 불가
+                    safe_body_4 += f"""
+                    <div style='margin-bottom:12px;'>
+                        <div style='font-weight:800; color:#0f172a; font-size:15px; margin-bottom:2px;'>{sector_name}</div>
+                        <div style='color:#475569; font-size:14px; line-height:1.6;'>{desc}</div>
+                    </div>
+                    """
+                
+                if safe_body_4:
+                    st.markdown(render_common_card(key_4, safe_body_4), unsafe_allow_html=True)
+                else: # 만약 <b> 태그를 못 찾았을 경우 대비한 안전장치
+                     st.markdown(render_common_card(key_4, c_dict[key_4].replace("<br>", " ")), unsafe_allow_html=True)
             
             if '본문' in c_dict:
                 st.markdown(f"<div style='font-size:14.5px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict['본문']}</div>", unsafe_allow_html=True)
