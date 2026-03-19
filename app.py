@@ -910,7 +910,6 @@ elif menu == "🔒 VIP 포트폴리오" or menu == "VIP 포트폴리오":
         
         live_data_str = f"미국 10년물 금리: {rate_str}, 원/달러 환율: {exch_str}, VIX: {vix_str}, S&P500 RSI: {rsi_str}"
         
-        # 💡 프롬프트 재정비: 4번 섹션 테마명에 <b> 태그를 강제하여 파싱 퀄리티를 높임
         vip_prompt = f"""당신은 월스트리트 수석 펀드매니저입니다.
 현재 수집된 실시간 시장 데이터({live_data_str})를 기반으로 투자 판단을 위한 '데일리 모닝 브리핑'을 작성하세요.
 
@@ -975,8 +974,8 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
         is_vip_analyzed = "vip_report" in st.session_state
         btn_text_vip = "오늘의 VIP 모닝 브리핑 로딩 완료" if is_vip_analyzed else "오늘의 VIP 시크릿 리포트 보기"
         
-        # 💡 상단 빈 박스(패널) 제거, 버튼만 깔끔하게 유지
-        st.markdown("<div style='margin-bottom:30px;'>", unsafe_allow_html=True)
+        # 💡 1. 상단 버튼 영역 개선: 약한 배경색과 보더로 패널 느낌 강화, 여백 조정
+        st.markdown("<div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-bottom:30px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);'>", unsafe_allow_html=True)
         if st.button(btn_text_vip, type="primary", disabled=is_vip_analyzed, use_container_width=True):
             with st.spinner("데이터 분석 및 대시보드 렌더링 중..."):
                 if not api_key:
@@ -1053,43 +1052,46 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
             
             st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px; letter-spacing:-0.5px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
             
-            # 💡 1~4번 공통 컨테이너 렌더링 함수 선언
+            # 💡 4. 카드 내부 여백 미세 조정 (padding 24px -> 20px 축소로 응집감 부여)
             def render_common_card(title, content):
                 return f"""
-                <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:24px; margin-bottom:24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'>
-                    <div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;'>{title}</div>
+                <div style='background-color:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin-bottom:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'>
+                    <div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>{title}</div>
                     <div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all;'>{content}</div>
                 </div>
                 """
             
-            # 0번 섹션: 유일한 배경색 강조 박스
             key_0 = next((k for k in c_dict if '0.' in k), None)
             if key_0: 
-                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:24px; margin-bottom:24px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:12px;'>{key_0}</div><div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:20px; margin-bottom:20px;'><div style='font-size:16px; font-weight:800; color:#0f172a; margin-bottom:10px;'>{key_0}</div><div style='font-size:15px; line-height:1.7; color:#334155; word-break:keep-all;'>{c_dict[key_0]}</div></div>", unsafe_allow_html=True)
             
-            # 1번 섹션: 일반 문단 (공통 껍데기 적용)
             key_1 = next((k for k in c_dict if '1.' in k), None)
             if key_1:
                 st.markdown(render_common_card(key_1, c_dict[key_1]), unsafe_allow_html=True)
             
-            # 2번 섹션: 리스크 방어 전략 (공통 껍데기 + 내부 HTML 파싱 조절로 여백 축소)
             key_2 = next((k for k in c_dict if '2.' in k), None)
             if key_2: 
-                body_2 = c_dict[key_2].replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:6px; font-size:15px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:10px;'></div>")
+                body_2 = c_dict[key_2].replace("현금 비중 확대 근거", "<div style='font-weight:800; color:#0f172a; margin-bottom:6px; font-size:15px;'>현금 비중 확대 근거</div>").replace("<br><br>", "<div style='height:8px;'></div>")
                 st.markdown(render_common_card(key_2, body_2), unsafe_allow_html=True)
             
-            # 3번 섹션: 투자 전략 (공통 껍데기 + 불릿 기호 강조 디자인)
+            # 💡 2. 3번 섹션 내부 가독성 개선 (리스트 간격 추가 및 불릿 또렷하게)
             key_3 = next((k for k in c_dict if '3.' in k), None)
             if key_3: 
-                body_3 = c_dict[key_3].replace("•", "<br><span style='color:#0f172a; font-weight:800; margin-right:6px;'>•</span>")
-                if body_3.startswith("<br>"): body_3 = body_3[4:]
+                # 각 불릿 항목을 묶는 div를 생성하여 하단 여백 부여
+                body_3 = c_dict[key_3].replace("•", "</div><div style='margin-bottom:8px;'><span style='color:#0f172a; font-weight:900; margin-right:8px;'>•</span><span style='color:#1e293b; font-weight:600;'>")
+                if body_3.startswith("</div>"): body_3 = body_3[6:] + "</span></div>" # 첫 닫는 div 제거 및 마지막 닫기
+                body_3 = body_3.replace("<br></div>", "</div>").replace("</div><br>", "</div>") # 불필요한 줄바꿈 제거
                 st.markdown(render_common_card(key_3, body_3), unsafe_allow_html=True)
             
-            # 4번 섹션: 마이크로 테마 (공통 껍데기 + <b> 태그를 소제목 블록으로 파싱)
+            # 💡 3. 4번 섹션 위계 강화 (테마명 크기/굵기 확대, 설명은 보조 텍스트 톤 적용)
             key_4 = next((k for k in c_dict if '4.' in k), None)
             if key_4: 
-                body_4 = c_dict[key_4].replace("<b>", "<div style='font-weight:800; color:#0f172a; font-size:15px; margin-top:14px; margin-bottom:2px;'>").replace("</b>", "</div>").replace("->", "<span style='color:#94a3b8; font-weight:700; margin-right:6px;'>↳</span>").replace("-&gt;", "<span style='color:#94a3b8; font-weight:700; margin-right:6px;'>↳</span>")
-                if body_4.startswith("<div style='height:10px;'></div>"): body_4 = body_4[30:]
+                body_4 = c_dict[key_4].replace("<b>", "<div style='font-weight:900; color:#0f172a; font-size:15px; margin-top:12px; margin-bottom:2px;'>").replace("</b>", "</div>").replace("->", "<div style='color:#475569; font-size:14px; padding-left:5px;'><span style='color:#94a3b8; font-weight:700; margin-right:6px;'>↳</span>").replace("-&gt;", "<div style='color:#475569; font-size:14px; padding-left:5px;'><span style='color:#94a3b8; font-weight:700; margin-right:6px;'>↳</span>")
+                # 설명 문단 닫기 태그 처리를 위해 약간의 야매 파싱 적용
+                body_4 = body_4.replace("<br><div style='font-weight", "</div><div style='font-weight") 
+                if not body_4.endswith("</div>"): body_4 += "</div>"
+                if body_4.startswith("<div style='height:8px;'></div>"): body_4 = body_4[31:]
+                if body_4.startswith("<div style='height:10px;'></div>"): body_4 = body_4[32:]
                 st.markdown(render_common_card(key_4, body_4), unsafe_allow_html=True)
             
             if '본문' in c_dict:
@@ -1110,8 +1112,8 @@ RSI: <span style="color:#16a34a; font-weight:bold;">과매도 근접</span> ({rs
 
         st.markdown("<div style='font-size:20px; font-weight:900; color:#0f172a; margin-top:10px; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:8px;'>데일리 매크로 심층 리포트</div>", unsafe_allow_html=True)
         st.markdown(f"""
-        <div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:24px; filter: blur(5px); user-select: none;'>
-            <p style='color:#0f172a; font-size:16px; font-weight:800; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;'>0. 핵심 매크로 지표 요약</p>
+        <div style='background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; filter: blur(5px); user-select: none;'>
+            <p style='color:#0f172a; font-size:16px; font-weight:800; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;'>0. 핵심 매크로 지표 요약</p>
             <p style='color:#334155; font-size:15px; line-height:1.7;'>금리: 상승 압력 유지 (4.28%)<br>환율: 달러 강세 지속 (1,491원)</p>
         </div>
         """, unsafe_allow_html=True)
