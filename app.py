@@ -453,47 +453,42 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
 
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
     with st.container(border=True):
+        # 💡 마법의 CSS: 버튼 줄바꿈 방지 + 버튼 우측 정렬(flex-end) + 맨 끝에서 살짝 띄우기(padding-right)
         st.markdown("""
         <style>
-        /* 1. 내부 패딩 살짝 축소 */
-        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 15px 15px !important; }
-
-        /* 2. 라디오 버튼 그룹 설정 */
+        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 20px 25px !important; }
         div[role="radiogroup"] { 
-            flex-wrap: wrap !important;
-            gap: 2px 6px !important; 
-            justify-content: flex-start !important; /* 위아래로 떨어졌을 때 왼쪽 정렬되어 깔끔하게 보이도록 설정 */
+            flex-wrap: wrap !important; /* 💡 nowrap을 wrap으로 변경하여 좁을 때 줄바꿈 허용! */
+            gap: 5px 8px !important; /* 💡 줄이 바뀌었을 때 위아래 간격(5px)을 추가로 줌 */
+            justify-content: flex-end !important; /* 버튼 우측 밀기 */
+            padding-right: 8px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
         }
-        div[role="radiogroup"] p { font-size: 11.5px !important; white-space: nowrap !important; }
-
-        /* 3. 🔥 Streamlit 고정폭 박살내기 (확실한 자동 줄바꿈) 🔥 */
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
-            flex-wrap: wrap !important;
-        }
-        
-        /* 💡 임계값을 160px로 대폭 상향! 
-           이제 카드 폭이 320px(160+160) 이하로 좁아지면 무조건 위아래(세로)로 스르륵 분리됩니다! */
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-            flex: 1 1 160px !important; 
-            width: auto !important;     /* Streamlit이 억지로 50%씩 나누는 걸 무력화 */
-            max-width: 100% !important;
-        }
+        div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
+        div[role="radiogroup"] p { font-size: 13px !important; }
         </style>
         """, unsafe_allow_html=True)
 
-        c1, c2 = st.columns([1, 1]) 
-        with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
-        with c2: 
-            # 라디오 버튼이 밑으로 내려왔을 때 위쪽 숫자와 너무 붙지 않도록 여백 한 스푼 추가
-            st.markdown('<div style="margin-top: 5px;"></div>', unsafe_allow_html=True)
-            selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+        if use_columns:
+            c1, c2 = st.columns([1.5, 1.5])
+            with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
+            with c2: 
+                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
+                selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+        else:
+            # 💡 미국 3대 지수도 위아래로 쌓지 않고 무조건 가로(좌-우) 1줄 배치로 양식 통일! (비율만 1.2 : 1.8로 맞춰줌)
+            c1, c2 = st.columns([1.2, 1.8])
+            with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
+            with c2: 
+                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
+                selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            st.markdown(f"<div style='text-align: right; font-size: 10px; color: #9ca3af; margin-top: 15px; margin-bottom: 5px; line-height: 1.4; word-break: keep-all;'>출처: {meta['source']} | 기준일: {today_str} | 단위: {meta['unit']}</div>", unsafe_allow_html=True)
+            # 💡 메타데이터가 기간 버튼 밑, 차트 위로 겹침 없이 한 줄로 쫙 펴집니다!
+            st.markdown(f"<div style='text-align: right; font-size: 11px; color: #9ca3af; margin-top: 15px; margin-bottom: 10px; white-space: nowrap;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
         else:
-            st.markdown('<div style="margin-top: 10px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, period=selected_period, height=120)
