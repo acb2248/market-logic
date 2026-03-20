@@ -455,38 +455,34 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
     with st.container(border=True):
         st.markdown("""
         <style>
-        /* 1. 기본 스타일 (전체화면 모드 - 넓을 때) */
-        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 15px 20px !important; }
+        /* 1. 내부 패딩 살짝 축소 (좁은 화면에서 라디오 버튼이 숨 쉴 공간 확보) */
+        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 15px 15px !important; }
+
+        /* 2. 라디오 버튼 자체 정렬 및 크기 조정 */
         div[role="radiogroup"] { 
             flex-wrap: wrap !important;
-            gap: 4px 6px !important; 
-            justify-content: flex-end !important; /* 라디오 버튼 우측 정렬 */
+            gap: 2px 6px !important; 
         }
-        div[role="radiogroup"] label { margin-right: 0px !important; }
-        div[role="radiogroup"] p { font-size: clamp(11px, 1vw + 10px, 12px) !important; white-space: nowrap !important; }
+        div[role="radiogroup"] p { font-size: 11.5px !important; white-space: nowrap !important; }
+
+        /* 3. 🚨 뭉개짐을 완벽히 막아주는 절대 마법 (스마트 자동 줄바꿈) 🚨 */
+        /* Streamlit이 억지로 가로로 고정하는 묶음을 풀고 줄바꿈을 허용합니다 */
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+        }
         
-        /* 2. 💡 반응형 마법 (화면 폭이 1100px 이하로 좁아질 때만 발동!) */
-        @media (max-width: 1100px) {
-            /* 억지로 가로로 나누던 컬럼을 세로로 층층이 쌓아버립니다 */
-            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
-                flex-direction: column !important;
-            }
-            /* 각 요소(숫자, 라디오버튼)가 카드 너비를 100% 꽉 채우도록 설정 */
-            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
-                width: 100% !important;
-                min-width: 100% !important;
-            }
-            /* 세로로 쌓였으니 라디오 버튼도 우측이 아닌 좌측으로 예쁘게 정렬 */
-            div[role="radiogroup"] {
-                justify-content: flex-start !important;
-                margin-top: 5px !important;
-            }
+        /* 왼쪽 숫자와 오른쪽 라디오버튼이 "최소 130px"의 공간은 무조건 보장받도록 명령합니다. 
+           만약 카드 폭이 260px 이하로 좁아지면, 서로 박치기하지 않고 라디오버튼이 아래로 스르륵 내려갑니다! */
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            min-width: 130px !important; 
+            width: auto !important; /* Streamlit의 고정 폭 % 무력화 */
+            flex: 1 1 130px !important; /* 남는 공간에 맞춰 유연하게 늘어남 */
         }
         </style>
         """, unsafe_allow_html=True)
 
-        # 💡 다시 st.columns를 부활시켰습니다! (CSS가 알아서 가로/세로를 컨트롤합니다)
-        c1, c2 = st.columns([1, 1.2]) 
+        # 이제 st.columns의 숫자는 CSS가 무시하므로 편하게 1:1로 두셔도 됩니다.
+        c1, c2 = st.columns([1, 1]) 
         with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
         with c2: 
             selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
@@ -494,7 +490,8 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            st.markdown(f"<div style='text-align: right; font-size: 11px; color: #9ca3af; margin-top: 10px; margin-bottom: 10px; line-height: 1.4;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
+            # 좁은 화면을 대비해 텍스트 크기와 줄바꿈 속성을 살짝 다듬었습니다.
+            st.markdown(f"<div style='text-align: right; font-size: 10px; color: #9ca3af; margin-top: 15px; margin-bottom: 5px; line-height: 1.4; word-break: keep-all;'>출처: {meta['source']} | 기준일: {today_str} | 단위: {meta['unit']}</div>", unsafe_allow_html=True)
         else:
             st.markdown('<div style="margin-top: 10px;"></div>', unsafe_allow_html=True)
             
