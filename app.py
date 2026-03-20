@@ -456,19 +456,32 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         # 💡 마법의 CSS: 버튼 줄바꿈 방지 + 버튼 우측 정렬(flex-end) + 맨 끝에서 살짝 띄우기(padding-right)
         st.markdown("""
         <style>
+        /* 1. 전체화면 (기본): 선생님의 원본 세팅 그대로 유지 */
         div[data-testid="stVerticalBlockBorderWrapper"] { padding: 20px 25px !important; }
         div[role="radiogroup"] { 
-            flex-wrap: wrap !important; /* 💡 nowrap을 wrap으로 변경하여 좁을 때 줄바꿈 허용! */
-            gap: 5px 8px !important; /* 💡 줄이 바뀌었을 때 위아래 간격(5px)을 추가로 줌 */
-            justify-content: flex-end !important; /* 버튼 우측 밀기 */
-            padding-right: 8px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
+            flex-wrap: wrap !important; 
+            gap: 5px 8px !important; 
+            justify-content: flex-end !important; 
+            padding-right: 8px !important; 
         }
         div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
         div[role="radiogroup"] p { font-size: 13px !important; }
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
-            min-width: 160px !important; 
-            flex-grow: 1 !important; 
+
+        /* 2. 💡 분할화면 (좁은화면): 안전하게 위아래로 분리하는 마법 */
+        @media (max-width: 1100px) {
+            /* 억지로 50:50으로 나뉜 공간을 위아래(세로)로 배치되게 바꿉니다 */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
+                flex-direction: column !important; 
+            }
+            /* 숫자와 라디오버튼이 각각 가로 100% 공간을 쓰도록 넓혀서 겹침 방지 */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
+                width: 100% !important; 
+            }
+            /* 밑으로 내려온 라디오버튼을 보기 좋게 좌측 정렬 */
+            div[role="radiogroup"] {
+                justify-content: flex-start !important;
+                margin-top: 5px !important;
+            }
         }
         </style>
         """, unsafe_allow_html=True)
