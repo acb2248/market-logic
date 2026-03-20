@@ -455,42 +455,42 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
     with st.container(border=True):
         st.markdown("""
         <style>
-        /* 1. 내부 패딩 살짝 축소 (좁은 화면에서 라디오 버튼이 숨 쉴 공간 확보) */
+        /* 1. 내부 패딩 살짝 축소 */
         div[data-testid="stVerticalBlockBorderWrapper"] { padding: 15px 15px !important; }
 
-        /* 2. 라디오 버튼 자체 정렬 및 크기 조정 */
+        /* 2. 라디오 버튼 그룹 설정 */
         div[role="radiogroup"] { 
             flex-wrap: wrap !important;
             gap: 2px 6px !important; 
+            justify-content: flex-start !important; /* 위아래로 떨어졌을 때 왼쪽 정렬되어 깔끔하게 보이도록 설정 */
         }
         div[role="radiogroup"] p { font-size: 11.5px !important; white-space: nowrap !important; }
 
-        /* 3. 🚨 뭉개짐을 완벽히 막아주는 절대 마법 (스마트 자동 줄바꿈) 🚨 */
-        /* Streamlit이 억지로 가로로 고정하는 묶음을 풀고 줄바꿈을 허용합니다 */
+        /* 3. 🔥 Streamlit 고정폭 박살내기 (확실한 자동 줄바꿈) 🔥 */
         div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
             flex-wrap: wrap !important;
         }
         
-        /* 왼쪽 숫자와 오른쪽 라디오버튼이 "최소 130px"의 공간은 무조건 보장받도록 명령합니다. 
-           만약 카드 폭이 260px 이하로 좁아지면, 서로 박치기하지 않고 라디오버튼이 아래로 스르륵 내려갑니다! */
+        /* 💡 임계값을 160px로 대폭 상향! 
+           이제 카드 폭이 320px(160+160) 이하로 좁아지면 무조건 위아래(세로)로 스르륵 분리됩니다! */
         div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-            min-width: 130px !important; 
-            width: auto !important; /* Streamlit의 고정 폭 % 무력화 */
-            flex: 1 1 130px !important; /* 남는 공간에 맞춰 유연하게 늘어남 */
+            flex: 1 1 160px !important; 
+            width: auto !important;     /* Streamlit이 억지로 50%씩 나누는 걸 무력화 */
+            max-width: 100% !important;
         }
         </style>
         """, unsafe_allow_html=True)
 
-        # 이제 st.columns의 숫자는 CSS가 무시하므로 편하게 1:1로 두셔도 됩니다.
         c1, c2 = st.columns([1, 1]) 
         with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
         with c2: 
+            # 라디오 버튼이 밑으로 내려왔을 때 위쪽 숫자와 너무 붙지 않도록 여백 한 스푼 추가
+            st.markdown('<div style="margin-top: 5px;"></div>', unsafe_allow_html=True)
             selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            # 좁은 화면을 대비해 텍스트 크기와 줄바꿈 속성을 살짝 다듬었습니다.
             st.markdown(f"<div style='text-align: right; font-size: 10px; color: #9ca3af; margin-top: 15px; margin-bottom: 5px; line-height: 1.4; word-break: keep-all;'>출처: {meta['source']} | 기준일: {today_str} | 단위: {meta['unit']}</div>", unsafe_allow_html=True)
         else:
             st.markdown('<div style="margin-top: 10px;"></div>', unsafe_allow_html=True)
