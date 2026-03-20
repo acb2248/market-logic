@@ -453,40 +453,48 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
 
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
     with st.container(border=True):
-        # 💡 마법의 CSS: 버튼 줄바꿈 방지 + 버튼 우측 정렬(flex-end) + 맨 끝에서 살짝 띄우기(padding-right)
+        # 💡 반응형 CSS 마법: 좁은 화면에서는 자연스럽게 겹치지 않고 줄바꿈 허용!
         st.markdown("""
         <style>
-        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 20px 25px !important; }
+        /* 기본 패딩 여백 조정 */
+        div[data-testid="stVerticalBlockBorderWrapper"] { padding: 15px 20px !important; }
+        
+        /* 💡 라디오 버튼 그룹 반응형 설정 */
         div[role="radiogroup"] { 
-            flex-wrap: wrap !important; /* 💡 nowrap을 wrap으로 변경하여 좁을 때 줄바꿈 허용! */
-            gap: 5px 8px !important; /* 💡 줄이 바뀌었을 때 위아래 간격(5px)을 추가로 줌 */
-            justify-content: flex-end !important; /* 버튼 우측 밀기 */
-            padding-right: 8px !important; /* 너무 끝에 붙지 않게 살짝 띄움 */
+            flex-wrap: wrap !important; /* 화면 좁으면 줄바꿈 허용 */
+            gap: 4px 6px !important; /* 버튼 사이 간격 */
+            justify-content: flex-end !important; /* 기본 우측 정렬 */
+            padding-top: 5px !important;
         }
-        div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
-        div[role="radiogroup"] p { font-size: 13px !important; }
+        /* 💡 라디오 버튼 텍스트 크기 반응형 조절 */
+        div[role="radiogroup"] label { margin-right: 2px !important; }
+        div[role="radiogroup"] p { font-size: clamp(11px, 1vw + 10px, 13px) !important; white-space: nowrap !important; }
+        
+        /* 💡 컬럼 내부 요소가 너무 좁을 때 겹치는 현상 방지용 미디어 쿼리 대체 속성 */
+        @media (max-width: 800px) {
+            div[role="radiogroup"] { justify-content: flex-start !important; }
+        }
         </style>
         """, unsafe_allow_html=True)
 
+        # 💡 st.columns 대신 화면 크기에 따라 반응하는 로직 추가
+        # 컬럼을 나누되, 화면이 좁을 때는 라디오 버튼이 자연스럽게 자리를 잡도록 비율을 조정합니다.
         if use_columns:
-            c1, c2 = st.columns([1.5, 1.5])
+            c1, c2 = st.columns([1, 1.2]) # 폭이 좁을 때를 대비해 라디오 버튼 쪽(c2) 비율을 늘림
             with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
             with c2: 
-                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
                 selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         else:
-            # 💡 미국 3대 지수도 위아래로 쌓지 않고 무조건 가로(좌-우) 1줄 배치로 양식 통일! (비율만 1.2 : 1.8로 맞춰줌)
-            c1, c2 = st.columns([1.2, 1.8])
+            c1, c2 = st.columns([1, 1.2]) # 비율 동일하게 적용
             with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
             with c2: 
-                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
                 selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            # 💡 메타데이터가 기간 버튼 밑, 차트 위로 겹침 없이 한 줄로 쫙 펴집니다!
-            st.markdown(f"<div style='text-align: right; font-size: 11px; color: #9ca3af; margin-top: 15px; margin-bottom: 10px; white-space: nowrap;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
+            # 💡 white-space: nowrap을 삭제하여 화면이 좁아지면 출처 텍스트가 자연스럽게 줄바꿈 되도록 수정!
+            st.markdown(f"<div style='text-align: right; font-size: clamp(10px, 1vw + 9px, 11px); color: #9ca3af; margin-top: 15px; margin-bottom: 10px; line-height: 1.4;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
         else:
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             
