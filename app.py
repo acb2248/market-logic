@@ -453,50 +453,50 @@ def styled_metric(label, value, change, pct_change, unit="", up_color="#ef4444",
 
 def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key, up_c, down_c, unit="", use_columns=True):
     with st.container(border=True):
-        # 💡 반응형 CSS 마법: 좁은 화면에서는 자연스럽게 겹치지 않고 줄바꿈 허용!
         st.markdown("""
         <style>
-        /* 기본 패딩 여백 조정 */
+        /* 1. 기본 스타일 (전체화면 모드 - 넓을 때) */
         div[data-testid="stVerticalBlockBorderWrapper"] { padding: 15px 20px !important; }
-        
-        /* 💡 라디오 버튼 그룹 반응형 설정 */
         div[role="radiogroup"] { 
-            flex-wrap: wrap !important; /* 화면 좁으면 줄바꿈 허용 */
-            gap: 4px 6px !important; /* 버튼 사이 간격 */
-            justify-content: flex-end !important; /* 기본 우측 정렬 */
-            padding-top: 5px !important;
+            flex-wrap: wrap !important;
+            gap: 4px 6px !important; 
+            justify-content: flex-end !important; /* 라디오 버튼 우측 정렬 */
         }
-        /* 💡 라디오 버튼 텍스트 크기 반응형 조절 */
-        div[role="radiogroup"] label { margin-right: 2px !important; }
-        div[role="radiogroup"] p { font-size: clamp(11px, 1vw + 10px, 13px) !important; white-space: nowrap !important; }
+        div[role="radiogroup"] label { margin-right: 0px !important; }
+        div[role="radiogroup"] p { font-size: clamp(11px, 1vw + 10px, 12px) !important; white-space: nowrap !important; }
         
-        /* 💡 컬럼 내부 요소가 너무 좁을 때 겹치는 현상 방지용 미디어 쿼리 대체 속성 */
-        @media (max-width: 800px) {
-            div[role="radiogroup"] { justify-content: flex-start !important; }
+        /* 2. 💡 반응형 마법 (화면 폭이 1100px 이하로 좁아질 때만 발동!) */
+        @media (max-width: 1100px) {
+            /* 억지로 가로로 나누던 컬럼을 세로로 층층이 쌓아버립니다 */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
+                flex-direction: column !important;
+            }
+            /* 각 요소(숫자, 라디오버튼)가 카드 너비를 100% 꽉 채우도록 설정 */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+            /* 세로로 쌓였으니 라디오 버튼도 우측이 아닌 좌측으로 예쁘게 정렬 */
+            div[role="radiogroup"] {
+                justify-content: flex-start !important;
+                margin-top: 5px !important;
+            }
         }
         </style>
         """, unsafe_allow_html=True)
 
-        # 💡 st.columns 대신 화면 크기에 따라 반응하는 로직 추가
-        # 컬럼을 나누되, 화면이 좁을 때는 라디오 버튼이 자연스럽게 자리를 잡도록 비율을 조정합니다.
-        if use_columns:
-            c1, c2 = st.columns([1, 1.2]) # 폭이 좁을 때를 대비해 라디오 버튼 쪽(c2) 비율을 늘림
-            with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
-            with c2: 
-                selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
-        else:
-            c1, c2 = st.columns([1, 1.2]) # 비율 동일하게 적용
-            with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
-            with c2: 
-                selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
+        # 💡 다시 st.columns를 부활시켰습니다! (CSS가 알아서 가로/세로를 컨트롤합니다)
+        c1, c2 = st.columns([1, 1.2]) 
+        with c1: styled_metric(label, val, chg, pct, unit, up_c, down_c)
+        with c2: 
+            selected_period = st.radio("기간", periods, index=default_idx, key=key, horizontal=True, label_visibility="collapsed")
         
         meta = indicator_meta.get(label) 
         if meta:
             today_str = datetime.now().strftime("%Y-%m-%d")
-            # 💡 white-space: nowrap을 삭제하여 화면이 좁아지면 출처 텍스트가 자연스럽게 줄바꿈 되도록 수정!
-            st.markdown(f"<div style='text-align: right; font-size: clamp(10px, 1vw + 9px, 11px); color: #9ca3af; margin-top: 15px; margin-bottom: 10px; line-height: 1.4;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: right; font-size: 11px; color: #9ca3af; margin-top: 10px; margin-bottom: 10px; line-height: 1.4;'>출처: {meta['source']} &nbsp;|&nbsp; 기준일: {today_str} &nbsp;|&nbsp; 단위: {meta['unit']}</div>", unsafe_allow_html=True)
         else:
-            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="margin-top: 10px;"></div>', unsafe_allow_html=True)
             
         filtered_data = filter_data_by_period(data, selected_period)
         create_chart(filtered_data, color, period=selected_period, height=120)
