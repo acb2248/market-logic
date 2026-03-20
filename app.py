@@ -465,6 +465,11 @@ def draw_chart_unit(label, val, chg, pct, data, color, periods, default_idx, key
         }
         div[role="radiogroup"] label { white-space: nowrap !important; margin-right: 5px !important; }
         div[role="radiogroup"] p { font-size: 13px !important; }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
+            min-width: 160px !important; 
+            flex-grow: 1 !important; 
+        }
         </style>
         """, unsafe_allow_html=True)
 
